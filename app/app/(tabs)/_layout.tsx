@@ -1,6 +1,14 @@
-import React from 'react';
+import React, { useEffect } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+} from 'react-native-reanimated';
+import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { Colors, Typography } from '../../src/constants';
 
 type TabIconName = 'grid' | 'calendar' | 'locate' | 'trophy' | 'bulb';
@@ -14,33 +22,120 @@ const TAB_ICONS: Record<string, { active: TabIconName; inactive: TabIconOutline 
   insights: { active: 'bulb', inactive: 'bulb-outline' },
 };
 
+const TAB_ORDER = ['dashboard', 'calendar', 'plan', 'arena', 'insights'];
+
+function TabIcon({ name, focused }: { name: string; focused: boolean }) {
+  const icons = TAB_ICONS[name];
+  if (!icons) return null;
+  const iconName = focused ? icons.active : icons.inactive;
+  const color = focused ? '#00D09C' : Colors.tabInactive;
+
+  const scale = useSharedValue(focused ? 1.15 : 1);
+
+  useEffect(() => {
+    scale.value = withSpring(focused ? 1.15 : 1, { damping: 18, stiffness: 200 });
+  }, [focused]);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+
+  return (
+    <Animated.View style={[styles.iconWrapper, animatedStyle, focused && styles.iconGlow]}>
+      <Ionicons name={iconName} size={22} color={color} />
+    </Animated.View>
+  );
+}
+
+function CustomTabBar({ state, descriptors, navigation, insets }: BottomTabBarProps) {
+  const indicatorX = useSharedValue(0);
+
+  const activeIndex = state.index;
+
+  useEffect(() => {
+    // Each tab takes roughly 1/5 of the screen width
+    // We compute the center position based on index
+    // The actual tab width depends on screen, we use percentages via layout
+    indicatorX.value = withSpring(activeIndex, { damping: 18, stiffness: 200 });
+  }, [activeIndex]);
+
+  const indicatorStyle = useAnimatedStyle(() => {
+    // We'll position the indicator based on the fractional index
+    // Each tab is 20% width, we center a 60px pill
+    return {
+      left: `${indicatorX.value * 20 + 10 - 6}%` as unknown as number,
+    };
+  });
+
+  return (
+    <View style={[styles.tabBarContainer, { paddingBottom: insets.bottom }]}>
+      {/* Top glow line */}
+      <LinearGradient
+        colors={['transparent', Colors.glassBorderLight, 'transparent']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+        style={styles.glowLine}
+      />
+      {/* Active indicator pill */}
+      <Animated.View style={[styles.indicator, indicatorStyle]} />
+      <View style={styles.tabsRow}>
+        {state.routes.map((route, index) => {
+          const { options } = descriptors[route.key];
+          const label = options.title ?? route.name;
+          const isFocused = state.index === index;
+
+          const onPress = () => {
+            const event = navigation.emit({
+              type: 'tabPress',
+              target: route.key,
+              canPreventDefault: true,
+            });
+
+            if (!isFocused && !event.defaultPrevented) {
+              navigation.navigate(route.name);
+            }
+          };
+
+          const onLongPress = () => {
+            navigation.emit({
+              type: 'tabLongPress',
+              target: route.key,
+            });
+          };
+
+          return (
+            <TouchableOpacity
+              key={route.key}
+              accessibilityRole="button"
+              accessibilityState={isFocused ? { selected: true } : {}}
+              accessibilityLabel={options.tabBarAccessibilityLabel}
+              onPress={onPress}
+              onLongPress={onLongPress}
+              style={styles.tab}
+              activeOpacity={0.7}
+            >
+              <TabIcon name={route.name} focused={isFocused} />
+              <Text
+                style={[
+                  styles.tabLabel,
+                  { color: isFocused ? '#00D09C' : Colors.tabInactive },
+                ]}
+              >
+                {label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+    </View>
+  );
+}
+
 export default function TabsLayout() {
   return (
     <Tabs
-      screenOptions={({ route }) => ({
-        headerShown: false,
-        tabBarActiveTintColor: Colors.tabActive,
-        tabBarInactiveTintColor: Colors.tabInactive,
-        tabBarStyle: {
-          backgroundColor: Colors.tabBarBackground,
-          borderTopColor: Colors.tabBarBorder,
-          borderTopWidth: 1,
-          height: 80,
-          paddingBottom: 20,
-          paddingTop: 8,
-        },
-        tabBarLabelStyle: {
-          fontFamily: 'DMSans_500Medium',
-          fontSize: Typography.sizes.xs,
-          fontWeight: '500',
-        },
-        tabBarIcon: ({ focused, color, size }) => {
-          const icons = TAB_ICONS[route.name];
-          if (!icons) return null;
-          const iconName = focused ? icons.active : icons.inactive;
-          return <Ionicons name={iconName} size={size} color={color} />;
-        },
-      })}
+      tabBar={(props) => <CustomTabBar {...props} />}
+      screenOptions={{ headerShown: false }}
     >
       <Tabs.Screen
         name="dashboard"
@@ -65,3 +160,51 @@ export default function TabsLayout() {
     </Tabs>
   );
 }
+
+const styles = StyleSheet.create({
+  tabBarContainer: {
+    backgroundColor: Colors.glassBg,
+    position: 'relative',
+  },
+  glowLine: {
+    height: 1,
+    width: '100%',
+  },
+  tabsRow: {
+    flexDirection: 'row',
+    paddingTop: 8,
+    paddingBottom: 8,
+  },
+  tab: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 4,
+  },
+  tabLabel: {
+    fontFamily: 'DMSans_500Medium',
+    fontSize: Typography.sizes.xs,
+    fontWeight: '500',
+    marginTop: 4,
+  },
+  indicator: {
+    position: 'absolute',
+    top: 9,
+    width: 60,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(0, 208, 156, 0.15)',
+  },
+  iconWrapper: {
+    width: 32,
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  iconGlow: {
+    shadowColor: Colors.glowTeal,
+    shadowRadius: 10,
+    shadowOpacity: 0.3,
+    shadowOffset: { width: 0, height: 0 },
+  },
+});

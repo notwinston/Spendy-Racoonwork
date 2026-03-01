@@ -1,7 +1,8 @@
 import React, { useEffect, useCallback } from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { ActivityIndicator, View, StyleSheet } from 'react-native';
+import { ActivityIndicator, View, StyleSheet, ColorValue } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import { Syne_700Bold, Syne_800ExtraBold } from '@expo-google-fonts/syne';
@@ -62,9 +63,13 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <StatusBar style="light" />
       {isLoading && (
-        <View style={styles.loading}>
+        <LinearGradient
+          colors={Colors.gradientMeshPrimary as unknown as [ColorValue, ColorValue, ...ColorValue[]]}
+          locations={[0, 0.3, 0.7, 1]}
+          style={styles.loading}
+        >
           <ActivityIndicator size="large" color={Colors.accent} />
-        </View>
+        </LinearGradient>
       )}
       <Stack
         screenOptions={{
