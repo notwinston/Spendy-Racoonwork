@@ -158,9 +158,31 @@ export default function BudgetDetailScreen() {
         </Card>
 
         {/* Transactions */}
-        <Text style={styles.sectionTitle}>
-          Transactions ({categoryTxns.length})
-        </Text>
+        <View style={styles.txnHeaderRow}>
+          <Text style={styles.sectionTitle}>
+            Transactions ({categoryTxns.length})
+          </Text>
+          <View style={styles.sortToggle}>
+            <TouchableOpacity
+              style={[styles.sortButton, sortOption === 'newest' && styles.sortButtonActive]}
+              onPress={() => setSortOption('newest')}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.sortButtonText, sortOption === 'newest' && styles.sortButtonTextActive]}>
+                Newest
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.sortButton, sortOption === 'largest' && styles.sortButtonActive]}
+              onPress={() => setSortOption('largest')}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.sortButtonText, sortOption === 'largest' && styles.sortButtonTextActive]}>
+                Largest
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
         <Card>
           {categoryTxns.slice(0, 10).map((t, i) => (
             <View
@@ -183,6 +205,7 @@ export default function BudgetDetailScreen() {
           )}
         </Card>
       </ScrollView>
+      <AdjustBudgetFAB onPress={() => Alert.alert('Adjust Budget', 'Budget adjustment coming soon!')} />
     </SafeAreaView>
   );
 }
@@ -276,34 +299,36 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   trendCard: {
-    paddingVertical: Spacing.xl,
-  },
-  trendBars: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'flex-end',
-    height: 120,
-  },
-  trendBarCol: {
+    paddingVertical: Spacing.md,
     alignItems: 'center',
-    flex: 1,
   },
-  trendBarBg: {
-    width: 24,
-    height: 100,
-    backgroundColor: Colors.background,
-    borderRadius: 4,
-    justifyContent: 'flex-end',
-    overflow: 'hidden',
+  txnHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
-  trendBarFill: {
-    width: '100%',
-    borderRadius: 4,
+  sortToggle: {
+    flexDirection: 'row',
+    backgroundColor: Colors.card,
+    borderRadius: 8,
+    padding: 2,
   },
-  trendLabel: {
+  sortButton: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+    borderRadius: 6,
+  },
+  sortButtonActive: {
+    backgroundColor: Colors.accent,
+  },
+  sortButtonText: {
     fontSize: Typography.sizes.xs,
     color: Colors.textMuted,
-    marginTop: Spacing.xs,
+    fontWeight: Typography.weights.medium,
+  },
+  sortButtonTextActive: {
+    color: Colors.textPrimary,
+    fontWeight: Typography.weights.semibold,
   },
   txnRow: {
     flexDirection: 'row',
