@@ -49,20 +49,20 @@ const CATEGORY_ICONS: Record<EventCategory, string> = {
 };
 
 const CATEGORY_COLORS: Record<string, string> = {
-  dining: '#FF6B6B',
-  groceries: '#22C55E',
-  transport: '#3B82F6',
-  entertainment: '#A855F7',
-  shopping: '#F59E0B',
+  dining: Colors.negative,
+  groceries: Colors.positive,
+  transport: Colors.accentBright,
+  entertainment: '#8B5CF6',
+  shopping: Colors.warning,
   travel: '#06B6D4',
   health: '#EC4899',
   education: '#8B5CF6',
   fitness: '#14B8A6',
   social: '#F97316',
   professional: '#6366F1',
-  bills: '#EF4444',
-  personal: '#64748B',
-  other: '#94A3B8',
+  bills: Colors.negative,
+  personal: Colors.textMuted,
+  other: Colors.textSecondary,
 };
 
 function getSpendingColor(amount: number, maxSpending: number): string {

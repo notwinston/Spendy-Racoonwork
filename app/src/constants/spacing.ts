@@ -8,4 +8,9 @@ export const Spacing = {
   '3xl': 32,
   '4xl': 40,
   '5xl': 48,
+  // Border Radius tokens (from spec)
+  radiusSm: 6,
+  radiusMd: 10,
+  radiusLg: 14,
+  radiusXl: 20,
 } as const;

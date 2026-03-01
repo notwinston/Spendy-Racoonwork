@@ -15,9 +15,9 @@ const TYPE_CONFIG: Record<
   AIInsightCardProps['type'],
   { color: string; icon: keyof typeof Ionicons.glyphMap }
 > = {
-  warning: { color: '#FF6B6B', icon: 'alert-circle' },
-  opportunity: { color: '#3B82F6', icon: 'cash-outline' },
-  win: { color: '#22C55E', icon: 'trending-up' },
+  warning: { color: Colors.negative, icon: 'alert-circle' },
+  opportunity: { color: Colors.accentGlow, icon: 'cash-outline' },
+  win: { color: Colors.positive, icon: 'trending-up' },
 };
 
 export function AIInsightCard({

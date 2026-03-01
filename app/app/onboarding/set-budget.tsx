@@ -10,7 +10,7 @@ import { useAuthStore } from '../../src/stores/authStore';
 import { useBudgetStore } from '../../src/stores/budgetStore';
 
 const CATEGORY_ALLOCATIONS = [
-  { category: 'Dining', percentage: 30, color: '#FF6B6B' },
+  { category: 'Dining', percentage: 30, color: Colors.negative },
   { category: 'Transport', percentage: 20, color: '#4ECDC4' },
   { category: 'Shopping', percentage: 15, color: '#45B7D1' },
   { category: 'Entertainment', percentage: 10, color: '#96CEB4' },

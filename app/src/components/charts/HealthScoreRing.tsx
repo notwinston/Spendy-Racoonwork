@@ -81,9 +81,9 @@ export const HealthScoreRing: React.FC<HealthScoreRingProps> = ({
       <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
         <Defs>
           <LinearGradient id="scoreGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-            <Stop offset="0%" stopColor="#EF4444" />
-            <Stop offset="50%" stopColor="#FFD93D" />
-            <Stop offset="100%" stopColor="#22C55E" />
+            <Stop offset="0%" stopColor={Colors.negative} />
+            <Stop offset="50%" stopColor={Colors.warning} />
+            <Stop offset="100%" stopColor={Colors.positive} />
           </LinearGradient>
         </Defs>
 

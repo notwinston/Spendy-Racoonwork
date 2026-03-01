@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { View, Animated, Dimensions, StyleSheet } from 'react-native';
+import { Colors } from '../../constants';
 
 interface ConfettiAnimationProps {
   active: boolean;
@@ -7,12 +8,12 @@ interface ConfettiAnimationProps {
 }
 
 const CONFETTI_COLORS = [
-  '#FF6B6B',
-  '#FFD93D',
-  '#22C55E',
-  '#00D09C',
-  '#3B82F6',
-  '#A855F7',
+  Colors.negative,
+  Colors.warning,
+  Colors.positive,
+  Colors.accentBright,
+  Colors.accentGlow,
+  '#8B5CF6',
   '#F97316',
 ];
 
