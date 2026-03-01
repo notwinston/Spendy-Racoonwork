@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo, useCallback } from 'react';
+import React, { useEffect, useRef, useState, useMemo, useCallback } from 'react';
 import {
   View,
   Text,
@@ -103,6 +103,9 @@ export default function PlanScreen() {
   const [saveDifferenceEnabled, setSaveDifferenceEnabled] = useState(false);
   const [monthlySavingsGoal] = useState(200);
 
+  // Guard against re-fetching predictions on every tab switch
+  const hasFetchedPredictions = useRef(false);
+
   // Receipt scanning state
   const [isScanning, setIsScanning] = useState(false);
   const [parsedReceipt, setParsedReceipt] = useState<ParsedReceipt | null>(null);
@@ -166,17 +169,19 @@ export default function PlanScreen() {
     }
   }, [user?.id, transactions.length, loadTransactionDemo]);
 
-  // Generate predictions for future events
+  // Generate predictions for future events (once per app session)
   useEffect(() => {
+    if (hasFetchedPredictions.current) return;
     if (events.length > 0 && predictions.length === 0 && !isPredicting) {
       const futureEvents = events.filter(
         (e) => new Date(e.start_time) >= new Date()
       );
       if (futureEvents.length > 0) {
+        hasFetchedPredictions.current = true;
         generatePredictions(futureEvents, user?.id);
       }
     }
-  }, [events.length, predictions.length, isPredicting, generatePredictions, user?.id, events]);
+  }, [events.length, predictions.length, isPredicting, generatePredictions, user?.id]);
 
   // Create prediction map
   const predictionMap = useMemo(() => {

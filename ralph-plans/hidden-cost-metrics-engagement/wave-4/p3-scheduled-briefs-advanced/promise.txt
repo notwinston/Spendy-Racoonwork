@@ -1,0 +1,8 @@
+Wave 4 is complete when ALL of the following are true:
+1. `cd /workspace/app && npx tsc --noEmit` compiles without errors
+2. expo-notifications is installed and configured in app.json
+3. notificationStore has scheduleMorningBrief() and cancelMorningBrief() actions
+4. Morning brief is scheduled at 8 AM when hiddenCostAlerts preference is true
+5. Insights screen metric cards have polished visualizations (trend arrows, progress indicators, traffic lights)
+6. gamificationService has 5 new challenge templates (challenge-11 through challenge-15)
+7. App runs in Expo Go without crashes across all tabs

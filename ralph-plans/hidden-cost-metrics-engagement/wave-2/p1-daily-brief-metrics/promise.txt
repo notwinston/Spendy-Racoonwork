@@ -1,0 +1,9 @@
+Wave 2 is complete when ALL of the following are true:
+1. `cd /workspace/app && npx tsc --noEmit` compiles without errors
+2. DailyBriefCard.tsx exists and renders today's events with hidden cost summaries
+3. Dashboard shows DailyBriefCard above the hero budget card
+4. calculateHealthScore() supports optional CCI and hiddenCostAwareness params (v2) while remaining backwards compatible
+5. calculateCCI(), calculateSpendingVelocity(), calculateSurpriseSpendRatio(), calculateEventCostVariance() exist as pure functions in budgetStore.ts
+6. Insights screen shows 4 new metric cards: CCI, Spending Velocity, Surprise Spend Ratio, Event Cost Variance
+7. Score Breakdown in insights shows 6 factors instead of 4
+8. App runs in Expo Go without crashes on Dashboard and Insights tabs

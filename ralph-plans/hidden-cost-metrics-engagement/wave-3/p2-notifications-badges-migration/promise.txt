@@ -1,0 +1,10 @@
+Wave 3 is complete when ALL of the following are true:
+1. `cd /workspace/app && npx tsc --noEmit` compiles without errors
+2. notificationStore has hiddenCostAlerts preference toggle and 2 new demo notifications
+3. socialStore has sendPreEventHiddenCostAlert() action
+4. gamificationService has 8 new badge definitions (badge-21 through badge-28)
+5. evaluateCondition() handles all new condition types (even if returning false for untracked stats)
+6. predictionStore has trackAccuracy() action with morning-after date guard
+7. predictionService has matchPredictionsToActuals() function
+8. 012_create_hidden_costs.sql migration exists with table, enum, indexes, and RLS policy
+9. App runs in Expo Go without crashes

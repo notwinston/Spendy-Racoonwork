@@ -1,0 +1,12 @@
+Wave 1 is complete when ALL of the following are true:
+1. `cd /workspace/app && npx tsc --noEmit` compiles without errors
+2. HiddenCostTier, HiddenCost, EventCostBreakdown, DailyBrief, LLMHiddenCostItem, LLMHiddenCostResponse types exist in types/index.ts
+3. react-native-reanimated is installed and configured in both app.json and babel.config.js
+4. MockAdapter.predict() returns hidden cost JSON when prompt contains HIDDEN_COST_PROMPT_MARKER
+5. predictionService.ts exports predictHiddenCosts(), buildEventCostBreakdowns(), parseHiddenCostResponse(), findSimilarTransactions(), generateDailyBrief(), and buildHiddenCostPrompt()
+6. predictionStore has hiddenCosts[], eventCostBreakdowns, dailyBrief, isAnalyzingHiddenCosts state fields
+7. predictionStore has analyzeHiddenCosts(), dismissHiddenCost(), generateDailyBrief() actions and clear() resets all new fields
+8. HiddenCostBreakdown.tsx component exists with collapsed, expanded, and compact visual states
+9. Calendar day-detail modal renders HiddenCostBreakdown (collapsed by default) when eventCostBreakdowns has data for the event
+10. Plan screen prediction cards render HiddenCostBreakdown (expanded by default) when eventCostBreakdowns has data
+11. `grep -r 'HiddenCostBreakdown' /workspace/app/app/(tabs)/calendar.tsx /workspace/app/app/(tabs)/plan.tsx` shows imports in both files
