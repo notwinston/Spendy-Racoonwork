@@ -7,11 +7,13 @@ import {
   StyleSheet,
   Alert,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import Animated, { FadeIn } from 'react-native-reanimated';
 import { Colors, Typography, Spacing } from '../src/constants';
-import { Card } from '../src/components/ui/Card';
+import { GlassCard } from '../src/components/ui/GlassCard';
+import { AtmosphericBackground } from '../src/components/ui/AtmosphericBackground';
 import { TrendLineChart } from '../src/components/charts';
 import { AdjustBudgetFAB } from '../src/components/AdjustBudgetFAB';
 import { useBudgetStore, getBurnRateColor } from '../src/stores/budgetStore';
@@ -77,7 +79,7 @@ export default function BudgetDetailScreen() {
   const iconName = CATEGORY_ICONS[cat] || 'ellipsis-horizontal';
 
   return (
-    <SafeAreaView style={styles.container}>
+    <AtmosphericBackground variant="default">
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={24} color={Colors.textPrimary} />
@@ -88,23 +90,25 @@ export default function BudgetDetailScreen() {
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* Progress Card */}
-        <Card style={styles.progressCard}>
+        <GlassCard style={styles.progressCard}>
           <View style={styles.iconRow}>
-            <View style={styles.categoryIcon}>
-              <Ionicons name={iconName} size={28} color={Colors.accent} />
+            <View style={styles.categoryIconHalo}>
+              <View style={styles.categoryIcon}>
+                <Ionicons name={iconName} size={28} color={Colors.accentBright} />
+              </View>
             </View>
           </View>
           <Text style={styles.amountText}>
             ${spent.toFixed(0)} / ${limit.toFixed(0)}
           </Text>
           <View style={styles.progressBar}>
-            <View
+            <LinearGradient
+              colors={isOver ? ['#EF4444', '#DC2626'] : ['#00D09C', '#2563EB']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
               style={[
                 styles.progressFill,
-                {
-                  width: `${Math.min(100, pctUsed)}%`,
-                  backgroundColor: isOver ? Colors.danger : Colors.accent,
-                },
+                { width: `${Math.min(100, pctUsed)}%` },
               ]}
             />
           </View>
@@ -138,11 +142,11 @@ export default function BudgetDetailScreen() {
               </Text>
             </View>
           </View>
-        </Card>
+        </GlassCard>
 
         {/* 6-Month Trend Line */}
         <Text style={styles.sectionTitle}>6-Month Trend</Text>
-        <Card style={styles.trendCard}>
+        <GlassCard style={styles.trendCard}>
           <TrendLineChart
             data={[
               { label: 'Oct', value: Math.round(limit * 0.65) },
@@ -155,7 +159,7 @@ export default function BudgetDetailScreen() {
             budgetLine={limit}
             period="6month"
           />
-        </Card>
+        </GlassCard>
 
         {/* Transactions */}
         <View style={styles.txnHeaderRow}>
@@ -183,10 +187,11 @@ export default function BudgetDetailScreen() {
             </TouchableOpacity>
           </View>
         </View>
-        <Card>
+        <GlassCard>
           {categoryTxns.slice(0, 10).map((t, i) => (
-            <View
+            <Animated.View
               key={t.id}
+              entering={FadeIn.delay(i * 60)}
               style={[styles.txnRow, i < Math.min(9, categoryTxns.length - 1) && styles.txnBorder]}
             >
               <View style={styles.txnInfo}>
@@ -198,22 +203,26 @@ export default function BudgetDetailScreen() {
                 </Text>
               </View>
               <Text style={styles.txnAmount}>-${Math.abs(t.amount).toFixed(2)}</Text>
-            </View>
+            </Animated.View>
           ))}
           {categoryTxns.length === 0 && (
             <Text style={styles.emptyText}>No transactions in this category</Text>
           )}
-        </Card>
+        </GlassCard>
       </ScrollView>
       <AdjustBudgetFAB onPress={() => Alert.alert('Adjust Budget', 'Budget adjustment coming soon!')} />
-    </SafeAreaView>
+    </AtmosphericBackground>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.background,
+  categoryIconHalo: {
+    width: 80,
+    height: 80,
+    borderRadius: 9999,
+    backgroundColor: 'rgba(37, 99, 235, 0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   header: {
     flexDirection: 'row',
@@ -241,9 +250,9 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.glassBg,
     borderWidth: 2,
-    borderColor: Colors.accent,
+    borderColor: Colors.accentBright,
     justifyContent: 'center',
     alignItems: 'center',
   },

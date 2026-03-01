@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Typography, Spacing } from '../constants';
+import { GlassCard } from './ui/GlassCard';
 
 export interface SmartBudgetSuggestionProps {
   category: string;
@@ -23,7 +24,7 @@ export function SmartBudgetSuggestion({
   const catLabel = category.charAt(0).toUpperCase() + category.slice(1);
 
   return (
-    <View style={styles.card}>
+    <GlassCard style={styles.card} accentEdge="left" accentColor={Colors.glowTeal}>
       <View style={styles.header}>
         <Ionicons
           name="bulb"
@@ -81,19 +82,12 @@ export function SmartBudgetSuggestion({
           <Text style={styles.acceptText}>Accept Suggestion</Text>
         </Pressable>
       )}
-    </View>
+    </GlassCard>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: Colors.bgCard,
-    borderRadius: Spacing.radiusLg,
-    borderWidth: 1,
-    borderColor: Colors.borderSubtle,
-    borderLeftWidth: 3,
-    borderLeftColor: Colors.accentBright,
-    padding: Spacing.lg,
     marginBottom: Spacing.md,
   },
   header: {

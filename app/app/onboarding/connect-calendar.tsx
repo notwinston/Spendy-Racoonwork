@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Typography, Spacing } from '../../src/constants';
 import { Button } from '../../src/components/ui/Button';
-import { Card } from '../../src/components/ui/Card';
+import { AtmosphericBackground } from '../../src/components/ui/AtmosphericBackground';
+import { GlassCard } from '../../src/components/ui/GlassCard';
 import { useCalendarStore } from '../../src/stores/calendarStore';
 import { useAuthStore } from '../../src/stores/authStore';
 
@@ -89,7 +89,7 @@ export default function ConnectCalendarScreen() {
 
   if (isConnected) {
     return (
-      <SafeAreaView style={styles.container}>
+      <AtmosphericBackground variant="onboarding">
         <View style={styles.content}>
           <Ionicons
             name="checkmark-circle"
@@ -102,20 +102,20 @@ export default function ConnectCalendarScreen() {
             {events.length} events loaded. We'll use these to predict your spending.
           </Text>
 
-          <Card style={styles.summaryCard}>
+          <GlassCard style={styles.summaryCard}>
             <View style={styles.summaryRow}>
-              <Ionicons name="calendar-outline" size={20} color={Colors.accent} />
+              <Ionicons name="calendar-outline" size={20} color={Colors.accentBright} />
               <Text style={styles.summaryText}>
                 {events.length} calendar events imported
               </Text>
             </View>
             <View style={styles.summaryRow}>
-              <Ionicons name="pricetag-outline" size={20} color={Colors.accent} />
+              <Ionicons name="pricetag-outline" size={20} color={Colors.accentBright} />
               <Text style={styles.summaryText}>
                 Categories detected automatically
               </Text>
             </View>
-          </Card>
+          </GlassCard>
 
           <View style={styles.dots}>
             <View style={styles.dot} />
@@ -124,46 +124,47 @@ export default function ConnectCalendarScreen() {
             <View style={styles.dot} />
           </View>
 
-          <Button title="Continue" onPress={handleContinue} />
+          <Button title="Continue" variant="gradient" onPress={handleContinue} />
         </View>
-      </SafeAreaView>
+      </AtmosphericBackground>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <AtmosphericBackground variant="onboarding">
       <View style={styles.content}>
-        <Ionicons name="calendar" size={64} color={Colors.accent} style={styles.icon} />
+        <Ionicons name="calendar" size={64} color={Colors.accentBright} style={styles.icon} />
         <Text style={styles.title}>Connect Your Calendar</Text>
         <Text style={styles.subtitle}>
           We'll analyze your schedule to predict upcoming expenses
         </Text>
 
         <View style={styles.options}>
-          <Card style={styles.optionCard}>
+          <GlassCard accentEdge="left" accentColor="#FF3B30" style={styles.optionCard}>
             <Button
               title="Connect Apple Calendar"
+              variant="gradient"
               onPress={handleAppleCalendar}
               loading={isLoading}
             />
-          </Card>
+          </GlassCard>
 
-          <Card style={styles.optionCard}>
+          <GlassCard accentEdge="left" accentColor="#4285F4" style={styles.optionCard}>
             <Button
               title="Connect Google Calendar"
               variant="secondary"
               onPress={handleGoogleCalendar}
               loading={isLoading}
             />
-          </Card>
+          </GlassCard>
 
-          <Card style={styles.optionCard}>
+          <GlassCard accentEdge="left" accentColor="#8B5CF6" style={styles.optionCard}>
             <Button
               title="Upload .ics File"
               variant="secondary"
               onPress={handleICSUpload}
             />
-          </Card>
+          </GlassCard>
 
         </View>
 
@@ -180,15 +181,11 @@ export default function ConnectCalendarScreen() {
           onPress={handleContinue}
         />
       </View>
-    </SafeAreaView>
+    </AtmosphericBackground>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.background,
-  },
   content: {
     flex: 1,
     justifyContent: 'center',
@@ -244,8 +241,12 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.textMuted,
   },
   dotActive: {
-    backgroundColor: Colors.accent,
+    backgroundColor: Colors.accentBright,
     width: 24,
+    shadowColor: Colors.glowTeal,
+    shadowRadius: 6,
+    shadowOpacity: 0.6,
+    shadowOffset: { width: 0, height: 0 },
   },
   demoRow: {
     flexDirection: 'row',

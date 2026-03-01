@@ -9,10 +9,12 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import Animated, { FadeIn } from 'react-native-reanimated';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Typography, Spacing } from '../../src/constants';
+import { AtmosphericBackground } from '../../src/components/ui/AtmosphericBackground';
+import { GlassCard } from '../../src/components/ui/GlassCard';
 import { Header } from '../../src/components/ui/Header';
 import { Card } from '../../src/components/ui/Card';
 import { HiddenCostBreakdown } from '../../src/components/HiddenCostBreakdown';
@@ -52,6 +54,23 @@ const CATEGORY_ICONS: Record<EventCategory, string> = {
   bills: 'receipt',
   personal: 'person',
   other: 'ellipsis-horizontal',
+};
+
+const CATEGORY_COLORS: Record<string, string> = {
+  dining: Colors.negative,
+  groceries: Colors.positive,
+  transport: Colors.accentBright,
+  entertainment: '#8B5CF6',
+  shopping: Colors.warning,
+  travel: '#06B6D4',
+  health: '#EC4899',
+  education: '#8B5CF6',
+  fitness: '#14B8A6',
+  social: '#F97316',
+  professional: '#6366F1',
+  bills: Colors.negative,
+  personal: Colors.textMuted,
+  other: Colors.textSecondary,
 };
 
 // FREQUENCY_LABELS removed - recurring expenses section moved to Insights
@@ -240,7 +259,7 @@ export default function PlanScreen() {
 
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <AtmosphericBackground variant="plan">
       <Header title="Plan" />
       <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
         {/* --- Upcoming Predictions --- */}
@@ -251,17 +270,17 @@ export default function PlanScreen() {
           </TouchableOpacity>
         </View>
         {upcomingPredictions.length > 0 && (
-          <Card style={styles.summaryCard}>
+          <GlassCard style={styles.summaryCard}>
             <View style={styles.summaryRow}>
               <Text style={styles.summaryLabel}>Predicted Upcoming Spend</Text>
-              <Text style={styles.summaryAmount}>
+              <Text style={[styles.summaryAmount, Typography.numeric.displayMedium, { color: Colors.accent }]}>
                 {formatCurrency(totalPredictedSpending)}
               </Text>
             </View>
             <Text style={styles.summarySubtext}>
               Based on {upcomingPredictions.length} upcoming events
             </Text>
-          </Card>
+          </GlassCard>
         )}
 
         {upcomingPredictions.length === 0 ? (
@@ -276,17 +295,26 @@ export default function PlanScreen() {
             </View>
           </Card>
         ) : (
-          upcomingPredictions.map(({ event, prediction }) => {
+          upcomingPredictions.map(({ event, prediction }, index) => {
             if (!prediction) return null;
             const iconName = CATEGORY_ICONS[prediction.predicted_category] ?? 'ellipsis-horizontal';
+            const accentColor = CATEGORY_COLORS[prediction.predicted_category] ?? Colors.accentBright;
             return (
-              <Card key={event.id} style={styles.predictionCard}>
+              <Animated.View
+                key={event.id}
+                entering={FadeIn.delay(index * 80).duration(300)}
+              >
+              <GlassCard
+                style={styles.predictionCard}
+                accentEdge="left"
+                accentColor={accentColor}
+              >
                 <View style={styles.predictionRow}>
                   <View style={styles.predictionIconWrap}>
                     <Ionicons
                       name={iconName as keyof typeof Ionicons.glyphMap}
                       size={20}
-                      color={Colors.accent}
+                      color={accentColor}
                     />
                   </View>
                   <View style={styles.predictionInfo}>
@@ -331,7 +359,8 @@ export default function PlanScreen() {
                     onDismissCost={dismissHiddenCost}
                   />
                 )}
-              </Card>
+              </GlassCard>
+              </Animated.View>
             );
           })
         )}
@@ -531,14 +560,14 @@ export default function PlanScreen() {
         onClose={() => setGoalEditorVisible(false)}
       />
       <FloatingChatButton />
-    </SafeAreaView>
+    </AtmosphericBackground>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: 'transparent',
   },
   scroll: {
     flex: 1,

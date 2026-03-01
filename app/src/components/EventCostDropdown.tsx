@@ -153,10 +153,12 @@ export default function EventCostDropdown({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: Colors.card,
+    backgroundColor: Colors.glassBg,
     borderRadius: Spacing.radiusMd,
     padding: Spacing.md,
     marginTop: Spacing.sm,
+    borderWidth: 1,
+    borderColor: Colors.glassBorder,
   },
   row: {
     flexDirection: 'row',

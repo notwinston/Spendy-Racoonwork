@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Typography, Spacing } from '../../src/constants';
 import { Button } from '../../src/components/ui/Button';
+import { AtmosphericBackground } from '../../src/components/ui/AtmosphericBackground';
+import { GlassCard } from '../../src/components/ui/GlassCard';
 import { useTransactionStore } from '../../src/stores/transactionStore';
 import { useAuthStore } from '../../src/stores/authStore';
 
@@ -56,7 +57,7 @@ export default function ConnectBankScreen() {
 
   if (isConnected) {
     return (
-      <SafeAreaView style={styles.container}>
+      <AtmosphericBackground variant="onboarding">
         <View style={styles.content}>
           <Ionicons
             name="checkmark-circle"
@@ -70,18 +71,18 @@ export default function ConnectBankScreen() {
           </Text>
 
           <View style={styles.statsContainer}>
-            <View style={styles.statCard}>
+            <GlassCard style={styles.statCard}>
               <Text style={styles.statNumber}>{transactions.length}</Text>
               <Text style={styles.statLabel}>Transactions</Text>
-            </View>
-            <View style={styles.statCard}>
+            </GlassCard>
+            <GlassCard style={styles.statCard}>
               <Text style={styles.statNumber}>{recurringTransactions.length}</Text>
               <Text style={styles.statLabel}>Recurring</Text>
-            </View>
-            <View style={styles.statCard}>
+            </GlassCard>
+            <GlassCard style={styles.statCard}>
               <Text style={styles.statNumber}>{plaidConnections.length}</Text>
               <Text style={styles.statLabel}>Accounts</Text>
-            </View>
+            </GlassCard>
           </View>
 
           <View style={styles.dots}>
@@ -91,42 +92,43 @@ export default function ConnectBankScreen() {
             <View style={styles.dot} />
           </View>
 
-          <Button title="Continue" onPress={handleContinue} />
+          <Button title="Continue" variant="gradient" onPress={handleContinue} />
         </View>
-      </SafeAreaView>
+      </AtmosphericBackground>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <AtmosphericBackground variant="onboarding">
       <View style={styles.content}>
-        <Ionicons name="wallet" size={64} color={Colors.accent} style={styles.icon} />
+        <Ionicons name="wallet" size={64} color={Colors.accentBright} style={styles.icon} />
         <Text style={styles.title}>Connect Your Bank</Text>
         <Text style={styles.subtitle}>
           Securely link your accounts to track real spending
         </Text>
 
         <View style={styles.shieldContainer}>
-          <Ionicons name="shield-checkmark" size={48} color={Colors.accent} />
+          <Ionicons name="shield-checkmark" size={48} color={Colors.accentBright} />
         </View>
 
         <View style={styles.badges}>
-          <View style={styles.badge}>
-            <Ionicons name="shield-checkmark" size={16} color={Colors.accent} />
+          <GlassCard intensity="subtle" style={styles.badge}>
+            <Ionicons name="shield-checkmark" size={16} color={Colors.accentBright} />
             <Text style={styles.badgeText}>Bank-level encryption</Text>
-          </View>
-          <View style={styles.badge}>
-            <Ionicons name="eye-off" size={16} color={Colors.accent} />
+          </GlassCard>
+          <GlassCard intensity="subtle" style={styles.badge}>
+            <Ionicons name="eye-off" size={16} color={Colors.accentBright} />
             <Text style={styles.badgeText}>Never stores credentials</Text>
-          </View>
-          <View style={styles.badge}>
-            <Ionicons name="eye-outline" size={16} color={Colors.accent} />
+          </GlassCard>
+          <GlassCard intensity="subtle" style={styles.badge}>
+            <Ionicons name="eye-outline" size={16} color={Colors.accentBright} />
             <Text style={styles.badgeText}>Read-Only Access</Text>
-          </View>
+          </GlassCard>
         </View>
 
         <Button
           title="Connect Your Bank"
+          variant="gradient"
           onPress={handleConnectBank}
           loading={isLoading}
           style={styles.button}
@@ -160,15 +162,11 @@ export default function ConnectBankScreen() {
           onPress={handleContinue}
         />
       </View>
-    </SafeAreaView>
+    </AtmosphericBackground>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.background,
-  },
   content: {
     flex: 1,
     justifyContent: 'center',
@@ -192,15 +190,15 @@ const styles = StyleSheet.create({
     marginBottom: Spacing['2xl'],
   },
   badges: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: Spacing.lg,
+    flexDirection: 'column',
+    gap: Spacing.sm,
     marginBottom: Spacing['2xl'],
   },
   badge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
+    padding: 0,
   },
   badgeText: {
     fontSize: Typography.sizes.sm,
@@ -216,12 +214,9 @@ const styles = StyleSheet.create({
   },
   statCard: {
     alignItems: 'center',
-    backgroundColor: Colors.card,
-    borderRadius: 12,
-    paddingVertical: Spacing.lg,
-    paddingHorizontal: Spacing.xl,
-    borderWidth: 1,
-    borderColor: Colors.cardBorder,
+    flex: 1,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.md,
   },
   statNumber: {
     fontSize: Typography.sizes['2xl'],
@@ -246,8 +241,12 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.textMuted,
   },
   dotActive: {
-    backgroundColor: Colors.accent,
+    backgroundColor: Colors.accentBright,
     width: 24,
+    shadowColor: Colors.glowTeal,
+    shadowRadius: 6,
+    shadowOpacity: 0.6,
+    shadowOffset: { width: 0, height: 0 },
   },
   shieldContainer: {
     alignItems: 'center',

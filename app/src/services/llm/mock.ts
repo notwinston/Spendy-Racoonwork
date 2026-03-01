@@ -319,6 +319,7 @@ function buildMockHiddenCostResponse(prompt: string): string {
   for (const [keyword, templates] of Object.entries(HIDDEN_COST_RULES)) {
     if (title.includes(keyword.toLowerCase())) {
       for (const tpl of templates) {
+        if (tpl.tier === 'unlikely_costly') continue;
         const amount = randomBetween(tpl.min, tpl.max);
         hiddenCosts.push({
           label: tpl.label,

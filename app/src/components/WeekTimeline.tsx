@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import Animated, { useAnimatedStyle, useSharedValue, withRepeat, withTiming } from 'react-native-reanimated';
 import { Colors, Typography, Spacing } from '../constants';
 import type { CalendarEvent, EventCategory } from '../types';
 
@@ -48,6 +49,13 @@ function isSameDay(d1: Date, d2: Date): boolean {
 
 export function WeekTimeline({ events, selectedDate }: WeekTimelineProps) {
   const weekStart = getWeekStart(selectedDate);
+  const pulseOpacity = useSharedValue(1);
+  React.useEffect(() => {
+    pulseOpacity.value = withRepeat(withTiming(0.3, { duration: 1000 }), -1, true);
+  }, []);
+  const pulseStyle = useAnimatedStyle(() => ({
+    opacity: pulseOpacity.value,
+  }));
 
   const dayColumns = DAY_LABELS.map((label, index) => {
     const day = new Date(weekStart);
@@ -68,6 +76,7 @@ export function WeekTimeline({ events, selectedDate }: WeekTimelineProps) {
           {day.getDate()}
         </Text>
         <View style={styles.eventsArea}>
+          <View style={styles.accentLine} />
           {dayEvents.slice(0, 4).map((event) => (
             <View
               key={event.id}
@@ -77,6 +86,12 @@ export function WeekTimeline({ events, selectedDate }: WeekTimelineProps) {
               ]}
             />
           ))}
+          {isSelected && (
+            <View style={styles.currentTimeRow}>
+              <Animated.View style={[styles.currentTimeDot, pulseStyle]} />
+              <View style={styles.currentTimeLine} />
+            </View>
+          )}
         </View>
       </View>
     );
@@ -88,11 +103,11 @@ export function WeekTimeline({ events, selectedDate }: WeekTimelineProps) {
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
-    backgroundColor: Colors.card,
+    backgroundColor: Colors.glassBg,
     borderRadius: 12,
     padding: Spacing.sm,
     borderWidth: 1,
-    borderColor: Colors.cardBorder,
+    borderColor: Colors.glassBorder,
   },
   column: {
     flex: 1,
@@ -131,5 +146,34 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 4,
     borderRadius: 2,
+  },
+  accentLine: {
+    width: 2,
+    height: '100%',
+    backgroundColor: Colors.glowTeal,
+    opacity: 0.3,
+    position: 'absolute',
+    left: '50%',
+    top: 0,
+    bottom: 0,
+    borderRadius: 1,
+  },
+  currentTimeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: '100%',
+    marginTop: 4,
+  },
+  currentTimeDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: Colors.glowTeal,
+  },
+  currentTimeLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: Colors.glowTeal,
+    opacity: 0.5,
   },
 });

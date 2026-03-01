@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Colors, Typography, Spacing } from '../constants';
+import { GlassCard } from './ui/GlassCard';
 
 export interface BillItem {
   name: string;
@@ -118,12 +119,14 @@ export function BillCalendarView({ bills }: BillCalendarViewProps) {
             const dueDate = new Date(bill.dueDate);
             const dateStr = dueDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
             return (
-              <View key={idx} style={styles.billRow}>
-                <View style={styles.billDotSmall} />
-                <Text style={styles.billName}>{bill.name}</Text>
-                <Text style={styles.billDate}>{dateStr}</Text>
-                <Text style={styles.billAmount}>${bill.amount.toFixed(2)}</Text>
-              </View>
+              <GlassCard key={idx} style={styles.billRowCard}>
+                <View style={styles.billRow}>
+                  <View style={styles.billDotSmall} />
+                  <Text style={styles.billName}>{bill.name}</Text>
+                  <Text style={styles.billDate}>{dateStr}</Text>
+                  <Text style={styles.billAmount}>${bill.amount.toFixed(2)}</Text>
+                </View>
+              </GlassCard>
             );
           })}
         </View>
@@ -204,12 +207,12 @@ const styles = StyleSheet.create({
     ...Typography.label.card,
     marginBottom: Spacing.sm,
   },
+  billRowCard: {
+    marginBottom: Spacing.xs,
+  },
   billRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: Spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.borderSubtle,
     gap: Spacing.sm,
   },
   billDotSmall: {

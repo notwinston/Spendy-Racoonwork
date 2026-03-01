@@ -9,9 +9,19 @@ import {
   Switch,
   StyleSheet,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import Animated, {
+  FadeIn,
+  ZoomIn,
+  useSharedValue,
+  useAnimatedStyle,
+  withRepeat,
+  withSequence,
+  withTiming,
+} from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Typography, Spacing } from '../../src/constants';
+import { AtmosphericBackground } from '../../src/components/ui/AtmosphericBackground';
+import { GlassCard } from '../../src/components/ui/GlassCard';
 import { Header } from '../../src/components/ui/Header';
 import { Card } from '../../src/components/ui/Card';
 import { Button } from '../../src/components/ui/Button';
@@ -131,8 +141,24 @@ export default function ArenaScreen() {
 
   const earnedBadgeIds = new Set(earnedBadges.map((ub) => ub.badge_id));
 
+  // Flame icon pulse animation
+  const flameScale = useSharedValue(1);
+  useEffect(() => {
+    flameScale.value = withRepeat(
+      withSequence(
+        withTiming(1.15, { duration: 800 }),
+        withTiming(1.0, { duration: 800 })
+      ),
+      -1,
+      false
+    );
+  }, []);
+  const flameAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: flameScale.value }],
+  }));
+
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <AtmosphericBackground variant="arena">
       <Header title="Arena" />
 
       <View style={styles.tabBar}>
@@ -156,7 +182,7 @@ export default function ArenaScreen() {
             {/* Rank Card */}
             <RankCard savingsRate={savingsRate} />
 
-            <Card style={styles.progressCard}>
+            <GlassCard style={styles.progressCard} accentEdge="left" accentColor={Colors.glowGold}>
               <Text style={styles.level}>Level {profile.level}</Text>
               <Text style={styles.xpText}>
                 {profile.xp.toLocaleString()} XP
@@ -169,13 +195,15 @@ export default function ArenaScreen() {
               <Text style={styles.xpRemaining}>
                 {xpForNextLevel() - (profile.xp - Math.round(xpForNextLevel() * (1 - (1 - xpProgress()))))} XP to next level
               </Text>
-            </Card>
+            </GlassCard>
 
             {/* Streak & Check-in */}
-            <Card style={styles.streakCard}>
+            <GlassCard style={styles.streakCard}>
               <View style={styles.streakRow}>
                 <View style={styles.streakInfo}>
-                  <Ionicons name="flame" size={28} color={Colors.warning} />
+                  <Animated.View style={flameAnimatedStyle}>
+                    <Ionicons name="flame" size={28} color={Colors.warning} />
+                  </Animated.View>
                   <View>
                     <Text style={styles.streakCount}>{profile.streakCount} day streak</Text>
                     <Text style={styles.streakBest}>Best: {profile.longestStreak} days</Text>
@@ -188,18 +216,22 @@ export default function ArenaScreen() {
                   variant={dailyCheckinDone ? 'secondary' : 'primary'}
                 />
               </View>
-            </Card>
+            </GlassCard>
 
             {/* Badges */}
             <Text style={styles.sectionTitle}>
               Badges ({earnedBadges.length}/{badges.length})
             </Text>
             <View style={styles.badgeGrid}>
-              {badges.map((badge) => {
+              {badges.map((badge, index) => {
                 const earned = earnedBadgeIds.has(badge.id);
+                const shouldAnimate = index < 12;
                 return (
-                  <TouchableOpacity
+                  <Animated.View
                     key={badge.id}
+                    entering={shouldAnimate ? ZoomIn.delay(index * 50).springify().damping(12) : undefined}
+                  >
+                  <TouchableOpacity
                     style={[styles.badgeItem, !earned && styles.badgeLocked]}
                     onPress={() => {
                       setSelectedBadge({
@@ -229,6 +261,7 @@ export default function ArenaScreen() {
                       {badge.name}
                     </Text>
                   </TouchableOpacity>
+                  </Animated.View>
                 );
               })}
             </View>
@@ -486,24 +519,24 @@ export default function ArenaScreen() {
         )}
       </ScrollView>
       <FloatingChatButton />
-    </SafeAreaView>
+    </AtmosphericBackground>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
-  tabBar: { flexDirection: 'row', paddingHorizontal: Spacing.lg, marginBottom: Spacing.md },
+  container: { flex: 1, backgroundColor: 'transparent' },
+  tabBar: { flexDirection: 'row', paddingHorizontal: Spacing.lg, marginBottom: Spacing.md, backgroundColor: Colors.glassBg, borderBottomWidth: 1, borderBottomColor: Colors.glassBorder },
   tab: { flex: 1, paddingVertical: Spacing.sm, alignItems: 'center', borderBottomWidth: 2, borderBottomColor: 'transparent' },
-  tabActive: { borderBottomColor: Colors.accent },
+  tabActive: { borderBottomColor: Colors.glowGold },
   tabText: { fontSize: Typography.sizes.sm, color: Colors.textMuted, fontWeight: Typography.weights.medium },
-  tabTextActive: { color: Colors.accent, fontWeight: Typography.weights.semibold },
+  tabTextActive: { color: '#F59E0B', fontWeight: Typography.weights.semibold },
   scroll: { flex: 1 },
   scrollContent: { padding: Spacing.lg, paddingBottom: 120, gap: Spacing.md },
   progressCard: { alignItems: 'center' },
   level: { fontSize: Typography.sizes['3xl'], fontWeight: Typography.weights.bold, color: Colors.accent },
   xpText: { fontSize: Typography.sizes.lg, color: Colors.textSecondary, marginTop: Spacing.xs },
   xpBar: { width: '100%', height: 8, backgroundColor: Colors.cardBorder, borderRadius: 4, marginTop: Spacing.lg, overflow: 'hidden' },
-  xpFill: { height: '100%', backgroundColor: Colors.accent, borderRadius: 4 },
+  xpFill: { height: '100%', backgroundColor: '#F59E0B', borderRadius: 4 },
   xpRemaining: { fontSize: Typography.sizes.sm, color: Colors.textMuted, marginTop: Spacing.xs },
   streakCard: {},
   streakRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
@@ -554,10 +587,10 @@ const styles = StyleSheet.create({
   joinedBanner: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, backgroundColor: Colors.accent, borderRadius: 10, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, marginBottom: Spacing.md },
   joinedBannerText: { fontSize: Typography.sizes.md, fontWeight: Typography.weights.semibold, color: Colors.textPrimary },
   scopeSelector: { flexDirection: 'row', gap: Spacing.sm, marginBottom: Spacing.md },
-  scopePill: { flex: 1, paddingVertical: Spacing.sm, borderRadius: 20, borderWidth: 1, borderColor: Colors.border, backgroundColor: Colors.card, alignItems: 'center' },
-  scopePillActive: { borderColor: Colors.accent, backgroundColor: Colors.accent + '20' },
+  scopePill: { flex: 1, paddingVertical: Spacing.sm, borderRadius: 20, borderWidth: 1, borderColor: Colors.glassBorder, backgroundColor: Colors.glassBg, alignItems: 'center' },
+  scopePillActive: { borderColor: Colors.glowGold, backgroundColor: 'rgba(255, 215, 0, 0.1)' },
   scopePillText: { fontSize: Typography.sizes.sm, color: Colors.textMuted, fontWeight: Typography.weights.medium },
-  scopePillTextActive: { color: Colors.accent },
+  scopePillTextActive: { color: '#F59E0B' },
   podiumCard: { paddingBottom: Spacing.lg },
   socialTogglesCard: { marginBottom: Spacing.md },
   socialToggleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },

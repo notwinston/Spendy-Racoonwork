@@ -6,11 +6,11 @@ import {
   TouchableOpacity,
   Modal,
   StyleSheet,
-  Animated,
 } from 'react-native';
+import Animated, { FadeIn } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Typography, Spacing } from '../constants';
-import { Card } from './ui/Card';
+import { GlassCard } from './ui/GlassCard';
 import EventCostDropdown from './EventCostDropdown';
 import { usePredictionStore } from '../stores/predictionStore';
 import type { CalendarEvent, SpendingPrediction, EventCategory } from '../types';
@@ -123,18 +123,21 @@ export function DayDetailSheet({
                 <Text style={styles.emptyText}>No events for this day</Text>
               </View>
             ) : (
-              events.map((event) => {
+              events.map((event, index) => {
                 const prediction = predictionMap.get(event.id);
                 const dotColor = CATEGORY_COLORS[event.category] ?? Colors.textMuted;
                 const hasBreakdown = !!eventCostBreakdowns[event.id];
 
                 return (
-                  <TouchableOpacity
+                  <Animated.View
                     key={event.id}
+                    entering={FadeIn.delay(index * 60).duration(300)}
+                  >
+                  <TouchableOpacity
                     activeOpacity={0.7}
                     onPress={() => setExpandedEventId(prev => prev === event.id ? null : event.id)}
                   >
-                    <Card style={styles.eventCard}>
+                    <GlassCard style={styles.eventCard}>
                       <View style={styles.eventRow}>
                         <View style={[styles.categoryDot, { backgroundColor: dotColor }]} />
                         <View style={styles.eventInfo}>
@@ -193,8 +196,9 @@ export function DayDetailSheet({
                           isConfirmed={!!confirmedEstimates[event.id]}
                         />
                       )}
-                    </Card>
+                    </GlassCard>
                   </TouchableOpacity>
+                  </Animated.View>
                 );
               })
             )}
@@ -212,11 +216,14 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   sheet: {
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.bgApp,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     maxHeight: '80%',
     paddingBottom: Spacing['3xl'],
+    borderWidth: 1,
+    borderBottomWidth: 0,
+    borderColor: Colors.glassBorder,
   },
   handle: {
     width: 40,

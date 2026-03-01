@@ -1,10 +1,11 @@
 import React, { useState, useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Typography, Spacing } from '../../src/constants';
 import { Button } from '../../src/components/ui/Button';
+import { AtmosphericBackground } from '../../src/components/ui/AtmosphericBackground';
+import { GlassCard } from '../../src/components/ui/GlassCard';
 import { DonutChart, type DonutSegment } from '../../src/components/charts';
 import { useAuthStore } from '../../src/stores/authStore';
 import { useBudgetStore } from '../../src/stores/budgetStore';
@@ -45,9 +46,9 @@ export default function SetBudgetScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <AtmosphericBackground variant="onboarding">
       <View style={styles.content}>
-        <Ionicons name="pie-chart" size={64} color={Colors.accent} style={styles.icon} />
+        <Ionicons name="pie-chart" size={64} color={Colors.accentBright} style={styles.icon} />
         <Text style={styles.title}>Set Your Budget</Text>
         <Text style={styles.subtitle}>
           Set a monthly spending target. You can always adjust it later.
@@ -55,7 +56,7 @@ export default function SetBudgetScreen() {
 
         <View style={styles.budgetDisplay}>
           <Text style={styles.currency}>$</Text>
-          <Text style={styles.amount}>{selectedAmount.toLocaleString()}</Text>
+          <Text style={[Typography.numeric.displayHero, styles.amount]}>{selectedAmount.toLocaleString()}</Text>
           <Text style={styles.period}>/month</Text>
         </View>
 
@@ -68,6 +69,7 @@ export default function SetBudgetScreen() {
                 selectedAmount === amount && styles.presetChipActive,
               ]}
               onPress={() => setSelectedAmount(amount)}
+              activeOpacity={0.7}
             >
               <Text
                 style={[
@@ -82,7 +84,7 @@ export default function SetBudgetScreen() {
         </View>
 
         {/* Suggested category allocation preview */}
-        <View style={styles.donutContainer}>
+        <GlassCard style={styles.donutContainer}>
           <Text style={styles.donutLabel}>Suggested Allocation</Text>
           <DonutChart data={donutData} size={140} strokeWidth={24} showTotal={false} />
           <View style={styles.legendContainer}>
@@ -95,7 +97,7 @@ export default function SetBudgetScreen() {
               </View>
             ))}
           </View>
-        </View>
+        </GlassCard>
 
         <View style={styles.dots}>
           <View style={styles.dot} />
@@ -104,17 +106,13 @@ export default function SetBudgetScreen() {
           <View style={[styles.dot, styles.dotActive]} />
         </View>
 
-        <Button title="Looks Good!" onPress={handleComplete} />
+        <Button title="Looks Good!" variant="gradient" onPress={handleComplete} />
       </View>
-    </SafeAreaView>
+    </AtmosphericBackground>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.background,
-  },
   content: {
     flex: 1,
     justifyContent: 'center',
@@ -149,9 +147,7 @@ const styles = StyleSheet.create({
     fontWeight: Typography.weights.medium,
   },
   amount: {
-    fontSize: Typography.sizes['5xl'],
-    fontWeight: Typography.weights.bold,
-    color: Colors.accent,
+    color: Colors.accentBright,
   },
   period: {
     fontSize: Typography.sizes.lg,
@@ -168,14 +164,14 @@ const styles = StyleSheet.create({
   presetChip: {
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.sm,
-    borderRadius: 20,
+    borderRadius: Spacing.radiusFull,
     borderWidth: 1,
-    borderColor: Colors.border,
-    backgroundColor: Colors.card,
+    borderColor: Colors.glassBorder,
+    backgroundColor: Colors.glassBg,
   },
   presetChipActive: {
-    borderColor: Colors.accent,
-    backgroundColor: Colors.accent + '20',
+    borderColor: Colors.accentBright,
+    backgroundColor: 'rgba(37, 99, 235, 0.2)',
   },
   presetText: {
     fontSize: Typography.sizes.md,
@@ -183,7 +179,7 @@ const styles = StyleSheet.create({
     fontWeight: Typography.weights.medium,
   },
   presetTextActive: {
-    color: Colors.accent,
+    color: Colors.accentBright,
   },
   dots: {
     flexDirection: 'row',
@@ -198,17 +194,16 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.textMuted,
   },
   dotActive: {
-    backgroundColor: Colors.accent,
+    backgroundColor: Colors.accentBright,
     width: 24,
+    shadowColor: Colors.glowTeal,
+    shadowRadius: 6,
+    shadowOpacity: 0.6,
+    shadowOffset: { width: 0, height: 0 },
   },
   donutContainer: {
     alignItems: 'center',
     marginBottom: Spacing.xl,
-    backgroundColor: Colors.card,
-    borderRadius: 16,
-    padding: Spacing.lg,
-    borderWidth: 1,
-    borderColor: Colors.cardBorder,
   },
   donutLabel: {
     fontSize: Typography.sizes.md,

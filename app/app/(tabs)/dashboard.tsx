@@ -6,11 +6,15 @@ import {
   TouchableOpacity,
   StyleSheet,
 } from 'react-native';
+import Animated, { FadeIn } from 'react-native-reanimated';
+import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Typography, Spacing } from '../../src/constants';
+import { AtmosphericBackground } from '../../src/components/ui/AtmosphericBackground';
+import { GlassCard } from '../../src/components/ui/GlassCard';
+import { AnimatedNumber } from '../../src/components/ui/AnimatedNumber';
 import { Header } from '../../src/components/ui/Header';
 import { Card } from '../../src/components/ui/Card';
 import { DailyBriefCard } from '../../src/components/DailyBriefCard';
@@ -252,71 +256,102 @@ export default function DashboardScreen() {
   const daysRemaining = daysInMonth - dayOfMonth;
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <AtmosphericBackground variant="dashboard">
       <Header title="Dashboard" />
       <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
         {/* Daily Brief */}
-        <DailyBriefCard />
+        <Animated.View entering={FadeIn.delay(0)}>
+          <DailyBriefCard />
+        </Animated.View>
 
         {/* Monthly Wrapped Flashback Widget */}
-        <WrappedWidget />
+        <Animated.View entering={FadeIn.delay(80)}>
+          <WrappedWidget />
+        </Animated.View>
 
         {/* Hero Budget Card */}
-        <Card style={styles.heroCard}>
-          <View style={styles.heroBudgetHeader}>
-            <View>
-              <Text style={styles.heroLabel}>Monthly Budget</Text>
-              <Text style={styles.heroAmount}>
-                <Text style={styles.monoLarge}>
-                  ${remainingDisplay.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+        <Animated.View entering={FadeIn.delay(160)}>
+          <GlassCard accentEdge="top" accentColor={Colors.accentBright} style={styles.heroCard}>
+            <View style={styles.heroBudgetHeader}>
+              <View>
+                <Text style={styles.heroLabel}>Monthly Budget</Text>
+                <View style={styles.heroAmountRow}>
+                  <Text style={styles.heroDollarSign}>$</Text>
+                  <AnimatedNumber
+                    value={remainingDisplay}
+                    prefix=""
+                    suffix=""
+                    style={styles.heroDisplayNumber}
+                  />
+                  <Text style={styles.heroLeftText}> left</Text>
+                </View>
+                <Text style={styles.heroSub}>
+                  of <Text style={styles.monoInline}>${totalBudget.toLocaleString(undefined, { maximumFractionDigits: 0 })}</Text> budget
                 </Text>
-                {' '}left
-              </Text>
-              <Text style={styles.heroSub}>
-                of <Text style={styles.monoInline}>${totalBudget.toLocaleString(undefined, { maximumFractionDigits: 0 })}</Text> budget
-              </Text>
+              </View>
+              <View style={styles.daysRemainingBadge}>
+                <Text style={styles.daysRemainingNumber}>{daysRemaining}</Text>
+                <Text style={styles.daysRemainingLabel}>days left</Text>
+              </View>
             </View>
-            <View style={styles.daysRemainingBadge}>
-              <Text style={styles.daysRemainingNumber}>{daysRemaining}</Text>
-              <Text style={styles.daysRemainingLabel}>days left</Text>
-            </View>
-          </View>
 
-          {/* Spending Trajectory Chart */}
-          <SpendingTrajectoryChart
-            spent={totalSpent}
-            predicted={totalPredicted > 0 ? totalSpent + totalPredicted : totalSpent * (daysInMonth / Math.max(1, dayOfMonth))}
-            budget={totalBudget}
-            daysElapsed={dayOfMonth}
-            totalDays={daysInMonth}
+            {/* Spending Trajectory Chart */}
+            <SpendingTrajectoryChart
+              spent={totalSpent}
+              predicted={totalPredicted > 0 ? totalSpent + totalPredicted : totalSpent * (daysInMonth / Math.max(1, dayOfMonth))}
+              budget={totalBudget}
+              daysElapsed={dayOfMonth}
+              totalDays={daysInMonth}
+            />
+          </GlassCard>
+        </Animated.View>
+
+        {/* Section Divider: Stats */}
+        <View style={styles.sectionDividerContainer}>
+          <Text style={styles.sectionDividerText}>BUDGET STATS</Text>
+          <LinearGradient
+            colors={['transparent', Colors.glassBorderLight, 'transparent']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.sectionDividerLine}
           />
-        </Card>
+        </View>
 
         {/* Budget Stats Row */}
         <View style={styles.statsRow}>
-          <View style={styles.statCard}>
-            <Text style={styles.statLabel}>SPENT</Text>
-            <Text style={styles.statValue}>
-              ${totalSpent.toLocaleString(undefined, { maximumFractionDigits: 0 })}
-            </Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statLabel}>BUDGET</Text>
-            <Text style={styles.statValue}>
-              ${totalBudget.toLocaleString(undefined, { maximumFractionDigits: 0 })}
-            </Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statLabel}>REMAINING</Text>
-            <Text
-              style={[
-                styles.statValue,
-                { color: remaining >= 0 ? Colors.positive : Colors.negative },
-              ]}
+          <Animated.View style={styles.statCardWrapper} entering={FadeIn.delay(0)}>
+            <GlassCard accentEdge="left" accentColor={Colors.positive} style={styles.statCard}>
+              <Text style={styles.statLabel}>SPENT</Text>
+              <Text style={styles.statValue}>
+                ${totalSpent.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+              </Text>
+            </GlassCard>
+          </Animated.View>
+          <Animated.View style={styles.statCardWrapper} entering={FadeIn.delay(100)}>
+            <GlassCard accentEdge="left" accentColor={Colors.accentBright} style={styles.statCard}>
+              <Text style={styles.statLabel}>BUDGET</Text>
+              <Text style={styles.statValue}>
+                ${totalBudget.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+              </Text>
+            </GlassCard>
+          </Animated.View>
+          <Animated.View style={styles.statCardWrapper} entering={FadeIn.delay(200)}>
+            <GlassCard
+              accentEdge="left"
+              accentColor={remaining >= 0 ? '#00D09C' : '#EF4444'}
+              style={styles.statCard}
             >
-              {remaining < 0 ? '-' : ''}${Math.abs(remaining).toLocaleString(undefined, { maximumFractionDigits: 0 })}
-            </Text>
-          </View>
+              <Text style={styles.statLabel}>REMAINING</Text>
+              <Text
+                style={[
+                  styles.statValue,
+                  { color: remaining >= 0 ? Colors.positive : Colors.negative },
+                ]}
+              >
+                {remaining < 0 ? '-' : ''}${Math.abs(remaining).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+              </Text>
+            </GlassCard>
+          </Animated.View>
         </View>
 
         {/* Category Sort Toggle */}
@@ -354,7 +389,7 @@ export default function DashboardScreen() {
                   : styles.sortTabTextInactive,
               ]}
             >
-              A–Z
+              A-Z
             </Text>
           </TouchableOpacity>
         </View>
@@ -396,52 +431,62 @@ export default function DashboardScreen() {
 
         {/* Health Score Ring */}
         <View style={styles.healthRingContainer}>
+          <View style={styles.healthRingGlow} />
           <TouchableOpacity onPress={() => router.push('/insights' as any)}>
             <HealthScoreRing score={healthScoreV2} size={80} strokeWidth={8} />
           </TouchableOpacity>
         </View>
 
+        {/* Section Divider: Metrics */}
+        <View style={styles.sectionDividerContainer}>
+          <Text style={styles.sectionDividerText}>KEY METRICS</Text>
+          <LinearGradient
+            colors={['transparent', Colors.glassBorderLight, 'transparent']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.sectionDividerLine}
+          />
+        </View>
+
         {/* Key Metric Cards */}
         <View style={styles.metricsRow}>
-          <View style={styles.metricCardWrapper}>
+          <Animated.View style={styles.metricCardWrapper} entering={FadeIn.delay(0)}>
             <MetricCard
               label="Spending Velocity"
               value={`$${spendingVelocity.toFixed(0)}/day`}
               trend={velocityTrend < 0 ? 'down' : velocityTrend > 0 ? 'up' : 'flat'}
               trendValue={`${Math.abs(velocityTrend).toFixed(0)}%`}
             />
-          </View>
-          <View style={styles.metricCardWrapper}>
+          </Animated.View>
+          <Animated.View style={styles.metricCardWrapper} entering={FadeIn.delay(100)}>
             <MetricCard
               label="Savings Rate"
-              value={savingsRate != null ? `${(savingsRate * 100).toFixed(0)}%` : '—'}
+              value={savingsRate != null ? `${(savingsRate * 100).toFixed(0)}%` : '\u2014'}
               trend={savingsRate != null ? (savingsRate >= 0.2 ? 'up' : savingsRate >= 0.1 ? 'flat' : 'down') : 'flat'}
               trendValue={savingsRate != null ? (savingsRate >= 0.2 ? 'Good' : savingsRate >= 0.1 ? 'Fair' : 'Low') : 'Set income'}
             />
-          </View>
-          <View style={styles.metricCardWrapper}>
+          </Animated.View>
+          <Animated.View style={styles.metricCardWrapper} entering={FadeIn.delay(200)}>
             <MetricCard
               label="CCI Score"
               value={`${(cciScore * 100).toFixed(0)}%`}
               trend={cciScore >= 0.7 ? 'up' : cciScore >= 0.4 ? 'flat' : 'down'}
               trendValue={cciScore >= 0.7 ? 'Strong' : cciScore >= 0.4 ? 'Fair' : 'Weak'}
             />
-          </View>
+          </Animated.View>
         </View>
 
         {/* Rank Widget */}
-        <RankWidget />
+        <Animated.View entering={FadeIn.delay(300)}>
+          <RankWidget />
+        </Animated.View>
       </ScrollView>
       <FloatingChatButton />
-    </SafeAreaView>
+    </AtmosphericBackground>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.background,
-  },
   scroll: {
     flex: 1,
   },
@@ -463,12 +508,29 @@ const styles = StyleSheet.create({
     fontSize: Typography.sizes.md,
     color: Colors.textSecondary,
   },
-  heroAmount: {
-    fontSize: Typography.sizes['4xl'],
-    fontWeight: Typography.weights.bold,
-    color: Colors.accent,
+  heroAmountRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
     marginTop: Spacing.xs,
+  },
+  heroDollarSign: {
+    ...Typography.numeric.displayHero,
+    color: Colors.accentBright,
+    textShadowColor: Colors.glowTeal,
+    textShadowRadius: 20,
+    textShadowOffset: { width: 0, height: 0 },
+  },
+  heroDisplayNumber: {
+    ...Typography.numeric.displayHero,
+    color: Colors.accentBright,
+    textShadowColor: Colors.glowTeal,
+    textShadowRadius: 20,
+    textShadowOffset: { width: 0, height: 0 },
+  },
+  heroLeftText: {
     fontFamily: 'DMSans_700Bold',
+    fontSize: Typography.sizes['4xl'],
+    color: Colors.accentBright,
   },
   heroSub: {
     fontFamily: 'DMSans_500Medium',
@@ -477,13 +539,14 @@ const styles = StyleSheet.create({
     marginTop: Spacing.xs,
   },
   daysRemainingBadge: {
-    backgroundColor: Colors.card,
+    backgroundColor: Colors.glassBg,
     borderWidth: 1,
-    borderColor: Colors.cardBorder,
+    borderColor: Colors.glassBorder,
     borderRadius: 12,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.xs,
     alignItems: 'center',
+    marginTop: Spacing.cardOverlap,
   },
   daysRemainingNumber: {
     fontFamily: 'DMMono_500Medium',
@@ -495,6 +558,19 @@ const styles = StyleSheet.create({
     fontFamily: 'DMSans_500Medium',
     fontSize: Typography.sizes.xs,
     color: Colors.textMuted,
+  },
+  // Section Dividers
+  sectionDividerContainer: {
+    marginTop: Spacing.lg,
+    marginBottom: Spacing.md,
+  },
+  sectionDividerText: {
+    ...Typography.label.sectionDividerLarge,
+    marginBottom: Spacing.xs,
+  },
+  sectionDividerLine: {
+    height: 1,
+    width: '100%',
   },
   categoriesScroll: {
     marginTop: Spacing.sm,
@@ -522,6 +598,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: Spacing.lg,
     marginBottom: Spacing.sm,
+    position: 'relative',
+  },
+  healthRingGlow: {
+    position: 'absolute',
+    width: 100,
+    height: 100,
+    borderRadius: 9999,
+    backgroundColor: Colors.glowTeal,
+    opacity: 0.15,
+    top: -10,
   },
   metricsRow: {
     flexDirection: 'row',
@@ -530,12 +616,6 @@ const styles = StyleSheet.create({
   },
   metricCardWrapper: {
     flex: 1,
-  },
-  // DM Mono helpers for hero section
-  monoLarge: {
-    fontFamily: 'DMMono_500Medium',
-    fontSize: Typography.sizes['4xl'],
-    color: Colors.accent,
   },
   monoInline: {
     fontFamily: 'DMMono_500Medium',
@@ -548,14 +628,10 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
     marginBottom: Spacing.lg,
   },
-  statCard: {
+  statCardWrapper: {
     flex: 1,
-    backgroundColor: Colors.bgCard,
-    borderRadius: Spacing.radiusMd,
-    borderWidth: 1,
-    borderColor: Colors.borderSubtle,
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.sm,
+  },
+  statCard: {
     alignItems: 'center',
   },
   statLabel: {
@@ -571,10 +647,10 @@ const styles = StyleSheet.create({
   // Category Sort Toggle
   sortToggleContainer: {
     flexDirection: 'row',
-    backgroundColor: Colors.bgCard,
+    backgroundColor: Colors.glassBg,
     borderRadius: Spacing.radiusSm,
     borderWidth: 1,
-    borderColor: Colors.borderSubtle,
+    borderColor: Colors.glassBorder,
     marginTop: Spacing.lg,
     marginBottom: Spacing.xs,
     padding: 2,

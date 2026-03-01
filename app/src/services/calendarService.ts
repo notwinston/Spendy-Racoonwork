@@ -358,6 +358,14 @@ export async function loadDemoCalendarData(
       ? (sarahEvents as DemoCalendarEvent[])
       : (marcusEvents as DemoCalendarEvent[]);
 
+  // Compute offset to center demo data around today so half the events
+  // are in the past and half in the future (predictions require future events).
+  const timestamps = rawEvents.map((e) => new Date(e.start_time).getTime());
+  const earliest = Math.min(...timestamps);
+  const latest = Math.max(...timestamps);
+  const midpoint = earliest + (latest - earliest) / 2;
+  const offsetMs = Date.now() - midpoint;
+
   const events: CalendarEvent[] = rawEvents.map((raw) => ({
     id: generateId(),
     user_id: userId,
@@ -366,8 +374,8 @@ export async function loadDemoCalendarData(
     title: raw.title,
     description: raw.description ?? null,
     location: raw.location ?? null,
-    start_time: raw.start_time,
-    end_time: raw.end_time,
+    start_time: new Date(new Date(raw.start_time).getTime() + offsetMs).toISOString(),
+    end_time: new Date(new Date(raw.end_time).getTime() + offsetMs).toISOString(),
     is_all_day: false,
     recurrence_rule: raw.recurrence_rule ?? null,
     attendee_count: raw.attendee_count,

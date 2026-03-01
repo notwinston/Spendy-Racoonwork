@@ -8,14 +8,17 @@ import {
   Dimensions,
   ActivityIndicator,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import Animated, { FadeIn, useSharedValue, useAnimatedStyle, withSpring, withTiming } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Typography, Spacing } from '../../src/constants';
+import { AtmosphericBackground } from '../../src/components/ui/AtmosphericBackground';
+import { GlassCard } from '../../src/components/ui/GlassCard';
 import { Header } from '../../src/components/ui/Header';
 import { Card } from '../../src/components/ui/Card';
 import { HiddenCostBreakdown } from '../../src/components/HiddenCostBreakdown';
 import EventCostDropdown from '../../src/components/EventCostDropdown';
 import { FloatingChatButton } from '../../src/components/FloatingChatButton';
+import CalendarConnectCard from '../../src/components/CalendarConnectCard';
 import { DayDetailSheet } from '../../src/components/DayDetailSheet';
 import { useCalendarStore } from '../../src/stores/calendarStore';
 import { usePredictionStore } from '../../src/stores/predictionStore';
@@ -466,18 +469,18 @@ export default function CalendarScreen() {
 
   if (calendarLoading) {
     return (
-      <SafeAreaView style={styles.container} edges={['top']}>
+      <AtmosphericBackground variant="calendar">
         <Header title="Calendar" />
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={Colors.accent} />
           <Text style={styles.loadingText}>Loading calendar...</Text>
         </View>
-      </SafeAreaView>
+      </AtmosphericBackground>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <AtmosphericBackground variant="calendar">
       <Header title="Calendar" />
       <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
         {/* View Mode Toggle */}
@@ -515,6 +518,9 @@ export default function CalendarScreen() {
         {/* Calendar View */}
         {viewMode === 'month' ? renderMonthView() : renderWeekView()}
 
+        {/* Calendar Connect */}
+        <CalendarConnectCard userId={user?.id ?? 'demo-user'} />
+
         {/* Quick Day Summary below the calendar */}
         {selectedDate && selectedDayEvents.length > 0 && viewMode === 'month' && (
           <View style={styles.quickSummary}>
@@ -523,32 +529,36 @@ export default function CalendarScreen() {
                 ? "Today's Events"
                 : `Events for ${MONTHS[selectedDate.getMonth()]} ${selectedDate.getDate()}`}
             </Text>
-            {selectedDayEvents.slice(0, 3).map((event) => {
+            {selectedDayEvents.slice(0, 3).map((event, index) => {
               const prediction = predictionMap.get(event.id);
               return (
-                <TouchableOpacity
+                <Animated.View
                   key={event.id}
-                  onPress={() => setShowDayDetail(true)}
-                  activeOpacity={0.7}
+                  entering={FadeIn.delay(index * 80).duration(300)}
                 >
-                  <Card style={styles.quickEventCard}>
-                    <View style={styles.quickEventRow}>
-                      <View style={styles.quickEventLeft}>
-                        <Text style={styles.quickEventTime}>
-                          {formatTime(event.start_time)}
-                        </Text>
-                        <Text style={styles.quickEventTitle} numberOfLines={1}>
-                          {event.title}
-                        </Text>
+                  <TouchableOpacity
+                    onPress={() => setShowDayDetail(true)}
+                    activeOpacity={0.7}
+                  >
+                    <GlassCard style={styles.quickEventCard}>
+                      <View style={styles.quickEventRow}>
+                        <View style={styles.quickEventLeft}>
+                          <Text style={styles.quickEventTime}>
+                            {formatTime(event.start_time)}
+                          </Text>
+                          <Text style={styles.quickEventTitle} numberOfLines={1}>
+                            {event.title}
+                          </Text>
+                        </View>
+                        {prediction && (
+                          <Text style={styles.quickEventAmount}>
+                            ~${prediction.predicted_amount.toFixed(0)}
+                          </Text>
+                        )}
                       </View>
-                      {prediction && (
-                        <Text style={styles.quickEventAmount}>
-                          ~${prediction.predicted_amount.toFixed(0)}
-                        </Text>
-                      )}
-                    </View>
-                  </Card>
-                </TouchableOpacity>
+                    </GlassCard>
+                  </TouchableOpacity>
+                </Animated.View>
               );
             })}
             {selectedDayEvents.length > 3 && (
@@ -578,7 +588,7 @@ export default function CalendarScreen() {
         onClose={() => setShowDayDetail(false)}
       />
       <FloatingChatButton />
-    </SafeAreaView>
+    </AtmosphericBackground>
   );
 }
 
@@ -587,7 +597,7 @@ const cellSize = (SCREEN_WIDTH - Spacing.lg * 2 - Spacing.lg * 2 - 6) / 7;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: 'transparent',
   },
   scroll: {
     flex: 1,
@@ -609,10 +619,12 @@ const styles = StyleSheet.create({
   // Toggle
   toggleRow: {
     flexDirection: 'row',
-    backgroundColor: Colors.card,
+    backgroundColor: Colors.glassBg,
     borderRadius: 12,
     padding: 4,
     marginBottom: Spacing.lg,
+    borderWidth: 1,
+    borderColor: Colors.glassBorder,
   },
   toggle: {
     flex: 1,
@@ -685,7 +697,13 @@ const styles = StyleSheet.create({
   },
   dayCellToday: {
     borderWidth: 2,
-    borderColor: Colors.accent,
+    borderColor: Colors.glowTeal,
+    shadowColor: Colors.glowTeal,
+    shadowRadius: 8,
+    shadowOpacity: 0.3,
+    shadowOffset: { width: 0, height: 0 },
+    width: cellSize + 4,
+    height: cellSize + 4,
   },
   dayCellSelected: {
     borderWidth: 2,
@@ -758,12 +776,12 @@ const styles = StyleSheet.create({
   },
   // Week View
   weekDayContainer: {
-    backgroundColor: Colors.card,
+    backgroundColor: Colors.glassBg,
     borderRadius: 12,
     padding: Spacing.md,
     marginBottom: Spacing.sm,
     borderWidth: 1,
-    borderColor: Colors.cardBorder,
+    borderColor: Colors.glassBorder,
   },
   weekDayToday: {
     borderColor: Colors.accent,
@@ -895,10 +913,10 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
     marginTop: Spacing.lg,
     padding: Spacing.md,
-    backgroundColor: Colors.card,
+    backgroundColor: Colors.glassBg,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: Colors.accent + '44',
+    borderColor: Colors.glassBorder,
   },
   predictingText: {
     fontSize: Typography.sizes.sm,

@@ -1,10 +1,12 @@
-import React, { useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, Animated } from 'react-native';
+import React from 'react';
+import { View, Text, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import Animated, { FadeIn, useSharedValue, useAnimatedStyle, withRepeat, withTiming, Easing } from 'react-native-reanimated';
 import { Colors, Typography, Spacing } from '../../src/constants';
 import { Button } from '../../src/components/ui/Button';
+import { AtmosphericBackground } from '../../src/components/ui/AtmosphericBackground';
+import { GlassCard } from '../../src/components/ui/GlassCard';
 
 const features = [
   {
@@ -24,54 +26,65 @@ const features = [
   },
 ];
 
-export default function WelcomeScreen() {
-  const router = useRouter();
-  const fadeAnims = useRef(features.map(() => new Animated.Value(0))).current;
+function GlowingLogo() {
+  const glowOpacity = useSharedValue(0.4);
 
-  useEffect(() => {
-    const animations = fadeAnims.map((anim, index) =>
-      Animated.timing(anim, {
-        toValue: 1,
-        duration: 400,
-        delay: index * 200,
-        useNativeDriver: true,
-      }),
+  React.useEffect(() => {
+    glowOpacity.value = withRepeat(
+      withTiming(1.0, { duration: 2500, easing: Easing.inOut(Easing.ease) }),
+      -1,
+      true,
     );
-    Animated.stagger(200, animations).start();
-  }, [fadeAnims]);
+  }, [glowOpacity]);
+
+  const animatedGlow = useAnimatedStyle(() => ({
+    textShadowColor: Colors.glowTeal,
+    textShadowRadius: 25,
+    textShadowOffset: { width: 0, height: 0 },
+    opacity: glowOpacity.value,
+  }));
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.logoContainer}>
+      {/* Shadow layer for glow effect */}
+      <Animated.Text style={[styles.logo, styles.logoGlow, animatedGlow]}>
+        FutureSpend
+      </Animated.Text>
+      {/* Foreground text */}
+      <Text style={styles.logo}>FutureSpend</Text>
+    </View>
+  );
+}
+
+export default function WelcomeScreen() {
+  const router = useRouter();
+
+  return (
+    <AtmosphericBackground variant="onboarding">
       <View style={styles.content}>
-        <Text style={styles.logo}>FutureSpend</Text>
-        <Text style={styles.tagline}>See Tomorrow, Save Today, Share Success</Text>
+        <GlowingLogo />
+
+        <Animated.Text entering={FadeIn.delay(500)} style={styles.tagline}>
+          See Tomorrow, Save Today, Share Success
+        </Animated.Text>
 
         <View style={styles.features}>
           {features.map((feature, index) => (
             <Animated.View
               key={feature.title}
-              style={[
-                styles.feature,
-                {
-                  opacity: fadeAnims[index],
-                  transform: [
-                    {
-                      translateY: fadeAnims[index].interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [20, 0],
-                      }),
-                    },
-                  ],
-                },
-              ]}
+              entering={FadeIn.delay(700 + index * 100)}
             >
-              <View style={styles.iconCircle}>
-                <Ionicons name={feature.icon} size={24} color={Colors.accent} />
-              </View>
-              <View style={styles.featureText}>
-                <Text style={styles.featureTitle}>{feature.title}</Text>
-                <Text style={styles.featureDescription}>{feature.description}</Text>
-              </View>
+              <GlassCard style={styles.featureCard}>
+                <View style={styles.feature}>
+                  <View style={styles.iconCircle}>
+                    <Ionicons name={feature.icon} size={24} color={Colors.accentBright} />
+                  </View>
+                  <View style={styles.featureText}>
+                    <Text style={styles.featureTitle}>{feature.title}</Text>
+                    <Text style={styles.featureDescription}>{feature.description}</Text>
+                  </View>
+                </View>
+              </GlassCard>
             </Animated.View>
           ))}
         </View>
@@ -85,28 +98,33 @@ export default function WelcomeScreen() {
 
         <Button
           title="Get Started"
+          variant="gradient"
           onPress={() => router.push('/onboarding/connect-calendar')}
         />
       </View>
-    </SafeAreaView>
+    </AtmosphericBackground>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.background,
-  },
   content: {
     flex: 1,
-    justifyContent: 'center',
     paddingHorizontal: Spacing['2xl'],
+    paddingTop: '40%',
+  },
+  logoContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   logo: {
-    fontSize: Typography.sizes['5xl'],
-    fontWeight: Typography.weights.bold,
-    color: Colors.accent,
+    fontFamily: 'Syne_800ExtraBold',
+    fontSize: 48,
+    fontWeight: '800',
+    color: Colors.textPrimary,
     textAlign: 'center',
+  },
+  logoGlow: {
+    position: 'absolute',
   },
   tagline: {
     fontSize: Typography.sizes.lg,
@@ -116,8 +134,11 @@ const styles = StyleSheet.create({
     marginBottom: Spacing['3xl'],
   },
   features: {
-    gap: Spacing.xl,
+    gap: Spacing.md,
     marginBottom: Spacing['3xl'],
+  },
+  featureCard: {
+    padding: 0,
   },
   feature: {
     flexDirection: 'row',
@@ -128,9 +149,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: Colors.card,
-    borderWidth: 1,
-    borderColor: Colors.accent,
+    backgroundColor: 'rgba(0, 208, 156, 0.1)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -160,7 +179,11 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.textMuted,
   },
   dotActive: {
-    backgroundColor: Colors.accent,
+    backgroundColor: Colors.accentBright,
     width: 24,
+    shadowColor: Colors.glowTeal,
+    shadowRadius: 6,
+    shadowOpacity: 0.6,
+    shadowOffset: { width: 0, height: 0 },
   },
 });

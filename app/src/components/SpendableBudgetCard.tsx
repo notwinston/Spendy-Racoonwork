@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Typography, Spacing } from '../constants';
 import { Card } from './ui/Card';
+import { GlassCard } from './ui/GlassCard';
 import { useOptimizerStore, type SpendableResult } from '../stores/optimizerStore';
 import { useTransactionStore } from '../stores/transactionStore';
 import { useBudgetStore } from '../stores/budgetStore';
@@ -96,7 +97,7 @@ export function SpendableBudgetCard({ onSetUp }: SpendableBudgetCardProps) {
   }
 
   return (
-    <Card style={styles.card}>
+    <GlassCard style={styles.card}>
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
@@ -131,7 +132,7 @@ export function SpendableBudgetCard({ onSetUp }: SpendableBudgetCardProps) {
           <BreakdownRow label="Safety buffer" amount={-selected.bufferAmount} />
         </View>
       )}
-    </Card>
+    </GlassCard>
   );
 }
 

@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Typography, Spacing } from '../constants';
+import { GlassCard } from './ui/GlassCard';
 
 export interface AnomalyBannerProps {
   anomalies: Array<{
@@ -18,24 +19,26 @@ export function AnomalyBanner({ anomalies }: AnomalyBannerProps) {
   return (
     <View style={styles.container}>
       {anomalies.map((anomaly) => (
-        <View key={anomaly.category} style={styles.banner}>
-          <View style={styles.iconContainer}>
-            <Ionicons name="warning" size={20} color={Colors.warning} />
+        <GlassCard key={anomaly.category} accentEdge="left" accentColor="#F59E0B" style={styles.bannerCard}>
+          <View style={styles.banner}>
+            <View style={styles.iconContainer}>
+              <Ionicons name="warning" size={20} color={Colors.warning} />
+            </View>
+            <View style={styles.content}>
+              <Text style={styles.title}>Unusual Spending Detected</Text>
+              <Text style={styles.body}>
+                Your{' '}
+                <Text style={styles.category}>
+                  {anomaly.category.charAt(0).toUpperCase() + anomaly.category.slice(1)}
+                </Text>{' '}
+                spending this month is{' '}
+                <Text style={styles.multiplier}>{anomaly.multiplier.toFixed(1)}x</Text> your average.
+                Current: <Text style={styles.amount}>${anomaly.amount.toFixed(0)}</Text> vs avg{' '}
+                <Text style={styles.amount}>${anomaly.average.toFixed(0)}</Text>.
+              </Text>
+            </View>
           </View>
-          <View style={styles.content}>
-            <Text style={styles.title}>Unusual Spending Detected</Text>
-            <Text style={styles.body}>
-              Your{' '}
-              <Text style={styles.category}>
-                {anomaly.category.charAt(0).toUpperCase() + anomaly.category.slice(1)}
-              </Text>{' '}
-              spending this month is{' '}
-              <Text style={styles.multiplier}>{anomaly.multiplier.toFixed(1)}x</Text> your average.
-              Current: <Text style={styles.amount}>${anomaly.amount.toFixed(0)}</Text> vs avg{' '}
-              <Text style={styles.amount}>${anomaly.average.toFixed(0)}</Text>.
-            </Text>
-          </View>
-        </View>
+        </GlassCard>
       ))}
     </View>
   );
@@ -46,13 +49,11 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
     marginBottom: Spacing.md,
   },
+  bannerCard: {
+    marginBottom: 0,
+  },
   banner: {
     flexDirection: 'row',
-    backgroundColor: 'rgba(245, 158, 11, 0.08)',
-    borderRadius: Spacing.radiusMd,
-    borderWidth: 1,
-    borderColor: 'rgba(245, 158, 11, 0.2)',
-    padding: Spacing.md,
     gap: Spacing.md,
   },
   iconContainer: {

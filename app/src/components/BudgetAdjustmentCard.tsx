@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { View, Text, TextInput, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Typography, Spacing } from '../constants';
-import { Card } from './ui/Card';
+import { GlassCard } from './ui/GlassCard';
 
 interface BudgetAdjustmentCardProps {
   budget: number;
@@ -41,7 +41,7 @@ export function BudgetAdjustmentCard({
       : Colors.textMuted;
 
   return (
-    <Card style={styles.card}>
+    <GlassCard style={styles.card}>
       <View style={styles.headerRow}>
         <Ionicons name="calculator-outline" size={20} color={Colors.accent} />
         <Text style={styles.headerTitle}>Budget Planner</Text>
@@ -102,7 +102,7 @@ export function BudgetAdjustmentCard({
           </Text>
         </View>
       )}
-    </Card>
+    </GlassCard>
   );
 }
 

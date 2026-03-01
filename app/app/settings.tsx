@@ -10,14 +10,14 @@ import {
   Alert,
   Modal,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
 import { supabase, isDemoMode } from '../src/lib/supabase';
 import { Colors, Typography, Spacing } from '../src/constants';
-import { Card } from '../src/components/ui/Card';
+import { GlassCard } from '../src/components/ui/GlassCard';
 import { Button } from '../src/components/ui/Button';
+import { AtmosphericBackground } from '../src/components/ui/AtmosphericBackground';
 import { useAuthStore } from '../src/stores/authStore';
 import { useCalendarStore } from '../src/stores/calendarStore';
 import { useTransactionStore } from '../src/stores/transactionStore';
@@ -249,7 +249,7 @@ export default function SettingsScreen() {
   ];
 
   return (
-    <SafeAreaView style={styles.container}>
+    <AtmosphericBackground variant="default">
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
           <Ionicons name="close" size={24} color={Colors.textPrimary} />
@@ -329,7 +329,7 @@ export default function SettingsScreen() {
 
         {/* Financial Information */}
         <Text style={styles.sectionTitle}>Financial Information</Text>
-        <Card>
+        <GlassCard>
           <View style={styles.row}>
             <Ionicons name="cash-outline" size={20} color={Colors.accent} />
             <Text style={styles.rowLabel}>Monthly Income</Text>
@@ -357,26 +357,32 @@ export default function SettingsScreen() {
           <Text style={styles.incomeHint}>
             Used to calculate your savings rate on the dashboard.
           </Text>
-        </Card>
+        </GlassCard>
 
         {/* Connected Accounts */}
         <Text style={styles.sectionTitle}>Connected Accounts</Text>
-        <Card>
-          <SettingsRow
-            icon="calendar"
-            label="Google Calendar"
-            value={calendarConnected ? 'Connected' : 'Not connected'}
-            statusColor={calendarConnected ? Colors.positive : Colors.textMuted}
-            onPress={handleCalendarPress}
-          />
-          <SettingsRow
-            icon="wallet"
-            label="Bank Account"
-            value={bankConnected ? 'Connected' : 'Not connected'}
-            statusColor={bankConnected ? Colors.positive : Colors.textMuted}
-            onPress={handleBankPress}
-          />
-        </Card>
+        <GlassCard>
+          <View style={styles.connectionRow}>
+            <View style={[styles.statusDot, { backgroundColor: calendarConnected ? '#00D09C' : '#6B7280' }]} />
+            <SettingsRow
+              icon="calendar"
+              label="Google Calendar"
+              value={calendarConnected ? 'Connected' : 'Not connected'}
+              statusColor={calendarConnected ? Colors.positive : Colors.textMuted}
+              onPress={handleCalendarPress}
+            />
+          </View>
+          <View style={styles.connectionRow}>
+            <View style={[styles.statusDot, { backgroundColor: bankConnected ? '#00D09C' : '#6B7280' }]} />
+            <SettingsRow
+              icon="wallet"
+              label="Bank Account"
+              value={bankConnected ? 'Connected' : 'Not connected'}
+              statusColor={bankConnected ? Colors.positive : Colors.textMuted}
+              onPress={handleBankPress}
+            />
+          </View>
+        </GlassCard>
 
         {/* Notification Preferences */}
         <View style={styles.sectionHeader}>
@@ -389,7 +395,7 @@ export default function SettingsScreen() {
             <Ionicons name="chevron-forward" size={14} color={Colors.accent} />
           </TouchableOpacity>
         </View>
-        <Card>
+        <GlassCard>
           {NOTIFICATION_PREFS.map((pref) => (
             <ToggleRow
               key={pref.key}
@@ -405,11 +411,11 @@ export default function SettingsScreen() {
             value={weeklySummary}
             onToggle={() => setWeeklySummary((prev) => !prev)}
           />
-        </Card>
+        </GlassCard>
 
         {/* Privacy Controls */}
         <Text style={styles.sectionTitle}>Privacy</Text>
-        <Card>
+        <GlassCard>
           <VisibilitySelector
             value={privacy.profileVisibility}
             onChange={setProfileVisibility}
@@ -426,7 +432,7 @@ export default function SettingsScreen() {
             value={privacy.anonymousLeaderboard}
             onToggle={() => togglePrivacy('anonymousLeaderboard')}
           />
-        </Card>
+        </GlassCard>
 
         {/* Sign Out */}
         <Button
@@ -498,7 +504,7 @@ export default function SettingsScreen() {
           </View>
         </Modal>
       </ScrollView>
-    </SafeAreaView>
+    </AtmosphericBackground>
   );
 }
 
@@ -507,9 +513,15 @@ export default function SettingsScreen() {
 // ---------------------------------------------------------------------------
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.background,
+  connectionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  statusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: Spacing.sm,
   },
   header: {
     flexDirection: 'row',
@@ -539,12 +551,16 @@ const styles = StyleSheet.create({
   avatar: {
     width: 80,
     height: 80,
-    borderRadius: 40,
-    backgroundColor: Colors.card,
+    borderRadius: 9999,
+    backgroundColor: Colors.glassBg,
     borderWidth: 2,
-    borderColor: Colors.accent,
+    borderColor: Colors.accentBright,
     justifyContent: 'center',
     alignItems: 'center',
+    shadowColor: Colors.glowBlue,
+    shadowRadius: 10,
+    shadowOpacity: 0.25,
+    shadowOffset: { width: 0, height: 0 },
   },
   cameraOverlay: {
     position: 'absolute',
@@ -560,8 +576,9 @@ const styles = StyleSheet.create({
     borderColor: Colors.background,
   },
   profileName: {
+    fontFamily: 'Syne_700Bold',
     fontSize: Typography.sizes.xl,
-    fontWeight: Typography.weights.bold,
+    fontWeight: '700',
     color: Colors.textPrimary,
   },
   profileEmail: {
@@ -634,7 +651,8 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.md,
     gap: Spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.divider,
+    borderBottomColor: Colors.glassBorderLight,
+    flex: 1,
   },
   rowLabel: {
     flex: 1,
@@ -648,7 +666,7 @@ const styles = StyleSheet.create({
   // Visibility selector
   visibilityContainer: {
     borderBottomWidth: 1,
-    borderBottomColor: Colors.divider,
+    borderBottomColor: Colors.glassBorderLight,
   },
   visibilityOptions: {
     flexDirection: 'row',
@@ -715,6 +733,10 @@ const styles = StyleSheet.create({
   signOutButton: {
     marginTop: Spacing['3xl'],
     borderColor: Colors.danger,
+    shadowColor: '#EF4444',
+    shadowRadius: 8,
+    shadowOpacity: 0.2,
+    shadowOffset: { width: 0, height: 0 },
   },
   // Delete account
   deleteAccountButton: {

@@ -39,12 +39,12 @@ export function RecurringChip({
 
 const styles = StyleSheet.create({
   chip: {
-    backgroundColor: Colors.card,
+    backgroundColor: Colors.glassBg,
     borderRadius: 16,
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
     borderWidth: 1,
-    borderColor: Colors.cardBorder,
+    borderColor: Colors.glassBorder,
     minWidth: 150,
     maxWidth: 200,
     marginRight: Spacing.md,

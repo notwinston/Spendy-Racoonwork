@@ -10,12 +10,13 @@ import {
   Modal,
   ActivityIndicator,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Colors, Typography, Spacing } from '../src/constants';
-import { Card } from '../src/components/ui/Card';
+import { GlassCard } from '../src/components/ui/GlassCard';
 import { Button } from '../src/components/ui/Button';
+import { AtmosphericBackground } from '../src/components/ui/AtmosphericBackground';
 import { useTransactionStore } from '../src/stores/transactionStore';
 import { useAuthStore } from '../src/stores/authStore';
 import { useCalendarStore } from '../src/stores/calendarStore';
@@ -209,7 +210,7 @@ export default function TransactionReviewScreen() {
 
   if (isLoading) {
     return (
-      <SafeAreaView style={styles.container}>
+      <AtmosphericBackground variant="default">
         <View style={styles.header}>
           <TouchableOpacity onPress={() => router.back()}>
             <Ionicons name="arrow-back" size={24} color={Colors.textPrimary} />
@@ -221,12 +222,12 @@ export default function TransactionReviewScreen() {
           <ActivityIndicator size="large" color={Colors.accent} />
           <Text style={styles.loadingText}>Loading transactions...</Text>
         </View>
-      </SafeAreaView>
+      </AtmosphericBackground>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <AtmosphericBackground variant="default">
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={24} color={Colors.textPrimary} />
@@ -246,7 +247,10 @@ export default function TransactionReviewScreen() {
           </Text>
         </View>
         <View style={styles.progressBar}>
-          <View
+          <LinearGradient
+            colors={['#00D09C', '#2563EB']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
             style={[
               styles.progressFill,
               {
@@ -317,7 +321,7 @@ export default function TransactionReviewScreen() {
           const txn = getTransaction(rawTxn);
           const iconName = CATEGORY_ICONS[txn.category] ?? 'ellipsis-horizontal';
           return (
-            <Card key={txn.id} style={styles.txnCard}>
+            <GlassCard key={txn.id} style={styles.txnCard}>
               {/* Transaction Header */}
               <View style={styles.txnHeader}>
                 <View style={styles.txnIconWrap}>
