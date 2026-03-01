@@ -316,3 +316,254 @@ export async function generateInsight(context: {
     return 'We are having trouble generating insights right now. Check back soon for personalised spending analysis.';
   }
 }
+
+// ---- Hidden Cost Prediction ----
+
+export function buildHiddenCostPrompt(
+  event: CalendarEvent,
+  historicalTransactions: Transaction[],
+  similarEvents: { title: string; total_spent: number; breakdown: string[] }[],
+): string {
+  const dayOfWeek = new Date(event.start_time).toLocaleDateString('en-US', { weekday: 'long' });
+
+  let historicalContext = '';
+  if (similarEvents.length > 0) {
+    historicalContext = '\n### Similar Past Events\n' +
+      similarEvents.map(e => `- ${e.title}: $${e.total_spent.toFixed(2)} (${e.breakdown.join(', ')})`).join('\n');
+  }
+
+  let transactionContext = '';
+  if (historicalTransactions.length > 0) {
+    const recent = historicalTransactions.slice(0, 20);
+    transactionContext = '\n### Recent Transaction Patterns\n' +
+      recent.map(t => `- ${t.merchant_name ?? 'Unknown'}: $${t.amount.toFixed(2)} (${t.category})`).join('\n');
+  }
+
+  return `### Hidden Cost Analysis
+
+Analyze this calendar event and predict 2-5 hidden costs the user might incur beyond the base event cost.
+
+### Event Details
+Title: ${event.title}
+Location: ${event.location ?? 'Not specified'}
+Time: ${event.start_time}${event.end_time ? ` to ${event.end_time}` : ''}
+Day: ${dayOfWeek}
+Attendees: ${event.attendee_count}
+Category: ${event.category}
+${event.description ? `Description: ${event.description}` : ''}
+${historicalContext}
+${transactionContext}
+
+### Instructions
+Predict 2-5 hidden costs with:
+- label: short name (e.g., "Parking", "Drinks after")
+- description: brief explanation of why this cost is likely
+- predicted_amount: most likely dollar amount
+- amount_low: lower bound estimate
+- amount_high: upper bound estimate
+- confidence: 0-1 how likely this cost will occur
+- category: one of: ${VALID_CATEGORIES.join(', ')}
+- signal_source: one of: historical, metadata, social, seasonal
+
+Return ONLY valid JSON: { "hidden_costs": [...] }`;
+}
+
+export function parseHiddenCostResponse(
+  raw: string,
+  event: CalendarEvent,
+  predictionId: string,
+): HiddenCost[] {
+  const jsonStr = extractJSON(raw);
+  const parsed: LLMHiddenCostResponse = JSON.parse(jsonStr);
+
+  if (!parsed.hidden_costs || !Array.isArray(parsed.hidden_costs)) {
+    return [];
+  }
+
+  return parsed.hidden_costs.map((item: LLMHiddenCostItem): HiddenCost => {
+    const confidence = Math.max(0, Math.min(1, item.confidence));
+    const category = isValidCategory(item.category) ? item.category : 'other';
+
+    let tier: HiddenCostTier;
+    if (confidence >= 0.70) {
+      tier = 'likely';
+    } else if (confidence >= 0.30) {
+      tier = 'possible';
+    } else if (item.predicted_amount >= 50) {
+      tier = 'unlikely_costly';
+    } else {
+      tier = 'possible';
+    }
+
+    const validSignalSources = ['historical', 'metadata', 'social', 'seasonal'] as const;
+    const signalSource = validSignalSources.includes(item.signal_source as typeof validSignalSources[number])
+      ? (item.signal_source as HiddenCost['signal_source'])
+      : 'metadata';
+
+    return {
+      id: Date.now().toString(36) + Math.random().toString(36).substring(2),
+      prediction_id: predictionId,
+      calendar_event_id: event.id,
+      label: item.label,
+      description: item.description,
+      predicted_amount: Math.round(item.predicted_amount * 100) / 100,
+      amount_low: Math.round(item.amount_low * 100) / 100,
+      amount_high: Math.round(item.amount_high * 100) / 100,
+      tier,
+      confidence_score: Math.round(confidence * 100) / 100,
+      category,
+      signal_source: signalSource,
+      is_dismissed: false,
+    };
+  });
+}
+
+export function findSimilarTransactions(
+  event: CalendarEvent,
+  transactions: Transaction[],
+): Transaction[] {
+  const titleWords = event.title.toLowerCase().split(/\s+/).filter(w => w.length >= 3);
+
+  return transactions
+    .filter(t => {
+      if (t.category === event.category) return true;
+      if (t.merchant_name) {
+        const merchantWords = t.merchant_name.toLowerCase().split(/\s+/);
+        return titleWords.some(tw => merchantWords.some(mw => mw.includes(tw) || tw.includes(mw)));
+      }
+      return false;
+    })
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    .slice(0, 10);
+}
+
+export async function predictHiddenCosts(
+  events: CalendarEvent[],
+  transactions: Transaction[],
+  userId?: string,
+): Promise<HiddenCost[]> {
+  if (events.length === 0) return [];
+
+  const adapter = await getAdapter();
+  const allResults: HiddenCost[] = [];
+
+  const promises = events.map(async (event) => {
+    const similar = findSimilarTransactions(event, transactions);
+    const prompt = buildHiddenCostPrompt(event, similar, []);
+    const predictionId = `pred_hidden_${event.id}_${Date.now()}`;
+
+    try {
+      const raw = await adapter.predict(prompt);
+      return parseHiddenCostResponse(raw, event, predictionId);
+    } catch (error) {
+      console.warn(`[PredictionService] Hidden cost prediction failed for event ${event.id}:`, error);
+      return [];
+    }
+  });
+
+  const results = await Promise.allSettled(promises);
+  for (const result of results) {
+    if (result.status === 'fulfilled') {
+      allResults.push(...result.value);
+    }
+  }
+
+  return allResults;
+}
+
+export function buildEventCostBreakdowns(
+  predictions: SpendingPrediction[],
+  hiddenCosts: HiddenCost[],
+): Record<string, EventCostBreakdown> {
+  const predictionMap = new Map<string, SpendingPrediction>();
+  for (const p of predictions) {
+    predictionMap.set(p.calendar_event_id, p);
+  }
+
+  const costsByEvent = new Map<string, HiddenCost[]>();
+  for (const cost of hiddenCosts) {
+    const existing = costsByEvent.get(cost.calendar_event_id) ?? [];
+    existing.push(cost);
+    costsByEvent.set(cost.calendar_event_id, existing);
+  }
+
+  const breakdowns: Record<string, EventCostBreakdown> = {};
+
+  const allEventIds = new Set([...predictionMap.keys(), ...costsByEvent.keys()]);
+  for (const eventId of allEventIds) {
+    const prediction = predictionMap.get(eventId);
+    if (!prediction) continue;
+
+    const costs = costsByEvent.get(eventId) ?? [];
+    const activeCosts = costs.filter(c => !c.is_dismissed);
+
+    const baseAmount = prediction.predicted_amount;
+    const likelyCosts = activeCosts.filter(c => c.tier === 'likely');
+    const possibleCosts = activeCosts.filter(c => c.tier === 'possible');
+    const allActiveCosts = activeCosts;
+
+    breakdowns[eventId] = {
+      calendar_event_id: eventId,
+      base_prediction: prediction,
+      hidden_costs: costs,
+      total_likely: baseAmount + likelyCosts.reduce((sum, c) => sum + c.predicted_amount, 0),
+      total_possible: baseAmount + likelyCosts.reduce((sum, c) => sum + c.predicted_amount, 0) +
+        possibleCosts.reduce((sum, c) => sum + c.predicted_amount, 0),
+      total_with_risk: baseAmount + allActiveCosts.reduce((sum, c) => sum + c.predicted_amount, 0),
+      historical_avg: null,
+    };
+  }
+
+  return breakdowns;
+}
+
+export function generateDailyBrief(
+  events: CalendarEvent[],
+  predictions: SpendingPrediction[],
+  hiddenCosts: HiddenCost[],
+  budgets: Budget[],
+): DailyBrief {
+  const todayStr = new Date().toISOString().split('T')[0];
+  const todayEvents = events.filter(e => e.start_time.split('T')[0] === todayStr);
+
+  const breakdowns = buildEventCostBreakdowns(predictions, hiddenCosts);
+  const todayBreakdowns: EventCostBreakdown[] = [];
+
+  for (const event of todayEvents) {
+    if (breakdowns[event.id]) {
+      todayBreakdowns.push(breakdowns[event.id]);
+    }
+  }
+
+  const totalPredictedLow = todayBreakdowns.reduce(
+    (sum, b) => sum + b.base_prediction.predicted_amount, 0,
+  );
+  const totalPredictedHigh = todayBreakdowns.reduce(
+    (sum, b) => sum + b.total_with_risk, 0,
+  );
+
+  const allHiddenCosts = todayBreakdowns.flatMap(b => b.hidden_costs.filter(c => !c.is_dismissed));
+
+  let topWarning: string | null = null;
+  if (allHiddenCosts.length > 0) {
+    const highest = allHiddenCosts.reduce((max, c) =>
+      c.predicted_amount > max.predicted_amount ? c : max, allHiddenCosts[0]);
+    topWarning = highest.label;
+  }
+
+  let savingsOpportunity: string | null = null;
+  if (allHiddenCosts.length > 0) {
+    const lowestConfidence = allHiddenCosts.reduce((min, c) =>
+      c.confidence_score < min.confidence_score ? c : min, allHiddenCosts[0]);
+    savingsOpportunity = `Skip ${lowestConfidence.label} to save ~$${lowestConfidence.predicted_amount.toFixed(0)}`;
+  }
+
+  return {
+    date: todayStr,
+    events: todayBreakdowns,
+    total_predicted_low: Math.round(totalPredictedLow * 100) / 100,
+    total_predicted_high: Math.round(totalPredictedHigh * 100) / 100,
+    top_warning: topWarning,
+    savings_opportunity: savingsOpportunity,
+  };
+}
