@@ -16,6 +16,7 @@ import {
   predictHiddenCosts,
   buildEventCostBreakdowns,
   generateDailyBrief as buildDailyBrief,
+  matchPredictionsToActuals,
 } from '../services/predictionService';
 
 // ---- Store types ----
@@ -121,6 +122,7 @@ export const usePredictionStore = create<PredictionState>((set, get) => ({
   eventCostBreakdowns: {},
   dailyBrief: null,
   isAnalyzingHiddenCosts: false,
+  lastAccuracyCheck: null,
 
   fetchPredictions: (predictions) => {
     set({ predictions, isLoading: false, error: null });
@@ -239,6 +241,70 @@ export const usePredictionStore = create<PredictionState>((set, get) => ({
     set({ dailyBrief: brief });
   },
 
+  trackAccuracy: (transactions) => {
+    const { predictions, hiddenCosts, lastAccuracyCheck } = get();
+
+    // Morning-after pattern: only process yesterday's events
+    const now = new Date();
+    const todayStr = now.toISOString().slice(0, 10);
+
+    // Don't re-run if already checked today
+    if (lastAccuracyCheck === todayStr) return;
+
+    // Filter to predictions from yesterday
+    const yesterday = new Date(now);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = yesterday.toISOString().slice(0, 10);
+
+    const yesterdayPredictions = predictions.filter((p) => {
+      const pDate = new Date(p.created_at).toISOString().slice(0, 10);
+      return pDate === yesterdayStr;
+    });
+
+    if (yesterdayPredictions.length === 0) {
+      set({ lastAccuracyCheck: todayStr });
+      return;
+    }
+
+    const yesterdayHiddenCosts = hiddenCosts.filter((hc) =>
+      yesterdayPredictions.some((p) => p.id === hc.prediction_id),
+    );
+
+    const matches = matchPredictionsToActuals(yesterdayPredictions, yesterdayHiddenCosts, transactions);
+
+    // Update predictions with accuracy data
+    const updatedPredictions = predictions.map((p) => {
+      const match = matches.find((m) => m.predictionId === p.id);
+      if (!match) return p;
+      return {
+        ...p,
+        actual_amount: match.actual_amount,
+        was_accurate: match.was_accurate,
+      };
+    });
+
+    // Update hidden costs with accuracy data
+    const updatedHiddenCosts = hiddenCosts.map((hc) => {
+      for (const match of matches) {
+        const hcMatch = match.hiddenCostMatches.find((m) => m.costId === hc.id);
+        if (hcMatch) {
+          return {
+            ...hc,
+            actual_amount: hcMatch.actual_amount,
+            was_accurate: hcMatch.was_accurate,
+          };
+        }
+      }
+      return hc;
+    });
+
+    set({
+      predictions: updatedPredictions,
+      hiddenCosts: updatedHiddenCosts,
+      lastAccuracyCheck: todayStr,
+    });
+  },
+
   clear: () => {
     set({
       predictions: [],
@@ -250,6 +316,7 @@ export const usePredictionStore = create<PredictionState>((set, get) => ({
       eventCostBreakdowns: {},
       dailyBrief: null,
       isAnalyzingHiddenCosts: false,
+      lastAccuracyCheck: null,
     });
   },
 }));
