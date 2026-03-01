@@ -423,3 +423,129 @@ export function getRecentPredictionAccuracy(
     };
   });
 }
+
+// ---------- Predictive utilities (Wave 2a) ----------
+
+/**
+ * Forecast month-end spending based on current spending velocity.
+ * Formula: (spent / daysElapsed) * totalDays
+ */
+export function forecastMonthEnd(
+  totalSpent: number,
+  dayOfMonth: number,
+  daysInMonth: number,
+  totalBudget: number,
+): { projected: number; surplus: number; isOverBudget: boolean } {
+  if (dayOfMonth === 0) {
+    return { projected: 0, surplus: totalBudget, isOverBudget: false };
+  }
+  const dailyRate = totalSpent / dayOfMonth;
+  const projected = Math.round(dailyRate * daysInMonth);
+  const surplus = totalBudget - projected;
+  return {
+    projected,
+    surplus,
+    isOverBudget: projected > totalBudget,
+  };
+}
+
+/**
+ * Detect anomalous spending: flag categories where current month spending
+ * is 2x+ above the historical average (last 3 months).
+ */
+export function detectAnomalies(
+  transactions: Transaction[],
+): Array<{ category: string; amount: number; average: number; multiplier: number }> {
+  const now = new Date();
+  const threeMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 3, 1);
+  const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+  const historicalByCategory: Record<string, number> = {};
+  const currentByCategory: Record<string, number> = {};
+
+  for (const t of transactions) {
+    const d = new Date(t.date);
+    const amount = Math.abs(t.amount);
+    if (d >= thisMonthStart && d <= now) {
+      currentByCategory[t.category] = (currentByCategory[t.category] || 0) + amount;
+    } else if (d >= threeMonthsAgo && d < thisMonthStart) {
+      historicalByCategory[t.category] = (historicalByCategory[t.category] || 0) + amount;
+    }
+  }
+
+  const results: Array<{ category: string; amount: number; average: number; multiplier: number }> = [];
+
+  for (const [cat, amount] of Object.entries(currentByCategory)) {
+    const historicalTotal = historicalByCategory[cat] || 0;
+    const average = historicalTotal / 3; // 3-month average
+    if (average > 0) {
+      const multiplier = amount / average;
+      if (multiplier >= 2) {
+        results.push({
+          category: cat,
+          amount: Math.round(amount * 100) / 100,
+          average: Math.round(average * 100) / 100,
+          multiplier: Math.round(multiplier * 10) / 10,
+        });
+      }
+    }
+  }
+
+  return results.sort((a, b) => b.multiplier - a.multiplier);
+}
+
+/**
+ * Predict upcoming bills by analyzing recurring transactions.
+ * Detects recurring patterns and predicts next dates.
+ */
+export function predictBills(
+  recurringTransactions: Array<{
+    merchant_name: string;
+    avg_amount: number;
+    frequency: string;
+    next_expected_date: string | null;
+    is_active: boolean;
+  }>,
+): Array<{ name: string; amount: number; dueDate: string; frequency: string }> {
+  const now = new Date();
+
+  return recurringTransactions
+    .filter((r) => r.is_active)
+    .map((r) => {
+      let dueDate: string;
+      if (r.next_expected_date) {
+        dueDate = r.next_expected_date;
+      } else {
+        // Estimate next date based on frequency
+        const nextDate = new Date(now);
+        switch (r.frequency) {
+          case 'weekly':
+            nextDate.setDate(nextDate.getDate() + 7);
+            break;
+          case 'biweekly':
+            nextDate.setDate(nextDate.getDate() + 14);
+            break;
+          case 'monthly':
+            nextDate.setMonth(nextDate.getMonth() + 1);
+            break;
+          case 'quarterly':
+            nextDate.setMonth(nextDate.getMonth() + 3);
+            break;
+          case 'yearly':
+            nextDate.setFullYear(nextDate.getFullYear() + 1);
+            break;
+          default:
+            nextDate.setMonth(nextDate.getMonth() + 1);
+        }
+        dueDate = nextDate.toISOString().split('T')[0];
+      }
+
+      return {
+        name: r.merchant_name,
+        amount: r.avg_amount,
+        dueDate,
+        frequency: r.frequency,
+      };
+    })
+    .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
+}

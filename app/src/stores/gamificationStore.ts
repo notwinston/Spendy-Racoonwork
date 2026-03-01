@@ -59,6 +59,12 @@ interface GamificationState {
   // Check-in
   dailyCheckinDone: boolean;
 
+  // Social/Privacy
+  socialOptIn: boolean;
+  anonymousMode: boolean;
+  setSocialOptIn: (v: boolean) => void;
+  setAnonymousMode: (v: boolean) => void;
+
   // Loading
   isLoading: boolean;
   error: string | null;
@@ -342,3 +348,17 @@ export const useGamificationStore = create<GamificationState>((set, get) => ({
 
 // Re-export pure calculation helpers for convenience
 export { calculateLevel, getXPForNextLevel, xpThresholdForLevel, xpRemainingForNextLevel };
+
+// ---------- Rank Tier System ----------
+
+export const RANK_TIERS = [
+  { name: 'Bronze', minRate: 0, maxRate: 5, color: '#CD7F32', badge: '\u{1F949}', label: 'Getting Started' },
+  { name: 'Silver', minRate: 5, maxRate: 15, color: '#94A3B8', badge: '\u{1F948}', label: 'On Track' },
+  { name: 'Gold', minRate: 15, maxRate: 25, color: '#F59E0B', badge: '\u{1F947}', label: 'Saver' },
+  { name: 'Platinum', minRate: 25, maxRate: 40, color: '#3B82F6', badge: '\u{1F48E}', label: 'Super Saver' },
+  { name: 'Diamond', minRate: 40, maxRate: 100, color: '#8B5CF6', badge: '\u{1F537}', label: 'Financial Elite' },
+] as const;
+
+export function calculateRankTier(savingsRate: number): typeof RANK_TIERS[number] {
+  return RANK_TIERS.find((t) => savingsRate >= t.minRate && savingsRate < t.maxRate) || RANK_TIERS[0];
+}

@@ -540,3 +540,97 @@ export function calculateEventCostVariance(
 
   return result;
 }
+
+// ---------- Predictive utilities (Wave 2a) ----------
+
+/**
+ * Suggest category budgets by comparing 3-month average spending
+ * to current budget allocation.
+ */
+export function suggestCategoryBudgets(
+  transactions: Transaction[],
+  budgets: Array<{ category: EventCategory; monthly_limit: number }>,
+): Array<{ category: string; currentBudget: number; suggestedBudget: number; reason: string }> {
+  const now = new Date();
+  const threeMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 3, 1);
+
+  // Calculate 3-month average per category
+  const spendByCategory: Record<string, number> = {};
+  const txnCount: Record<string, number> = {};
+
+  for (const t of transactions) {
+    const d = new Date(t.date);
+    if (d >= threeMonthsAgo && d <= now) {
+      const cat = t.category;
+      spendByCategory[cat] = (spendByCategory[cat] || 0) + Math.abs(t.amount);
+      txnCount[cat] = (txnCount[cat] || 0) + 1;
+    }
+  }
+
+  const suggestions: Array<{
+    category: string;
+    currentBudget: number;
+    suggestedBudget: number;
+    reason: string;
+  }> = [];
+
+  for (const budget of budgets) {
+    const cat = budget.category;
+    const totalSpend = spendByCategory[cat] || 0;
+    const monthlyAvg = Math.round(totalSpend / 3);
+    const currentBudget = budget.monthly_limit;
+
+    // Only suggest if there's meaningful difference (>15%)
+    const diff = Math.abs(monthlyAvg - currentBudget);
+    const pctDiff = currentBudget > 0 ? (diff / currentBudget) * 100 : 0;
+
+    if (pctDiff > 15 && monthlyAvg > 0) {
+      // Add 10% buffer to average
+      const suggested = Math.round(monthlyAvg * 1.1);
+      const reason =
+        monthlyAvg > currentBudget
+          ? `Your 3-month average ($${monthlyAvg}) exceeds your budget by ${Math.round(pctDiff)}%.`
+          : `Your 3-month average ($${monthlyAvg}) is ${Math.round(pctDiff)}% below your budget. Consider reallocating.`;
+
+      suggestions.push({
+        category: cat,
+        currentBudget,
+        suggestedBudget: suggested,
+        reason,
+      });
+    }
+  }
+
+  return suggestions.sort(
+    (a, b) => Math.abs(b.suggestedBudget - b.currentBudget) - Math.abs(a.suggestedBudget - a.currentBudget),
+  );
+}
+
+/**
+ * Predict when a savings goal will be achieved based on current contribution rate.
+ */
+export function predictGoalAchievement(
+  goalTarget: number,
+  currentSaved: number,
+  monthlyContribution: number,
+): { monthsToGoal: number; estimatedDate: string } {
+  if (monthlyContribution <= 0) {
+    return { monthsToGoal: Infinity, estimatedDate: 'Never at current rate' };
+  }
+
+  const remaining = goalTarget - currentSaved;
+  if (remaining <= 0) {
+    return { monthsToGoal: 0, estimatedDate: 'Already achieved!' };
+  }
+
+  const monthsToGoal = Math.ceil(remaining / monthlyContribution);
+
+  const estimatedDate = new Date();
+  estimatedDate.setMonth(estimatedDate.getMonth() + monthsToGoal);
+  const dateStr = estimatedDate.toLocaleDateString('en-US', {
+    month: 'short',
+    year: 'numeric',
+  });
+
+  return { monthsToGoal, estimatedDate: dateStr };
+}
