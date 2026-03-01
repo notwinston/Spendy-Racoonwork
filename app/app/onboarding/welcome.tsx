@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React, { useRef, useEffect } from 'react';
+import { View, Text, StyleSheet, Animated } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -26,6 +26,19 @@ const features = [
 
 export default function WelcomeScreen() {
   const router = useRouter();
+  const fadeAnims = useRef(features.map(() => new Animated.Value(0))).current;
+
+  useEffect(() => {
+    const animations = fadeAnims.map((anim, index) =>
+      Animated.timing(anim, {
+        toValue: 1,
+        duration: 400,
+        delay: index * 200,
+        useNativeDriver: true,
+      }),
+    );
+    Animated.stagger(200, animations).start();
+  }, [fadeAnims]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -34,8 +47,24 @@ export default function WelcomeScreen() {
         <Text style={styles.tagline}>See Tomorrow, Save Today, Share Success</Text>
 
         <View style={styles.features}>
-          {features.map((feature) => (
-            <View key={feature.title} style={styles.feature}>
+          {features.map((feature, index) => (
+            <Animated.View
+              key={feature.title}
+              style={[
+                styles.feature,
+                {
+                  opacity: fadeAnims[index],
+                  transform: [
+                    {
+                      translateY: fadeAnims[index].interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [20, 0],
+                      }),
+                    },
+                  ],
+                },
+              ]}
+            >
               <View style={styles.iconCircle}>
                 <Ionicons name={feature.icon} size={24} color={Colors.accent} />
               </View>
@@ -43,7 +72,7 @@ export default function WelcomeScreen() {
                 <Text style={styles.featureTitle}>{feature.title}</Text>
                 <Text style={styles.featureDescription}>{feature.description}</Text>
               </View>
-            </View>
+            </Animated.View>
           ))}
         </View>
 

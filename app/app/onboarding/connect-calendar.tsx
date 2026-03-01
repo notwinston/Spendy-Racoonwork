@@ -152,12 +152,19 @@ export default function ConnectCalendarScreen() {
           </Card>
 
           <Card style={styles.optionCard}>
-            <Button
-              title="Use Demo Data"
-              variant="outline"
-              onPress={handleDemoData}
-              loading={isLoading}
-            />
+            <View style={styles.demoRow}>
+              <View style={{ flex: 1 }}>
+                <Button
+                  title="Use Demo Data"
+                  variant="outline"
+                  onPress={handleDemoData}
+                  loading={isLoading}
+                />
+              </View>
+              <View style={styles.quickStartBadge}>
+                <Text style={styles.quickStartText}>Quick Start</Text>
+              </View>
+            </View>
           </Card>
         </View>
 
@@ -240,5 +247,23 @@ const styles = StyleSheet.create({
   dotActive: {
     backgroundColor: Colors.accent,
     width: 24,
+  },
+  demoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  quickStartBadge: {
+    backgroundColor: Colors.accent + '25',
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: Colors.accent,
+  },
+  quickStartText: {
+    fontSize: Typography.sizes.xs,
+    color: Colors.accent,
+    fontWeight: Typography.weights.semibold,
   },
 });

@@ -17,10 +17,13 @@ import { Header } from '../../src/components/ui/Header';
 import { Card } from '../../src/components/ui/Card';
 import { HiddenCostBreakdown } from '../../src/components/HiddenCostBreakdown';
 import { FloatingChatButton } from '../../src/components/FloatingChatButton';
+import { BudgetAdjustmentCard } from '../../src/components/BudgetAdjustmentCard';
+import { RecurringChip } from '../../src/components/RecurringChip';
 import { useCalendarStore } from '../../src/stores/calendarStore';
 import { usePredictionStore } from '../../src/stores/predictionStore';
 import { useTransactionStore } from '../../src/stores/transactionStore';
 import { useAuthStore } from '../../src/stores/authStore';
+import { useBudgetStore } from '../../src/stores/budgetStore';
 import {
   captureReceipt,
   pickReceiptFromGallery,
@@ -104,6 +107,7 @@ export default function PlanScreen() {
     recurringTransactions,
     loadDemoData: loadTransactionDemo,
   } = useTransactionStore();
+  const { totalBudget, totalSpent } = useBudgetStore();
 
   // Savings rules local state
   const [roundUpEnabled, setRoundUpEnabled] = useState(false);
@@ -267,7 +271,12 @@ export default function PlanScreen() {
       <Header title="Plan" />
       <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
         {/* --- Upcoming Predictions --- */}
-        <Text style={styles.sectionTitle}>Upcoming Predictions</Text>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Upcoming Predictions</Text>
+          <TouchableOpacity activeOpacity={0.7}>
+            <Text style={styles.seeAllLink}>See All</Text>
+          </TouchableOpacity>
+        </View>
         {upcomingPredictions.length > 0 && (
           <Card style={styles.summaryCard}>
             <View style={styles.summaryRow}>
@@ -353,6 +362,14 @@ export default function PlanScreen() {
             );
           })
         )}
+
+        {/* --- Budget Planner --- */}
+        <Text style={styles.sectionTitle}>Budget Planner</Text>
+        <BudgetAdjustmentCard
+          budget={totalBudget > 0 ? totalBudget : 2000}
+          spent={totalSpent}
+          remaining={Math.max(0, (totalBudget > 0 ? totalBudget : 2000) - totalSpent)}
+        />
 
         {/* --- Scan a Receipt --- */}
         <Text style={styles.sectionTitle}>Scan a Receipt</Text>

@@ -1,12 +1,22 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Typography, Spacing } from '../../src/constants';
 import { Button } from '../../src/components/ui/Button';
+import { DonutChart, type DonutSegment } from '../../src/components/charts';
 import { useAuthStore } from '../../src/stores/authStore';
 import { useBudgetStore } from '../../src/stores/budgetStore';
+
+const CATEGORY_ALLOCATIONS = [
+  { category: 'Dining', percentage: 30, color: '#FF6B6B' },
+  { category: 'Transport', percentage: 20, color: '#4ECDC4' },
+  { category: 'Shopping', percentage: 15, color: '#45B7D1' },
+  { category: 'Entertainment', percentage: 10, color: '#96CEB4' },
+  { category: 'Groceries', percentage: 15, color: '#FFEAA7' },
+  { category: 'Other', percentage: 10, color: '#DDA0DD' },
+];
 
 const PRESETS = [500, 1000, 1500, 2000, 3000, 5000];
 
@@ -16,6 +26,17 @@ export default function SetBudgetScreen() {
   const userId = useAuthStore((s) => s.user?.id) ?? 'demo-user';
   const fetchBudgets = useBudgetStore((s) => s.fetchBudgets);
   const [selectedAmount, setSelectedAmount] = useState(2000);
+
+  const donutData: DonutSegment[] = useMemo(
+    () =>
+      CATEGORY_ALLOCATIONS.map((cat) => ({
+        category: cat.category,
+        amount: Math.round((selectedAmount * cat.percentage) / 100),
+        color: cat.color,
+        percentage: cat.percentage,
+      })),
+    [selectedAmount],
+  );
 
   const handleComplete = async () => {
     await fetchBudgets(userId);
@@ -58,6 +79,22 @@ export default function SetBudgetScreen() {
               </Text>
             </TouchableOpacity>
           ))}
+        </View>
+
+        {/* Suggested category allocation preview */}
+        <View style={styles.donutContainer}>
+          <Text style={styles.donutLabel}>Suggested Allocation</Text>
+          <DonutChart data={donutData} size={140} strokeWidth={24} showTotal={false} />
+          <View style={styles.legendContainer}>
+            {CATEGORY_ALLOCATIONS.map((cat) => (
+              <View key={cat.category} style={styles.legendItem}>
+                <View style={[styles.legendDot, { backgroundColor: cat.color }]} />
+                <Text style={styles.legendText}>
+                  {cat.category} {cat.percentage}%
+                </Text>
+              </View>
+            ))}
+          </View>
         </View>
 
         <View style={styles.dots}>
@@ -163,5 +200,41 @@ const styles = StyleSheet.create({
   dotActive: {
     backgroundColor: Colors.accent,
     width: 24,
+  },
+  donutContainer: {
+    alignItems: 'center',
+    marginBottom: Spacing.xl,
+    backgroundColor: Colors.card,
+    borderRadius: 16,
+    padding: Spacing.lg,
+    borderWidth: 1,
+    borderColor: Colors.cardBorder,
+  },
+  donutLabel: {
+    fontSize: Typography.sizes.md,
+    color: Colors.textSecondary,
+    fontWeight: Typography.weights.medium,
+    marginBottom: Spacing.md,
+  },
+  legendContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: Spacing.sm,
+    marginTop: Spacing.md,
+  },
+  legendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+  },
+  legendDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  legendText: {
+    fontSize: Typography.sizes.xs,
+    color: Colors.textSecondary,
   },
 });

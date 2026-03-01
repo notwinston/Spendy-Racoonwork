@@ -106,6 +106,10 @@ export default function ConnectBankScreen() {
           Securely link your accounts to track real spending
         </Text>
 
+        <View style={styles.shieldContainer}>
+          <Ionicons name="shield-checkmark" size={48} color={Colors.accent} />
+        </View>
+
         <View style={styles.badges}>
           <View style={styles.badge}>
             <Ionicons name="shield-checkmark" size={16} color={Colors.accent} />
@@ -113,7 +117,11 @@ export default function ConnectBankScreen() {
           </View>
           <View style={styles.badge}>
             <Ionicons name="eye-off" size={16} color={Colors.accent} />
-            <Text style={styles.badgeText}>Read-only access</Text>
+            <Text style={styles.badgeText}>Never stores credentials</Text>
+          </View>
+          <View style={styles.badge}>
+            <Ionicons name="eye-outline" size={16} color={Colors.accent} />
+            <Text style={styles.badgeText}>Read-Only Access</Text>
           </View>
         </View>
 
@@ -124,13 +132,20 @@ export default function ConnectBankScreen() {
           style={styles.button}
         />
 
-        <Button
-          title="Use Demo Data"
-          variant="secondary"
-          onPress={handleDemoData}
-          loading={isLoading}
-          style={styles.button}
-        />
+        <View style={styles.demoRow}>
+          <View style={{ flex: 1 }}>
+            <Button
+              title="Use Demo Data"
+              variant="secondary"
+              onPress={handleDemoData}
+              loading={isLoading}
+              style={styles.button}
+            />
+          </View>
+          <View style={styles.sandboxLabel}>
+            <Text style={styles.sandboxText}>Sandbox Data</Text>
+          </View>
+        </View>
 
         <View style={styles.dots}>
           <View style={styles.dot} />
@@ -233,5 +248,27 @@ const styles = StyleSheet.create({
   dotActive: {
     backgroundColor: Colors.accent,
     width: 24,
+  },
+  shieldContainer: {
+    alignItems: 'center',
+    marginBottom: Spacing.lg,
+  },
+  demoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  sandboxLabel: {
+    backgroundColor: Colors.warning + '25',
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: Colors.warning,
+  },
+  sandboxText: {
+    fontSize: Typography.sizes.xs,
+    color: Colors.warning,
+    fontWeight: Typography.weights.semibold,
   },
 });
