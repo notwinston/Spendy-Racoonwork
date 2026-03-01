@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "commit_hash": "2f21a5710a0a361934ee42d9de25523c29597317",
+    "commit_hash": "06b4504b14c428dd50365664768a7b0e9b5f28b9",
     "last_confirmed": "2026-03-01",
     "framework": "React Native 0.81.5 + Expo ~54.0 + Expo Router 6.0.23",
     "state_management": "Zustand v5.0.11",
@@ -28,24 +28,24 @@
   },
   "entries": [
     {
-      "keywords": ["wrapped", "dashboard", "widget", "monthly", "flashback", "budget"],
+      "keywords": ["dashboard", "budget", "monthly", "hero", "category", "stats"],
       "directory_scope": "app/app/(tabs), app/src/components, app/src/stores",
       "referenced_files": [
         "app/app/(tabs)/dashboard.tsx",
-        "app/app/_layout.tsx",
-        "app/src/constants/colors.ts",
-        "app/src/constants/typography.ts",
-        "app/src/constants/spacing.ts",
-        "app/src/types/index.ts",
-        "app/src/stores/transactionStore.ts",
         "app/src/stores/budgetStore.ts",
-        "app/src/stores/authStore.ts",
-        "app/src/stores/gamificationStore.ts",
+        "app/src/stores/transactionStore.ts",
+        "app/src/stores/insightsMonthStore.ts",
+        "app/src/components/insights/MonthSelector.tsx",
+        "app/src/components/SpendingTrajectoryChart.tsx",
+        "app/src/components/ui/ProgressRing.tsx",
+        "app/src/components/ui/MetricCard.tsx",
+        "app/src/types/index.ts",
         "app/src/utils/financialCalcs.ts",
-        "app/src/components/ui/Card.tsx",
-        "app/src/components/ChatSheet.tsx"
+        "app/src/services/plaidService.ts",
+        "app/src/data/sarah_transactions.json",
+        "app/src/data/marcus_transactions.json"
       ],
-      "summary": "Dashboard has DailyBriefCard then Hero Budget Card. Transaction/budget stores have full monthly data. Existing animation patterns use Animated API and reanimated. SVG used for all charts. Modals use slide_from_bottom presentation."
+      "summary": "Dashboard has Hero Budget Card + Stats Row + Category Circles. Budget store is current-month only. MonthSelector component exists for Insights. Demo transactions span 3 months (Dec 2025-Feb 2026). BudgetSnapshot type exists but unused."
     }
   ]
 }

@@ -256,7 +256,7 @@ const DEFAULT_RULE: CategoryRule = { category: 'other', min: 10, max: 50 };
  */
 function buildMockResponse(prompt: string): string {
   // Extract event blocks from the prompt. Each block starts with "Event N:"
-  const eventRegex = /\[ID:\s*([^\]]+)\].*?Title:\s*(.+?)(?:\n|$)(?:.*?Description:\s*(.+?)(?:\n|$))?/gi;
+  const eventRegex = /\[ID:\s*([^\]]+)\][\s\S]*?Title:\s*(.+?)(?:\n|$)(?:[\s\S]*?Description:\s*(.+?)(?:\n|$))?/gi;
 
   const predictions: LLMPredictionItem[] = [];
   let match: RegExpExecArray | null;
