@@ -15,6 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Colors, Typography, Spacing } from '../../src/constants';
 import { Header } from '../../src/components/ui/Header';
 import { Card } from '../../src/components/ui/Card';
+import { HiddenCostBreakdown } from '../../src/components/HiddenCostBreakdown';
 import { FloatingChatButton } from '../../src/components/FloatingChatButton';
 import { useCalendarStore } from '../../src/stores/calendarStore';
 import { usePredictionStore } from '../../src/stores/predictionStore';
@@ -91,7 +92,13 @@ export default function PlanScreen() {
   const user = useAuthStore((s) => s.user);
 
   const { events, loadDemoData: loadCalendarDemo } = useCalendarStore();
-  const { predictions, generatePredictions, isPredicting } = usePredictionStore();
+  const {
+    predictions,
+    generatePredictions,
+    isPredicting,
+    eventCostBreakdowns,
+    dismissHiddenCost,
+  } = usePredictionStore();
   const {
     transactions,
     recurringTransactions,
@@ -333,6 +340,15 @@ export default function PlanScreen() {
                     </Text>
                   </View>
                 </View>
+
+                {/* Hidden Cost Breakdown */}
+                {eventCostBreakdowns[prediction.calendar_event_id] && (
+                  <HiddenCostBreakdown
+                    eventCostBreakdown={eventCostBreakdowns[prediction.calendar_event_id]}
+                    defaultExpanded={true}
+                    onDismissCost={dismissHiddenCost}
+                  />
+                )}
               </Card>
             );
           })

@@ -14,9 +14,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { Colors, Typography, Spacing } from '../../src/constants';
 import { Header } from '../../src/components/ui/Header';
 import { Card } from '../../src/components/ui/Card';
+import { HiddenCostBreakdown } from '../../src/components/HiddenCostBreakdown';
 import { FloatingChatButton } from '../../src/components/FloatingChatButton';
 import { useCalendarStore } from '../../src/stores/calendarStore';
 import { usePredictionStore } from '../../src/stores/predictionStore';
+import { useTransactionStore } from '../../src/stores/transactionStore';
 import { useAuthStore } from '../../src/stores/authStore';
 import type { CalendarEvent, SpendingPrediction, EventCategory } from '../../src/types';
 
@@ -104,7 +106,17 @@ export default function CalendarScreen() {
 
   const user = useAuthStore((s) => s.user);
   const { events, isLoading: calendarLoading, loadDemoData: loadCalendarDemo } = useCalendarStore();
-  const { predictions, generatePredictions, isPredicting } = usePredictionStore();
+  const {
+    predictions,
+    generatePredictions,
+    isPredicting,
+    hiddenCosts,
+    eventCostBreakdowns,
+    analyzeHiddenCosts,
+    dismissHiddenCost,
+    isAnalyzingHiddenCosts,
+  } = usePredictionStore();
+  const { transactions } = useTransactionStore();
 
   // Load demo data if no events
   useEffect(() => {
@@ -124,6 +136,13 @@ export default function CalendarScreen() {
       }
     }
   }, [events.length, predictions.length, isPredicting, generatePredictions, user?.id, events]);
+
+  // Analyze hidden costs when predictions are available
+  useEffect(() => {
+    if (predictions.length > 0 && hiddenCosts.length === 0 && !isAnalyzingHiddenCosts) {
+      analyzeHiddenCosts(events, transactions);
+    }
+  }, [predictions.length, hiddenCosts.length, isAnalyzingHiddenCosts, analyzeHiddenCosts, events, transactions]);
 
   // Map predictions by event ID for quick lookup
   const predictionMap = useMemo(() => {
@@ -357,6 +376,15 @@ export default function CalendarScreen() {
                               ~${prediction.predicted_amount.toFixed(0)}
                             </Text>
                           )}
+                          {eventCostBreakdowns[event.id] &&
+                            eventCostBreakdowns[event.id].hidden_costs.filter(c => !c.is_dismissed).length > 0 && (
+                            <Text style={styles.weekEventHiddenCost}>
+                              +${eventCostBreakdowns[event.id].hidden_costs
+                                .filter(c => !c.is_dismissed)
+                                .reduce((s, c) => s + c.predicted_amount, 0)
+                                .toFixed(0)} hidden
+                            </Text>
+                          )}
                         </View>
                       </View>
                     );
@@ -514,6 +542,15 @@ export default function CalendarScreen() {
                             </Text>
                           )}
                         </View>
+                      )}
+
+                      {/* Hidden Cost Breakdown */}
+                      {eventCostBreakdowns[event.id] && (
+                        <HiddenCostBreakdown
+                          eventCostBreakdown={eventCostBreakdowns[event.id]}
+                          defaultExpanded={false}
+                          onDismissCost={dismissHiddenCost}
+                        />
                       )}
                     </Card>
                   );
@@ -875,6 +912,12 @@ const styles = StyleSheet.create({
     color: Colors.accent,
     fontWeight: Typography.weights.semibold,
     marginLeft: Spacing.sm,
+  },
+  weekEventHiddenCost: {
+    fontSize: Typography.sizes.xs,
+    color: Colors.warning,
+    fontWeight: Typography.weights.medium,
+    marginLeft: Spacing.xs,
   },
   noEventsText: {
     fontSize: Typography.sizes.sm,
