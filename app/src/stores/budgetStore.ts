@@ -232,7 +232,7 @@ export function calculateHealthScore(
   streakDays: number,
   savingsRate: number, // fraction saved
 ): number {
-  // Weighted composite score 0-100
+  // Weighted composite score 0-100 (legacy 4-component)
   const burnScore = Math.max(0, Math.min(100, (1 - Math.abs(1 - burnRate)) * 100));
   const adherenceScore = budgetAdherence;
   const streakScore = Math.min(100, streakDays * 5);
@@ -244,6 +244,76 @@ export function calculateHealthScore(
     streakScore * 0.15 +
     savingsScore * 0.20
   );
+}
+
+/**
+ * 5-component health score formula matching MVP.md Section 5.8.
+ * Weights: 0.30 BudgetAdherence + 0.25 SavingsRate + 0.20 SpendingStability
+ *        + 0.15 CalendarCorrelation + 0.10 StreakBonus
+ */
+export function calculateHealthScoreV2(
+  budgetAdherence: number,    // 0-100
+  savingsRate: number,        // 0-100
+  spendingStability: number,  // 0-100
+  calendarCorrelation: number, // 0-100
+  streakDays: number,
+): number {
+  const streakBonus = Math.min(100, streakDays * 3.33);
+
+  return Math.round(
+    budgetAdherence * 0.30 +
+    savingsRate * 0.25 +
+    spendingStability * 0.20 +
+    calendarCorrelation * 0.15 +
+    streakBonus * 0.10
+  );
+}
+
+/**
+ * Calculate spending stability from transaction data.
+ * Computes coefficient of variation across daily spending amounts over the last 30 days.
+ * Lower CV = more stable spending = higher score.
+ * Returns 0-100.
+ */
+export function calculateSpendingStability(transactions: Transaction[]): number {
+  const now = new Date();
+  const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+  // Filter to last 30 days, only spending (negative or absolute amounts)
+  const recentTxns = transactions.filter((t) => {
+    const d = new Date(t.date);
+    return d >= thirtyDaysAgo && d <= now;
+  });
+
+  if (recentTxns.length < 2) return 50; // Not enough data, return neutral score
+
+  // Aggregate daily spending
+  const dailySpending: Record<string, number> = {};
+  for (const t of recentTxns) {
+    const dateKey = t.date.split('T')[0];
+    dailySpending[dateKey] = (dailySpending[dateKey] || 0) + Math.abs(t.amount);
+  }
+
+  const dailyValues = Object.values(dailySpending);
+  if (dailyValues.length < 2) return 50;
+
+  const mean = dailyValues.reduce((sum, v) => sum + v, 0) / dailyValues.length;
+  if (mean === 0) return 100;
+
+  const variance = dailyValues.reduce((sum, v) => sum + Math.pow(v - mean, 2), 0) / dailyValues.length;
+  const std = Math.sqrt(variance);
+  const cv = std / mean;
+
+  return Math.max(0, Math.round(100 - cv * 100));
+}
+
+/**
+ * Budget adherence using the MVP formula:
+ * max(0, 1 - |totalSpent - monthlyBudget| / monthlyBudget) * 100
+ */
+export function calculateBudgetAdherenceMVP(totalSpent: number, monthlyBudget: number): number {
+  if (monthlyBudget <= 0) return 0;
+  return Math.max(0, (1 - Math.abs(totalSpent - monthlyBudget) / monthlyBudget)) * 100;
 }
 
 export function getHealthGrade(score: number): { grade: string; color: string } {

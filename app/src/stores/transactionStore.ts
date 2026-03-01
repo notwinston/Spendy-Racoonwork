@@ -175,3 +175,127 @@ export const useTransactionStore = create<TransactionState>((set, get) => ({
       accounts: [],
     }),
 }));
+
+// ---------- Calculation utilities ----------
+
+/**
+ * Calculate spending velocity: average daily spending over the last 7 days ($/day).
+ */
+export function calculateSpendingVelocity(transactions: Transaction[]): number {
+  const now = new Date();
+  const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+  const recentSpending = transactions
+    .filter((t) => {
+      const d = new Date(t.date);
+      return d >= sevenDaysAgo && d <= now;
+    })
+    .reduce((sum, t) => sum + Math.abs(t.amount), 0);
+
+  return Math.round((recentSpending / 7) * 100) / 100;
+}
+
+/**
+ * Calculate velocity trend: percentage change between this week and last week velocity.
+ */
+export function calculateVelocityTrend(transactions: Transaction[]): number {
+  const now = new Date();
+  const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+
+  const thisWeekSpending = transactions
+    .filter((t) => {
+      const d = new Date(t.date);
+      return d >= sevenDaysAgo && d <= now;
+    })
+    .reduce((sum, t) => sum + Math.abs(t.amount), 0);
+
+  const lastWeekSpending = transactions
+    .filter((t) => {
+      const d = new Date(t.date);
+      return d >= fourteenDaysAgo && d < sevenDaysAgo;
+    })
+    .reduce((sum, t) => sum + Math.abs(t.amount), 0);
+
+  const thisWeekVelocity = thisWeekSpending / 7;
+  const lastWeekVelocity = lastWeekSpending / 7;
+
+  if (lastWeekVelocity === 0) return 0;
+  return Math.round(((thisWeekVelocity - lastWeekVelocity) / lastWeekVelocity) * 10000) / 100;
+}
+
+/**
+ * Get month-over-month category comparison.
+ * Returns array of { category, thisMonth, lastMonth, changePercent }.
+ */
+export function getCategoryMoM(transactions: Transaction[]): {
+  category: string;
+  thisMonth: number;
+  lastMonth: number;
+  changePercent: number;
+}[] {
+  const now = new Date();
+  const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
+
+  const thisMonthMap: Record<string, number> = {};
+  const lastMonthMap: Record<string, number> = {};
+
+  for (const t of transactions) {
+    const d = new Date(t.date);
+    const amount = Math.abs(t.amount);
+
+    if (d >= thisMonthStart && d <= now) {
+      thisMonthMap[t.category] = (thisMonthMap[t.category] || 0) + amount;
+    } else if (d >= lastMonthStart && d <= lastMonthEnd) {
+      lastMonthMap[t.category] = (lastMonthMap[t.category] || 0) + amount;
+    }
+  }
+
+  const allCategories = new Set([...Object.keys(thisMonthMap), ...Object.keys(lastMonthMap)]);
+
+  const result = Array.from(allCategories).map((category) => {
+    const thisMonth = Math.round((thisMonthMap[category] || 0) * 100) / 100;
+    const lastMonth = Math.round((lastMonthMap[category] || 0) * 100) / 100;
+    const changePercent = lastMonth === 0
+      ? (thisMonth > 0 ? 100 : 0)
+      : Math.round(((thisMonth - lastMonth) / lastMonth) * 10000) / 100;
+
+    return { category, thisMonth, lastMonth, changePercent };
+  });
+
+  return result.sort((a, b) => b.thisMonth - a.thisMonth);
+}
+
+/**
+ * Get monthly spending totals for the last N months.
+ */
+export function getMonthlyTotals(
+  transactions: Transaction[],
+  months: number = 6,
+): { label: string; value: number }[] {
+  const now = new Date();
+  const result: { label: string; value: number }[] = [];
+
+  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+  for (let i = months - 1; i >= 0; i--) {
+    const monthDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const monthEnd = new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 0, 23, 59, 59);
+
+    const total = transactions
+      .filter((t) => {
+        const d = new Date(t.date);
+        return d >= monthDate && d <= monthEnd;
+      })
+      .reduce((sum, t) => sum + Math.abs(t.amount), 0);
+
+    result.push({
+      label: monthNames[monthDate.getMonth()],
+      value: Math.round(total * 100) / 100,
+    });
+  }
+
+  return result;
+}
