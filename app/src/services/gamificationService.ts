@@ -138,6 +138,16 @@ let demoProfile: Pick<Profile, 'xp' | 'level' | 'streak_count' | 'longest_streak
 
 let demoCheckinToday = false;
 
+/** Expose demo challenges array so socialService can persist friend challenges. */
+export function getDemoChallenges(): Challenge[] {
+  return demoChallenges;
+}
+
+/** Expose demo participants array so socialService can persist friend challenge participants. */
+export function getDemoParticipants(): ChallengeParticipant[] {
+  return demoParticipants;
+}
+
 // ============================================================
 // XP Awards
 // ============================================================
