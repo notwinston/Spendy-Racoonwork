@@ -77,6 +77,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xs,
   },
   value: {
+    fontFamily: 'DMMono_500Medium',
     fontSize: Typography.sizes['2xl'],
     fontWeight: Typography.weights.bold,
     color: Colors.textPrimary,

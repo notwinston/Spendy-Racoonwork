@@ -135,6 +135,7 @@ export const HealthScoreRing: React.FC<HealthScoreRingProps> = ({
           alignmentBaseline="central"
           fill={Colors.textSecondary}
           fontSize={Typography.sizes.sm}
+          fontFamily="DMMono_500Medium"
           fontWeight={Typography.weights.medium}
         >
           {Math.round(displayProgress)}

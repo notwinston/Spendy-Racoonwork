@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import Svg, {
   Path,
   Line,
@@ -10,7 +10,10 @@ import Svg, {
   Stop,
   Rect,
 } from 'react-native-svg';
+import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../constants/colors';
+import { Typography } from '../constants/typography';
+import { Spacing } from '../constants/spacing';
 
 interface SpendingTrajectoryChartProps {
   spent: number;
@@ -42,6 +45,14 @@ export function SpendingTrajectoryChart({
     const safeTotalDays = totalDays || 30;
     const safeDaysElapsed = Math.max(0, Math.min(daysElapsed, safeTotalDays));
 
+    // Forecast formula: (spent / daysElapsed) * totalDays
+    const dailyRate = safeDaysElapsed > 0 ? spent / safeDaysElapsed : 0;
+    const forecastTotal = dailyRate * safeTotalDays;
+
+    // Confidence band: +/- 15% of forecast
+    const confidenceHigh = spent + (forecastTotal - spent) * 1.15;
+    const confidenceLow = spent + (forecastTotal - spent) * 0.85;
+
     // Helper: map data coordinates to SVG coordinates
     const toX = (day: number) =>
       PADDING_LEFT + (day / safeTotalDays) * PLOT_WIDTH;
@@ -49,26 +60,36 @@ export function SpendingTrajectoryChart({
       PADDING_TOP + PLOT_HEIGHT - (amount / maxY) * PLOT_HEIGHT;
 
     // Generate actual spending curve (simulated as linear from 0 to spent over elapsed days)
-    // In a real app this would use daily aggregated transaction data
     const actualPoints: { x: number; y: number }[] = [];
     const steps = Math.max(1, safeDaysElapsed);
     for (let i = 0; i <= steps; i++) {
       const day = (i / steps) * safeDaysElapsed;
-      // Slight curve (ease-in) to look more natural
       const fraction = i / steps;
       const curvedFraction = fraction * fraction * (3 - 2 * fraction); // smoothstep
       const amount = curvedFraction * spent;
       actualPoints.push({ x: toX(day), y: toY(amount) });
     }
 
-    // Generate predicted trajectory (from current day/spent to end-of-month/predicted)
+    // Generate predicted trajectory (dashed projection from today to end of month)
     const predictedPoints: { x: number; y: number }[] = [];
     const predSteps = Math.max(1, safeTotalDays - safeDaysElapsed);
     for (let i = 0; i <= predSteps; i++) {
       const day = safeDaysElapsed + (i / predSteps) * (safeTotalDays - safeDaysElapsed);
       const fraction = i / predSteps;
-      const amount = spent + fraction * (predicted - spent);
+      const amount = spent + fraction * (forecastTotal - spent);
       predictedPoints.push({ x: toX(day), y: toY(amount) });
+    }
+
+    // Confidence band points
+    const confHighPoints: { x: number; y: number }[] = [];
+    const confLowPoints: { x: number; y: number }[] = [];
+    for (let i = 0; i <= predSteps; i++) {
+      const day = safeDaysElapsed + (i / predSteps) * (safeTotalDays - safeDaysElapsed);
+      const fraction = i / predSteps;
+      const highAmount = spent + fraction * (confidenceHigh - spent);
+      const lowAmount = spent + fraction * (confidenceLow - spent);
+      confHighPoints.push({ x: toX(day), y: toY(highAmount) });
+      confLowPoints.push({ x: toX(day), y: toY(lowAmount) });
     }
 
     // Build SVG path strings
@@ -79,7 +100,7 @@ export function SpendingTrajectoryChart({
         .join(' ');
     };
 
-    // Build area fill path (actual line -> down to bottom -> back to start)
+    // Build area fill path between two lines
     const buildAreaPath = (
       topPoints: { x: number; y: number }[],
       bottomPoints: { x: number; y: number }[],
@@ -97,13 +118,14 @@ export function SpendingTrajectoryChart({
 
     const actualPath = buildPath(actualPoints);
     const predictedPath = buildPath(predictedPoints);
+    const confidenceBandPath = buildAreaPath(confHighPoints, confLowPoints);
 
-    // Shaded area between predicted line and a straight line from (daysElapsed,spent) to (totalDays,spent)
-    const baselinePoints = predictedPoints.map((p) => ({
+    // Shaded area under actual spending
+    const actualBottomPoints = actualPoints.map((p) => ({
       x: p.x,
-      y: toY(spent),
+      y: toY(0),
     }));
-    const shadedAreaPath = buildAreaPath(predictedPoints, baselinePoints);
+    const actualAreaPath = buildAreaPath(actualPoints, actualBottomPoints);
 
     // Budget ceiling line
     const budgetY = toY(budget);
@@ -128,10 +150,17 @@ export function SpendingTrajectoryChart({
       { day: safeTotalDays, x: toX(safeTotalDays), label: `${safeTotalDays}` },
     ];
 
+    // Forecast callout
+    const isOverBudget = forecastTotal > budget;
+    const forecastDelta = isOverBudget
+      ? forecastTotal - budget
+      : budget - forecastTotal;
+
     return {
       actualPath,
+      actualAreaPath,
       predictedPath,
-      shadedAreaPath,
+      confidenceBandPath,
       budgetY,
       budgetLineX1,
       budgetLineX2,
@@ -139,6 +168,9 @@ export function SpendingTrajectoryChart({
       markerY,
       yLabels,
       xLabels,
+      forecastTotal,
+      isOverBudget,
+      forecastDelta,
     };
   }, [spent, predicted, budget, daysElapsed, totalDays]);
 
@@ -150,9 +182,9 @@ export function SpendingTrajectoryChart({
         viewBox={`0 0 ${CHART_WIDTH} ${CHART_HEIGHT}`}
       >
         <Defs>
-          <LinearGradient id="shadeFill" x1="0%" y1="0%" x2="0%" y2="100%">
-            <Stop offset="0%" stopColor={Colors.accent} stopOpacity="0.25" />
-            <Stop offset="100%" stopColor={Colors.accent} stopOpacity="0.05" />
+          <LinearGradient id="actualFill" x1="0%" y1="0%" x2="0%" y2="100%">
+            <Stop offset="0%" stopColor={Colors.accentBright} stopOpacity="0.3" />
+            <Stop offset="100%" stopColor={Colors.accentBright} stopOpacity="0" />
           </LinearGradient>
         </Defs>
 
@@ -163,7 +195,7 @@ export function SpendingTrajectoryChart({
           width={PLOT_WIDTH}
           height={PLOT_HEIGHT}
           fill="none"
-          stroke={Colors.cardBorder}
+          stroke={Colors.borderSubtle}
           strokeWidth={0.5}
           opacity={0.3}
         />
@@ -176,7 +208,7 @@ export function SpendingTrajectoryChart({
               y1={label.y}
               x2={PADDING_LEFT + PLOT_WIDTH}
               y2={label.y}
-              stroke={Colors.cardBorder}
+              stroke={Colors.borderSubtle}
               strokeWidth={0.5}
               opacity={0.4}
             />
@@ -185,7 +217,8 @@ export function SpendingTrajectoryChart({
               y={label.y + 3}
               textAnchor="end"
               fill={Colors.textMuted}
-              fontSize={9}
+              fontSize={10}
+              fontFamily="DMMono_400Regular"
             >
               {label.label}
             </SvgText>
@@ -200,19 +233,20 @@ export function SpendingTrajectoryChart({
             y={CHART_HEIGHT - 6}
             textAnchor="middle"
             fill={Colors.textMuted}
-            fontSize={9}
+            fontSize={10}
+            fontFamily="DMMono_400Regular"
           >
             {label.label}
           </SvgText>
         ))}
 
-        {/* Budget ceiling (horizontal red dashed line) */}
+        {/* Budget ceiling (horizontal warning dashed line) */}
         <Line
           x1={chartData.budgetLineX1}
           y1={chartData.budgetY}
           x2={chartData.budgetLineX2}
           y2={chartData.budgetY}
-          stroke={Colors.danger}
+          stroke={Colors.warning}
           strokeWidth={1.5}
           strokeDasharray="6,4"
           opacity={0.8}
@@ -221,26 +255,36 @@ export function SpendingTrajectoryChart({
           x={chartData.budgetLineX2}
           y={chartData.budgetY - 4}
           textAnchor="end"
-          fill={Colors.danger}
+          fill={Colors.warning}
           fontSize={8}
+          fontFamily="DMMono_400Regular"
           opacity={0.8}
         >
           Budget
         </SvgText>
 
-        {/* Shaded area between actual-to-predicted trajectory and baseline */}
-        {chartData.shadedAreaPath ? (
+        {/* Gradient fill under actual spending */}
+        {chartData.actualAreaPath ? (
           <Path
-            d={chartData.shadedAreaPath}
-            fill="url(#shadeFill)"
+            d={chartData.actualAreaPath}
+            fill="url(#actualFill)"
           />
         ) : null}
 
-        {/* Actual spending curve (solid green line) */}
+        {/* Confidence band (translucent shaded area) */}
+        {chartData.confidenceBandPath ? (
+          <Path
+            d={chartData.confidenceBandPath}
+            fill={Colors.chartConfidenceFill}
+            opacity={0.5}
+          />
+        ) : null}
+
+        {/* Actual spending curve (solid accent line) */}
         {chartData.actualPath ? (
           <Path
             d={chartData.actualPath}
-            stroke={Colors.accent}
+            stroke={Colors.accentBright}
             strokeWidth={2.5}
             fill="none"
             strokeLinecap="round"
@@ -248,16 +292,16 @@ export function SpendingTrajectoryChart({
           />
         ) : null}
 
-        {/* Predicted trajectory (dashed accent line) */}
+        {/* Predicted trajectory (dashed projection line, 20% opacity for future) */}
         {chartData.predictedPath ? (
           <Path
             d={chartData.predictedPath}
-            stroke={Colors.chartPredictionDashed}
+            stroke={Colors.accentBright}
             strokeWidth={1.5}
             fill="none"
             strokeDasharray="5,3"
             strokeLinecap="round"
-            opacity={0.7}
+            opacity={0.2}
           />
         ) : null}
 
@@ -266,21 +310,64 @@ export function SpendingTrajectoryChart({
           cx={chartData.markerX}
           cy={chartData.markerY}
           r={5}
-          fill={Colors.accent}
-          stroke={Colors.card}
+          fill={Colors.accentBright}
+          stroke={Colors.bgCard}
           strokeWidth={2}
         />
         <SvgText
           x={chartData.markerX}
           y={chartData.markerY - 10}
           textAnchor="middle"
-          fill={Colors.accent}
+          fill={Colors.accentBright}
           fontSize={8}
+          fontFamily="DMSans_600SemiBold"
           fontWeight="600"
         >
           Today
         </SvgText>
       </Svg>
+
+      {/* Forecast Callout */}
+      {daysElapsed > 0 && (
+        <View
+          style={[
+            styles.forecastCallout,
+            {
+              backgroundColor: chartData.isOverBudget
+                ? 'rgba(239,68,68,0.1)'
+                : 'rgba(16,185,129,0.1)',
+              borderColor: chartData.isOverBudget
+                ? Colors.negative
+                : Colors.positive,
+            },
+          ]}
+        >
+          <Ionicons
+            name={chartData.isOverBudget ? 'warning' : 'checkmark-circle'}
+            size={16}
+            color={chartData.isOverBudget ? Colors.negative : Colors.positive}
+            style={styles.forecastIcon}
+          />
+          <Text
+            style={[
+              styles.forecastText,
+              {
+                color: chartData.isOverBudget
+                  ? Colors.negative
+                  : Colors.positive,
+              },
+            ]}
+          >
+            {chartData.isOverBudget
+              ? "At this pace, you'll overspend by "
+              : "You're on pace to save "}
+            <Text style={styles.forecastAmount}>
+              ${Math.round(chartData.forecastDelta).toLocaleString()}
+            </Text>
+            {chartData.isOverBudget ? '' : ' this month'}
+          </Text>
+        </View>
+      )}
     </View>
   );
 }
@@ -288,6 +375,31 @@ export function SpendingTrajectoryChart({
 const styles = StyleSheet.create({
   container: {
     width: '100%',
-    marginTop: 8,
+    marginTop: Spacing.sm,
+  },
+  forecastCallout: {
+    marginTop: Spacing.sm,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    borderRadius: Spacing.radiusSm,
+    borderWidth: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  forecastIcon: {
+    marginRight: Spacing.xs,
+  },
+  forecastText: {
+    fontFamily: 'DMSans_600SemiBold',
+    fontSize: 12,
+    fontWeight: '600',
+    textAlign: 'center',
+    flexShrink: 1,
+  },
+  forecastAmount: {
+    fontFamily: 'DMMono_500Medium',
+    fontSize: 12,
+    fontWeight: '600',
   },
 });

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   StyleSheet,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -15,6 +16,7 @@ import { Card } from '../../src/components/ui/Card';
 import { DailyBriefCard } from '../../src/components/DailyBriefCard';
 import { FloatingChatButton } from '../../src/components/FloatingChatButton';
 import { SpendingTrajectoryChart } from '../../src/components/SpendingTrajectoryChart';
+import { RankWidget } from '../../src/components/RankWidget';
 import { ProgressRing } from '@/components/ui/ProgressRing';
 import { MetricCard } from '@/components/ui/MetricCard';
 import { HealthScoreRing } from '@/components/charts';
@@ -100,16 +102,33 @@ export default function DashboardScreen() {
     }
   }, [predictions.length, hiddenCosts.length, events.length, budgets.length, generateDailyBrief]);
 
+  // Category sort preference
+  const [categorySortPref, setCategorySortPref] = useState<'amount' | 'az'>('amount');
+
+  useEffect(() => {
+    AsyncStorage.getItem('categorySortPref').then((val) => {
+      if (val === 'amount' || val === 'az') setCategorySortPref(val);
+    });
+  }, []);
+
+  const handleSortChange = (pref: 'amount' | 'az') => {
+    setCategorySortPref(pref);
+    AsyncStorage.setItem('categorySortPref', pref);
+  };
+
   const now = new Date();
   const dayOfMonth = now.getDate();
   const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
 
-  const remaining = Math.max(0, totalBudget - totalSpent);
+  const remaining = totalBudget - totalSpent;
+  const remainingDisplay = Math.max(0, remaining);
 
-  const topBudgets = useMemo(
-    () => [...budgets].sort((a, b) => b.spent - a.spent).slice(0, 6),
-    [budgets],
-  );
+  const topBudgets = useMemo(() => {
+    const sorted = categorySortPref === 'az'
+      ? [...budgets].sort((a, b) => a.category.localeCompare(b.category))
+      : [...budgets].sort((a, b) => b.spent - a.spent);
+    return sorted.slice(0, 6);
+  }, [budgets, categorySortPref]);
 
   // New metric computations
   const spendingVelocity = useMemo(
@@ -169,10 +188,13 @@ export default function DashboardScreen() {
             <View>
               <Text style={styles.heroLabel}>Monthly Budget</Text>
               <Text style={styles.heroAmount}>
-                ${remaining.toLocaleString(undefined, { maximumFractionDigits: 0 })} left
+                <Text style={styles.monoLarge}>
+                  ${remainingDisplay.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                </Text>
+                {' '}left
               </Text>
               <Text style={styles.heroSub}>
-                of ${totalBudget.toLocaleString(undefined, { maximumFractionDigits: 0 })} budget
+                of <Text style={styles.monoInline}>${totalBudget.toLocaleString(undefined, { maximumFractionDigits: 0 })}</Text> budget
               </Text>
             </View>
             <View style={styles.daysRemainingBadge}>
@@ -190,6 +212,73 @@ export default function DashboardScreen() {
             totalDays={daysInMonth}
           />
         </Card>
+
+        {/* Budget Stats Row */}
+        <View style={styles.statsRow}>
+          <View style={styles.statCard}>
+            <Text style={styles.statLabel}>SPENT</Text>
+            <Text style={styles.statValue}>
+              ${totalSpent.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+            </Text>
+          </View>
+          <View style={styles.statCard}>
+            <Text style={styles.statLabel}>BUDGET</Text>
+            <Text style={styles.statValue}>
+              ${totalBudget.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+            </Text>
+          </View>
+          <View style={styles.statCard}>
+            <Text style={styles.statLabel}>REMAINING</Text>
+            <Text
+              style={[
+                styles.statValue,
+                { color: remaining >= 0 ? Colors.positive : Colors.negative },
+              ]}
+            >
+              {remaining < 0 ? '-' : ''}${Math.abs(remaining).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+            </Text>
+          </View>
+        </View>
+
+        {/* Category Sort Toggle */}
+        <View style={styles.sortToggleContainer}>
+          <TouchableOpacity
+            style={[
+              styles.sortTab,
+              categorySortPref === 'amount' && styles.sortTabActive,
+            ]}
+            onPress={() => handleSortChange('amount')}
+          >
+            <Text
+              style={[
+                styles.sortTabText,
+                categorySortPref === 'amount'
+                  ? styles.sortTabTextActive
+                  : styles.sortTabTextInactive,
+              ]}
+            >
+              $ Amount
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.sortTab,
+              categorySortPref === 'az' && styles.sortTabActive,
+            ]}
+            onPress={() => handleSortChange('az')}
+          >
+            <Text
+              style={[
+                styles.sortTabText,
+                categorySortPref === 'az'
+                  ? styles.sortTabTextActive
+                  : styles.sortTabTextInactive,
+              ]}
+            >
+              A–Z
+            </Text>
+          </TouchableOpacity>
+        </View>
 
         {/* Category Budgets */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoriesScroll}>
@@ -260,6 +349,9 @@ export default function DashboardScreen() {
             />
           </View>
         </View>
+
+        {/* Rank Widget */}
+        <RankWidget />
       </ScrollView>
       <FloatingChatButton />
     </SafeAreaView>
@@ -288,6 +380,7 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   heroLabel: {
+    fontFamily: 'DMSans_500Medium',
     fontSize: Typography.sizes.md,
     color: Colors.textSecondary,
   },
@@ -296,8 +389,10 @@ const styles = StyleSheet.create({
     fontWeight: Typography.weights.bold,
     color: Colors.accent,
     marginTop: Spacing.xs,
+    fontFamily: 'DMSans_700Bold',
   },
   heroSub: {
+    fontFamily: 'DMSans_500Medium',
     fontSize: Typography.sizes.md,
     color: Colors.textMuted,
     marginTop: Spacing.xs,
@@ -312,16 +407,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   daysRemainingNumber: {
+    fontFamily: 'DMMono_500Medium',
     fontSize: Typography.sizes.xl,
     fontWeight: Typography.weights.bold,
     color: Colors.textPrimary,
   },
   daysRemainingLabel: {
+    fontFamily: 'DMSans_500Medium',
     fontSize: Typography.sizes.xs,
     color: Colors.textMuted,
   },
   categoriesScroll: {
-    marginTop: Spacing.lg,
+    marginTop: Spacing.sm,
     marginBottom: Spacing.sm,
   },
   categoryCircle: {
@@ -336,6 +433,7 @@ const styles = StyleSheet.create({
     marginTop: Spacing.xs,
   },
   categoryAmount: {
+    fontFamily: 'DMMono_500Medium',
     fontSize: Typography.sizes.xs,
     fontWeight: Typography.weights.semibold,
     color: Colors.accent,
@@ -353,5 +451,71 @@ const styles = StyleSheet.create({
   },
   metricCardWrapper: {
     flex: 1,
+  },
+  // DM Mono helpers for hero section
+  monoLarge: {
+    fontFamily: 'DMMono_500Medium',
+    fontSize: Typography.sizes['4xl'],
+    color: Colors.accent,
+  },
+  monoInline: {
+    fontFamily: 'DMMono_500Medium',
+    fontSize: Typography.sizes.md,
+    color: Colors.textMuted,
+  },
+  // Budget Stats Row
+  statsRow: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+    marginBottom: Spacing.lg,
+  },
+  statCard: {
+    flex: 1,
+    backgroundColor: Colors.bgCard,
+    borderRadius: Spacing.radiusMd,
+    borderWidth: 1,
+    borderColor: Colors.borderSubtle,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.sm,
+    alignItems: 'center',
+  },
+  statLabel: {
+    ...Typography.label.card,
+    marginBottom: Spacing.xs,
+  },
+  statValue: {
+    fontFamily: 'DMMono_500Medium',
+    fontSize: Typography.sizes.lg,
+    fontWeight: '500',
+    color: Colors.textPrimary,
+  },
+  // Category Sort Toggle
+  sortToggleContainer: {
+    flexDirection: 'row',
+    backgroundColor: Colors.bgCard,
+    borderRadius: Spacing.radiusSm,
+    borderWidth: 1,
+    borderColor: Colors.borderSubtle,
+    marginTop: Spacing.lg,
+    marginBottom: Spacing.xs,
+    padding: 2,
+    alignSelf: 'flex-start',
+  },
+  sortTab: {
+    paddingVertical: Spacing.xs,
+    paddingHorizontal: Spacing.md,
+    borderRadius: Spacing.radiusSm - 1,
+  },
+  sortTabActive: {
+    backgroundColor: Colors.accentDark,
+  },
+  sortTabText: {
+    ...Typography.label.sortTab,
+  },
+  sortTabTextActive: {
+    color: '#FFFFFF',
+  },
+  sortTabTextInactive: {
+    color: Colors.textSecondary,
   },
 });
