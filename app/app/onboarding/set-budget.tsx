@@ -1,17 +1,24 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Typography, Spacing } from '../../src/constants';
 import { Button } from '../../src/components/ui/Button';
 import { useAuthStore } from '../../src/stores/authStore';
+import { useBudgetStore } from '../../src/stores/budgetStore';
+
+const PRESETS = [500, 1000, 1500, 2000, 3000, 5000];
 
 export default function SetBudgetScreen() {
   const router = useRouter();
   const setOnboarded = useAuthStore((s) => s.setOnboarded);
+  const userId = useAuthStore((s) => s.user?.id) ?? 'demo-user';
+  const fetchBudgets = useBudgetStore((s) => s.fetchBudgets);
+  const [selectedAmount, setSelectedAmount] = useState(2000);
 
-  const handleComplete = () => {
+  const handleComplete = async () => {
+    await fetchBudgets(userId);
     setOnboarded(true);
     router.replace('/(tabs)/dashboard');
   };
@@ -27,13 +34,31 @@ export default function SetBudgetScreen() {
 
         <View style={styles.budgetDisplay}>
           <Text style={styles.currency}>$</Text>
-          <Text style={styles.amount}>1,000</Text>
+          <Text style={styles.amount}>{selectedAmount.toLocaleString()}</Text>
           <Text style={styles.period}>/month</Text>
         </View>
 
-        <Text style={styles.placeholder}>
-          Category sliders will be added in the budget loop
-        </Text>
+        <View style={styles.presets}>
+          {PRESETS.map((amount) => (
+            <TouchableOpacity
+              key={amount}
+              style={[
+                styles.presetChip,
+                selectedAmount === amount && styles.presetChipActive,
+              ]}
+              onPress={() => setSelectedAmount(amount)}
+            >
+              <Text
+                style={[
+                  styles.presetText,
+                  selectedAmount === amount && styles.presetTextActive,
+                ]}
+              >
+                ${amount.toLocaleString()}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
 
         <View style={styles.dots}>
           <View style={styles.dot} />
@@ -96,11 +121,32 @@ const styles = StyleSheet.create({
     color: Colors.textMuted,
     marginLeft: Spacing.xs,
   },
-  placeholder: {
-    fontSize: Typography.sizes.md,
-    color: Colors.textMuted,
-    textAlign: 'center',
+  presets: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: Spacing.sm,
     marginBottom: Spacing['2xl'],
+  },
+  presetChip: {
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    backgroundColor: Colors.card,
+  },
+  presetChipActive: {
+    borderColor: Colors.accent,
+    backgroundColor: Colors.accent + '20',
+  },
+  presetText: {
+    fontSize: Typography.sizes.md,
+    color: Colors.textSecondary,
+    fontWeight: Typography.weights.medium,
+  },
+  presetTextActive: {
+    color: Colors.accent,
   },
   dots: {
     flexDirection: 'row',
