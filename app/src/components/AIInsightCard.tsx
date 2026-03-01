@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Colors, Typography, Spacing } from '../constants';
 
 export interface AIInsightCardProps {
-  type: 'warning' | 'opportunity' | 'win';
+  type: 'warning' | 'opportunity' | 'win' | 'budget';
   title: string;
   body: string;
   actionLabel?: string;
@@ -18,6 +18,7 @@ const TYPE_CONFIG: Record<
   warning: { color: Colors.negative, icon: 'alert-circle' },
   opportunity: { color: Colors.accentGlow, icon: 'cash-outline' },
   win: { color: Colors.positive, icon: 'trending-up' },
+  budget: { color: Colors.accentBright, icon: 'wallet-outline' },
 };
 
 export function AIInsightCard({

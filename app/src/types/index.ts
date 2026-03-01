@@ -495,3 +495,34 @@ export interface SavingsGoal {
   monthlyContribution: number;
   isPaused: boolean;
 }
+
+// -- Financial Optimizer --
+
+export type IncomeFrequency = 'weekly' | 'biweekly' | 'monthly';
+
+export interface FixedBill {
+  name: string;
+  amount: number;
+  dayOfMonth: number;
+  category: EventCategory;
+}
+
+export interface FinancialProfile {
+  incomeAmount: number;
+  incomeFrequency: IncomeFrequency;
+  nextPayDate: string;
+  emergencyFundTarget: number;
+  safetyBufferPercent: number;
+  fixedBills: FixedBill[];
+}
+
+export type OptimizerInsightType = 'budget' | 'warning' | 'opportunity' | 'win';
+
+export interface OptimizerInsight {
+  id: string;
+  type: OptimizerInsightType;
+  title: string;
+  body: string;
+  priority: number;
+  dollarImpact: number | null;
+}

@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Typography, Spacing } from '../../constants';
@@ -7,6 +7,8 @@ import { AIInsightCard } from '../AIInsightCard';
 import { AnomalyBanner } from '../AnomalyBanner';
 import { BillCalendarView } from '../BillCalendarView';
 import { SmartBudgetSuggestion } from '../SmartBudgetSuggestion';
+import { SpendableBudgetCard } from '../SpendableBudgetCard';
+import { FinancialProfileWizard } from '../FinancialProfileWizard';
 import { useTransactionStore, getCategoryMoM } from '../../stores/transactionStore';
 import { useBudgetStore, suggestCategoryBudgets } from '../../stores/budgetStore';
 import { detectAnomalies, predictBills } from '../../stores/predictionStore';
@@ -27,6 +29,7 @@ const PERSONALITY_MAP: Record<string, { name: string; emoji: string; description
 export function InsightsInsights() {
   const { transactions, recurringTransactions } = useTransactionStore();
   const { totalBudget, totalSpent, budgets } = useBudgetStore();
+  const [wizardVisible, setWizardVisible] = useState(false);
 
   const categoryMoM = useMemo(() => getCategoryMoM(transactions), [transactions]);
 
@@ -148,6 +151,14 @@ export function InsightsInsights() {
 
   return (
     <View>
+      {/* Financial Optimizer */}
+      <Text style={styles.sectionTitle}>Financial Optimizer</Text>
+      <SpendableBudgetCard onSetUp={() => setWizardVisible(true)} />
+      <FinancialProfileWizard
+        visible={wizardVisible}
+        onClose={() => setWizardVisible(false)}
+      />
+
       {/* Anomaly Detection */}
       <Text style={styles.sectionTitle}>Anomaly Detection</Text>
       <AnomalyBanner anomalies={anomalies} />
