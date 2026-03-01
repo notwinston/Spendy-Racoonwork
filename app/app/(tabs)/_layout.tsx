@@ -30,8 +30,9 @@ export default function TabsLayout() {
           paddingTop: 8,
         },
         tabBarLabelStyle: {
+          fontFamily: 'DMSans_500Medium',
           fontSize: Typography.sizes.xs,
-          fontWeight: Typography.weights.medium,
+          fontWeight: '500',
         },
         tabBarIcon: ({ focused, color, size }) => {
           const icons = TAB_ICONS[route.name];

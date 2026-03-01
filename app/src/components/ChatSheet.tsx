@@ -478,7 +478,7 @@ const styles = StyleSheet.create({
     lineHeight: Typography.sizes.md * Typography.lineHeights.normal,
   },
   bubbleTextUser: {
-    color: '#0A1628',
+    color: Colors.bgCard,
   },
   bubbleTextAssistant: {
     color: Colors.textPrimary,

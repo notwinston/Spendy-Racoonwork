@@ -43,9 +43,7 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.md,
   },
   title: {
-    fontSize: Typography.sizes['2xl'],
-    fontWeight: Typography.weights.bold,
-    color: Colors.textPrimary,
+    ...Typography.brand.pageTitle,
   },
   rightSection: {
     flexDirection: 'row',

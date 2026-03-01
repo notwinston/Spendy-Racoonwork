@@ -11,7 +11,7 @@ import { Colors, Typography, Spacing } from '../../constants';
 interface ButtonProps {
   title: string;
   onPress: () => void;
-  variant?: 'primary' | 'secondary' | 'outline';
+  variant?: 'primary' | 'secondary' | 'ghost' | 'danger' | 'outline';
   loading?: boolean;
   disabled?: boolean;
   style?: ViewStyle;
@@ -25,18 +25,25 @@ export function Button({
   disabled = false,
   style,
 }: ButtonProps) {
+  // Map 'outline' to 'secondary' for backwards compat
+  const resolvedVariant = variant === 'outline' ? 'secondary' : variant;
+
   const buttonStyles = [
     styles.button,
-    variant === 'primary' && styles.primary,
-    variant === 'secondary' && styles.secondary,
-    variant === 'outline' && styles.outline,
+    resolvedVariant === 'primary' && styles.primary,
+    resolvedVariant === 'secondary' && styles.secondary,
+    resolvedVariant === 'ghost' && styles.ghost,
+    resolvedVariant === 'danger' && styles.danger,
     disabled && styles.disabled,
     style,
   ];
 
   const textStyles = [
     styles.text,
-    variant === 'outline' && styles.outlineText,
+    resolvedVariant === 'primary' && styles.primaryText,
+    resolvedVariant === 'secondary' && styles.secondaryText,
+    resolvedVariant === 'ghost' && styles.ghostText,
+    resolvedVariant === 'danger' && styles.dangerText,
     disabled && styles.disabledText,
   ];
 
@@ -60,34 +67,42 @@ const styles = StyleSheet.create({
   button: {
     paddingVertical: Spacing.md,
     paddingHorizontal: Spacing.xl,
-    borderRadius: 12,
+    borderRadius: Spacing.radiusMd,
     alignItems: 'center',
     justifyContent: 'center',
     minHeight: 48,
   },
   primary: {
-    backgroundColor: Colors.accent,
+    backgroundColor: Colors.accentBright,
   },
   secondary: {
-    backgroundColor: Colors.card,
-    borderWidth: 1,
-    borderColor: Colors.cardBorder,
+    backgroundColor: 'rgba(37,99,235,0.12)',
   },
-  outline: {
+  ghost: {
     backgroundColor: 'transparent',
-    borderWidth: 1,
-    borderColor: Colors.accent,
+  },
+  danger: {
+    backgroundColor: 'rgba(239,68,68,0.12)',
   },
   disabled: {
     opacity: 0.5,
   },
   text: {
-    fontSize: Typography.sizes.lg,
-    fontWeight: Typography.weights.semibold,
-    color: Colors.textPrimary,
+    fontFamily: 'DMSans_600SemiBold',
+    fontSize: 14,
+    fontWeight: '600',
   },
-  outlineText: {
-    color: Colors.accent,
+  primaryText: {
+    color: '#FFFFFF',
+  },
+  secondaryText: {
+    color: Colors.accentGlow,
+  },
+  ghostText: {
+    color: Colors.textSecondary,
+  },
+  dangerText: {
+    color: Colors.negative,
   },
   disabledText: {
     color: Colors.textMuted,

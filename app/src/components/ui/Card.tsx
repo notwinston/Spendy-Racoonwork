@@ -13,10 +13,10 @@ export function Card({ children, style }: CardProps) {
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: Colors.card,
-    borderRadius: 16,
+    backgroundColor: Colors.bgCard,
+    borderRadius: Spacing.radiusLg,
     padding: Spacing.lg,
     borderWidth: 1,
-    borderColor: Colors.cardBorder,
+    borderColor: Colors.borderSubtle,
   },
 });
