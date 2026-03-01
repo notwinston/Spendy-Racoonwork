@@ -20,11 +20,13 @@ function SimpleSlider({
   maximumValue: number;
   step: number;
 }) {
+  const [trackWidth, setTrackWidth] = useState(300);
   const pct = ((value - minimumValue) / (maximumValue - minimumValue)) * 100;
 
   return (
     <View
       style={sliderStyles.track}
+      onLayout={(e) => setTrackWidth(e.nativeEvent.layout.width)}
       onStartShouldSetResponder={() => true}
       onMoveShouldSetResponder={() => true}
       onResponderGrant={(e) => {
@@ -42,8 +44,7 @@ function SimpleSlider({
   );
 
   function updateValue(x: number) {
-    // Estimate track width at ~300px (we use flex so approximate)
-    const trackWidth = 300;
+    if (trackWidth <= 0) return;
     const ratio = Math.max(0, Math.min(1, x / trackWidth));
     const raw = minimumValue + ratio * (maximumValue - minimumValue);
     const stepped = Math.round(raw / step) * step;

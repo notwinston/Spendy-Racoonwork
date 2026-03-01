@@ -3,6 +3,7 @@ import {
   View,
   Text,
   ScrollView,
+  FlatList,
   TouchableOpacity,
   TextInput,
   StyleSheet,
@@ -292,8 +293,13 @@ export default function TransactionReviewScreen() {
         ))}
       </ScrollView>
 
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        {filteredTransactions.length === 0 ? (
+      <FlatList
+        data={filteredTransactions}
+        keyExtractor={(item) => item.id}
+        initialNumToRender={10}
+        maxToRenderPerBatch={5}
+        contentContainerStyle={styles.scrollContent}
+        ListEmptyComponent={
           <View style={styles.emptyState}>
             <Ionicons name="checkmark-circle" size={64} color={Colors.accent} />
             <Text style={styles.emptyStateTitle}>All caught up!</Text>
@@ -306,143 +312,142 @@ export default function TransactionReviewScreen() {
               style={styles.goBackButton}
             />
           </View>
-        ) : (
-          filteredTransactions.map((rawTxn) => {
-            const txn = getTransaction(rawTxn);
-            const iconName = CATEGORY_ICONS[txn.category] ?? 'ellipsis-horizontal';
-            return (
-              <Card key={txn.id} style={styles.txnCard}>
-                {/* Transaction Header */}
-                <View style={styles.txnHeader}>
-                  <View style={styles.txnIconWrap}>
-                    <Ionicons
-                      name={iconName as keyof typeof Ionicons.glyphMap}
-                      size={20}
-                      color={Colors.accent}
-                    />
-                  </View>
-                  <View style={styles.txnInfo}>
-                    <Text style={styles.txnMerchant} numberOfLines={1}>
-                      {txn.merchant_name ?? 'Unknown Merchant'}
-                    </Text>
-                    <Text style={styles.txnDate}>{formatDate(txn.date)}</Text>
-                  </View>
-                  <Text style={styles.txnAmount}>
-                    {formatCurrency(txn.amount)}
+        }
+        renderItem={({ item: rawTxn }) => {
+          const txn = getTransaction(rawTxn);
+          const iconName = CATEGORY_ICONS[txn.category] ?? 'ellipsis-horizontal';
+          return (
+            <Card key={txn.id} style={styles.txnCard}>
+              {/* Transaction Header */}
+              <View style={styles.txnHeader}>
+                <View style={styles.txnIconWrap}>
+                  <Ionicons
+                    name={iconName as keyof typeof Ionicons.glyphMap}
+                    size={20}
+                    color={Colors.accent}
+                  />
+                </View>
+                <View style={styles.txnInfo}>
+                  <Text style={styles.txnMerchant} numberOfLines={1}>
+                    {txn.merchant_name ?? 'Unknown Merchant'}
                   </Text>
+                  <Text style={styles.txnDate}>{formatDate(txn.date)}</Text>
                 </View>
+                <Text style={styles.txnAmount}>
+                  {formatCurrency(txn.amount)}
+                </Text>
+              </View>
 
-                {/* Category Badge */}
-                <View style={styles.categoryRow}>
-                  <TouchableOpacity
-                    style={styles.categoryBadge}
-                    onPress={() => setCategoryPickerTxnId(txn.id)}
-                    activeOpacity={0.7}
-                  >
-                    <Ionicons
-                      name={iconName as keyof typeof Ionicons.glyphMap}
-                      size={14}
-                      color={Colors.accent}
-                    />
-                    <Text style={styles.categoryBadgeText}>
-                      {CATEGORY_LABELS[txn.category]}
+              {/* Category Badge */}
+              <View style={styles.categoryRow}>
+                <TouchableOpacity
+                  style={styles.categoryBadge}
+                  onPress={() => setCategoryPickerTxnId(txn.id)}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons
+                    name={iconName as keyof typeof Ionicons.glyphMap}
+                    size={14}
+                    color={Colors.accent}
+                  />
+                  <Text style={styles.categoryBadgeText}>
+                    {CATEGORY_LABELS[txn.category]}
+                  </Text>
+                  <Ionicons name="chevron-down" size={12} color={Colors.textMuted} />
+                </TouchableOpacity>
+
+                {txn.is_recurring && (
+                  <View style={styles.recurringBadge}>
+                    <Ionicons name="repeat" size={12} color={Colors.info} />
+                    <Text style={styles.recurringBadgeText}>Recurring</Text>
+                  </View>
+                )}
+              </View>
+
+              {/* Notes Input */}
+              <TextInput
+                style={styles.notesInput}
+                placeholder="Add a note..."
+                placeholderTextColor={Colors.textMuted}
+                value={txnNotes[txn.id] ?? ''}
+                onChangeText={(text) =>
+                  setTxnNotes((prev) => ({ ...prev, [txn.id]: text }))
+                }
+                multiline
+              />
+
+              {/* Event Link */}
+              {(() => {
+                const txnDate = new Date(txn.date).toDateString();
+                const linkedEvent = events.find(
+                  (e) => new Date(e.start_time).toDateString() === txnDate
+                );
+                if (!linkedEvent) return null;
+                return (
+                  <View style={styles.eventLinkRow}>
+                    <Ionicons name="calendar-outline" size={14} color={Colors.info} />
+                    <Text style={styles.eventLinkText}>
+                      Related Event: {linkedEvent.title}
                     </Text>
-                    <Ionicons name="chevron-down" size={12} color={Colors.textMuted} />
-                  </TouchableOpacity>
+                  </View>
+                );
+              })()}
 
-                  {txn.is_recurring && (
-                    <View style={styles.recurringBadge}>
-                      <Ionicons name="repeat" size={12} color={Colors.info} />
-                      <Text style={styles.recurringBadgeText}>Recurring</Text>
-                    </View>
-                  )}
-                </View>
+              {/* Action Buttons */}
+              <View style={styles.actionRow}>
+                <TouchableOpacity
+                  style={[styles.actionButton, styles.actionPrimary]}
+                  onPress={() => markReviewed(txn.id)}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="checkmark" size={16} color={Colors.textPrimary} />
+                  <Text style={styles.actionPrimaryText}>Looks Good</Text>
+                </TouchableOpacity>
 
-                {/* Notes Input */}
-                <TextInput
-                  style={styles.notesInput}
-                  placeholder="Add a note..."
-                  placeholderTextColor={Colors.textMuted}
-                  value={txnNotes[txn.id] ?? ''}
-                  onChangeText={(text) =>
-                    setTxnNotes((prev) => ({ ...prev, [txn.id]: text }))
-                  }
-                  multiline
-                />
+                <TouchableOpacity
+                  style={styles.actionButton}
+                  onPress={() => setCategoryPickerTxnId(txn.id)}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="pricetag-outline" size={14} color={Colors.textSecondary} />
+                  <Text style={styles.actionText}>Category</Text>
+                </TouchableOpacity>
 
-                {/* Event Link */}
-                {(() => {
-                  const txnDate = new Date(txn.date).toDateString();
-                  const linkedEvent = events.find(
-                    (e) => new Date(e.start_time).toDateString() === txnDate
-                  );
-                  if (!linkedEvent) return null;
-                  return (
-                    <View style={styles.eventLinkRow}>
-                      <Ionicons name="calendar-outline" size={14} color={Colors.info} />
-                      <Text style={styles.eventLinkText}>
-                        Related Event: {linkedEvent.title}
-                      </Text>
-                    </View>
-                  );
-                })()}
-
-                {/* Action Buttons */}
-                <View style={styles.actionRow}>
-                  <TouchableOpacity
-                    style={[styles.actionButton, styles.actionPrimary]}
-                    onPress={() => markReviewed(txn.id)}
-                    activeOpacity={0.7}
+                <TouchableOpacity
+                  style={styles.actionButton}
+                  onPress={() => toggleRecurring(txn.id, txn.is_recurring)}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons
+                    name={txn.is_recurring ? 'repeat' : 'repeat-outline'}
+                    size={14}
+                    color={txn.is_recurring ? Colors.info : Colors.textSecondary}
+                  />
+                  <Text
+                    style={[
+                      styles.actionText,
+                      txn.is_recurring && { color: Colors.info },
+                    ]}
                   >
-                    <Ionicons name="checkmark" size={16} color={Colors.textPrimary} />
-                    <Text style={styles.actionPrimaryText}>Looks Good</Text>
-                  </TouchableOpacity>
+                    Recurring
+                  </Text>
+                </TouchableOpacity>
 
-                  <TouchableOpacity
-                    style={styles.actionButton}
-                    onPress={() => setCategoryPickerTxnId(txn.id)}
-                    activeOpacity={0.7}
-                  >
-                    <Ionicons name="pricetag-outline" size={14} color={Colors.textSecondary} />
-                    <Text style={styles.actionText}>Category</Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={styles.actionButton}
-                    onPress={() => toggleRecurring(txn.id, txn.is_recurring)}
-                    activeOpacity={0.7}
-                  >
-                    <Ionicons
-                      name={txn.is_recurring ? 'repeat' : 'repeat-outline'}
-                      size={14}
-                      color={txn.is_recurring ? Colors.info : Colors.textSecondary}
-                    />
-                    <Text
-                      style={[
-                        styles.actionText,
-                        txn.is_recurring && { color: Colors.info },
-                      ]}
-                    >
-                      Recurring
-                    </Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={styles.actionButton}
-                    onPress={() => excludeTransaction(txn.id)}
-                    activeOpacity={0.7}
-                  >
-                    <Ionicons name="close-outline" size={16} color={Colors.danger} />
-                    <Text style={[styles.actionText, { color: Colors.danger }]}>
-                      Exclude
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              </Card>
-            );
-          })
-        )}
-      </ScrollView>
+                <TouchableOpacity
+                  style={styles.actionButton}
+                  onPress={() => excludeTransaction(txn.id)}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="close-outline" size={16} color={Colors.danger} />
+                  <Text style={[styles.actionText, { color: Colors.danger }]}>
+                    Exclude
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </Card>
+          );
+        }}
+      />
 
       {/* Category Picker Modal */}
       <Modal

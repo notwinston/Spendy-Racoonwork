@@ -21,6 +21,7 @@ export default function ConnectCalendarScreen() {
   const handleAppleCalendar = async () => {
     try {
       await connectAppleCalendar(userId);
+      await loadDemoData(userId);
       setIsConnected(true);
     } catch (err: unknown) {
       const message =
@@ -36,15 +37,22 @@ export default function ConnectCalendarScreen() {
     }
   };
 
-  const handleGoogleCalendar = () => {
+  const handleGoogleCalendar = async () => {
     Alert.alert(
       'Google Calendar',
-      'Real Google OAuth requires an EAS build. Would you like to load demo calendar data instead?',
+      'Real Google OAuth requires an EAS build. Connecting with demo data for now.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Use Demo Data',
-          onPress: handleDemoData,
+          text: 'OK',
+          onPress: async () => {
+            try {
+              await loadDemoData(userId);
+              setIsConnected(true);
+            } catch {
+              Alert.alert('Error', 'Failed to load calendar data. Please try again.');
+            }
+          },
         },
       ],
     );
@@ -53,23 +61,29 @@ export default function ConnectCalendarScreen() {
   const handleICSUpload = () => {
     Alert.alert(
       'Upload .ics File',
-      'File picker requires expo-document-picker to be configured. For now, you can use demo data to explore the app.',
+      'File picker requires expo-document-picker to be configured. Connecting with demo data for now.',
       [
-        { text: 'OK', style: 'default' },
+        {
+          text: 'OK',
+          onPress: async () => {
+            try {
+              await loadDemoData(userId);
+              setIsConnected(true);
+            } catch {
+              Alert.alert('Error', 'Failed to load calendar data. Please try again.');
+            }
+          },
+        },
       ],
     );
   };
 
-  const handleDemoData = async () => {
+  const handleContinue = async () => {
     try {
       await loadDemoData(userId);
-      setIsConnected(true);
     } catch {
-      Alert.alert('Error', 'Failed to load demo data. Please try again.');
+      // Silently continue even if demo data fails
     }
-  };
-
-  const handleContinue = () => {
     router.push('/onboarding/connect-bank');
   };
 
@@ -151,21 +165,6 @@ export default function ConnectCalendarScreen() {
             />
           </Card>
 
-          <Card style={styles.optionCard}>
-            <View style={styles.demoRow}>
-              <View style={{ flex: 1 }}>
-                <Button
-                  title="Use Demo Data"
-                  variant="outline"
-                  onPress={handleDemoData}
-                  loading={isLoading}
-                />
-              </View>
-              <View style={styles.quickStartBadge}>
-                <Text style={styles.quickStartText}>Quick Start</Text>
-              </View>
-            </View>
-          </Card>
         </View>
 
         <View style={styles.dots}>

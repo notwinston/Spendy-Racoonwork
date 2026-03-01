@@ -1,8 +1,19 @@
 ---
 task_type: feature
 workflow: feature-development
-current_phase: F5
-completed_phases: [F1, F2, F3, F4]
+current_phase: F6
+completed_phases: [F1, F2, F3, F4, F5]
+context_pressure: moderate
+context_budget:
+  peak_iteration_tokens: 65040
+  context_window: 200000
+  pressure_pct: 32.5
+  estimated_cost_range: "$3-8"
+  file_count: 18
+  file_categories:
+    small: 18
+    medium: 0
+    large: 0
 uat_fast_forward: false
 session_name: february-flashback-wrapped
 decomposed: false

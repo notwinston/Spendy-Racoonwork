@@ -45,6 +45,8 @@ export default function ArenaScreen() {
   const [selectedBadge, setSelectedBadge] = useState<BadgeInfo | null>(null);
   const [selectedBadgeEarned, setSelectedBadgeEarned] = useState(false);
   const [showBadgeModal, setShowBadgeModal] = useState(false);
+  const [joinedTemplateIds, setJoinedTemplateIds] = useState<Set<string>>(new Set());
+  const [joinedMessage, setJoinedMessage] = useState<string | null>(null);
   const user = useAuthStore((s) => s.user);
   const userId = user?.id ?? 'demo-user';
 
@@ -261,6 +263,12 @@ export default function ArenaScreen() {
             ))}
 
             <Text style={styles.sectionTitle}>Browse Challenges</Text>
+            {joinedMessage && (
+              <View style={styles.joinedBanner}>
+                <Ionicons name="checkmark-circle" size={18} color={Colors.textPrimary} />
+                <Text style={styles.joinedBannerText}>{joinedMessage}</Text>
+              </View>
+            )}
             {challengeTemplates.map((tmpl) => (
               <Card key={tmpl.id} style={styles.challengeCard}>
                 <View style={styles.challengeHeader}>
@@ -272,11 +280,14 @@ export default function ArenaScreen() {
                     </Text>
                   </View>
                   <Button
-                    title="Join"
-                    variant="outline"
+                    title={joinedTemplateIds.has(tmpl.id) ? 'Joined' : 'Join'}
+                    variant={joinedTemplateIds.has(tmpl.id) ? 'secondary' : 'outline'}
+                    disabled={joinedTemplateIds.has(tmpl.id)}
                     onPress={async () => {
                       await createFromTemplate(tmpl.id, userId);
-                      Alert.alert('Joined!', `You joined "${tmpl.title}"!`);
+                      setJoinedTemplateIds((prev) => new Set([...prev, tmpl.id]));
+                      setJoinedMessage(`Joined "${tmpl.title}"!`);
+                      setTimeout(() => setJoinedMessage(null), 3000);
                     }}
                   />
                 </View>
@@ -540,6 +551,8 @@ const styles = StyleSheet.create({
   circleName: { fontSize: Typography.sizes.md, fontWeight: Typography.weights.medium, color: Colors.textPrimary },
   circleCode: { fontSize: Typography.sizes.xs, color: Colors.textMuted },
   emptyText: { fontSize: Typography.sizes.md, color: Colors.textMuted, textAlign: 'center', paddingVertical: Spacing.lg },
+  joinedBanner: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, backgroundColor: Colors.accent, borderRadius: 10, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, marginBottom: Spacing.md },
+  joinedBannerText: { fontSize: Typography.sizes.md, fontWeight: Typography.weights.semibold, color: Colors.textPrimary },
   scopeSelector: { flexDirection: 'row', gap: Spacing.sm, marginBottom: Spacing.md },
   scopePill: { flex: 1, paddingVertical: Spacing.sm, borderRadius: 20, borderWidth: 1, borderColor: Colors.border, backgroundColor: Colors.card, alignItems: 'center' },
   scopePillActive: { borderColor: Colors.accent, backgroundColor: Colors.accent + '20' },

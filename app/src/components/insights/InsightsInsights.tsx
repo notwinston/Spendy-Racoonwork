@@ -13,17 +13,17 @@ import { useTransactionStore, getCategoryMoM } from '../../stores/transactionSto
 import { useBudgetStore, suggestCategoryBudgets } from '../../stores/budgetStore';
 import { detectAnomalies, predictBills } from '../../stores/predictionStore';
 
-const PERSONALITY_MAP: Record<string, { name: string; emoji: string; description: string }> = {
-  dining: { name: 'The Foodie', emoji: '\uD83C\uDF7D\uFE0F', description: 'You love dining out and exploring restaurants' },
-  entertainment: { name: 'The Entertainer', emoji: '\uD83C\uDFAC', description: 'Entertainment is your go-to spending category' },
-  shopping: { name: 'The Shopaholic', emoji: '\uD83D\uDECD\uFE0F', description: 'You enjoy retail therapy and shopping' },
-  groceries: { name: 'The Home Chef', emoji: '\uD83E\uDDD1\u200D\uD83C\uDF73', description: 'You invest in quality groceries and cooking' },
-  travel: { name: 'The Explorer', emoji: '\u2708\uFE0F', description: 'Travel and adventure are your priorities' },
-  fitness: { name: 'The Athlete', emoji: '\uD83C\uDFCB\uFE0F', description: 'Fitness and health are top priorities for you' },
-  transport: { name: 'The Commuter', emoji: '\uD83D\uDE97', description: 'You spend significantly on transportation' },
-  health: { name: 'The Wellness Guru', emoji: '\uD83E\uDDD8', description: 'Health and wellness drive your spending' },
-  bills: { name: 'The Responsible One', emoji: '\uD83D\uDCB3', description: 'Bills and utilities are your biggest expense' },
-  education: { name: 'The Scholar', emoji: '\uD83D\uDCDA', description: 'You invest heavily in education and learning' },
+const PERSONALITY_MAP: Record<string, { name: string; emoji: string; icon: keyof typeof Ionicons.glyphMap; description: string }> = {
+  dining: { name: 'The Foodie', emoji: '\uD83C\uDF7D\uFE0F', icon: 'restaurant', description: 'You love dining out and exploring restaurants' },
+  entertainment: { name: 'The Entertainer', emoji: '\uD83C\uDFAC', icon: 'film', description: 'Entertainment is your go-to spending category' },
+  shopping: { name: 'The Shopaholic', emoji: '\uD83D\uDECD\uFE0F', icon: 'bag', description: 'You enjoy retail therapy and shopping' },
+  groceries: { name: 'The Home Chef', emoji: '\uD83E\uDDD1\u200D\uD83C\uDF73', icon: 'cart', description: 'You invest in quality groceries and cooking' },
+  travel: { name: 'The Explorer', emoji: '\u2708\uFE0F', icon: 'airplane', description: 'Travel and adventure are your priorities' },
+  fitness: { name: 'The Athlete', emoji: '\uD83C\uDFCB\uFE0F', icon: 'barbell', description: 'Fitness and health are top priorities for you' },
+  transport: { name: 'The Commuter', emoji: '\uD83D\uDE97', icon: 'car', description: 'You spend significantly on transportation' },
+  health: { name: 'The Wellness Guru', emoji: '\uD83E\uDDD8', icon: 'heart', description: 'Health and wellness drive your spending' },
+  bills: { name: 'The Responsible One', emoji: '\uD83D\uDCB3', icon: 'card', description: 'Bills and utilities are your biggest expense' },
+  education: { name: 'The Scholar', emoji: '\uD83D\uDCDA', icon: 'school', description: 'You invest heavily in education and learning' },
 };
 
 export function InsightsInsights() {
@@ -84,6 +84,7 @@ export function InsightsInsights() {
     return PERSONALITY_MAP[topCategory] || {
       name: 'The Balanced Spender',
       emoji: '\u2696\uFE0F',
+      icon: 'scale' as keyof typeof Ionicons.glyphMap,
       description: 'Your spending is well-distributed across categories',
     };
   }, [categoryMoM]);
@@ -204,23 +205,27 @@ export function InsightsInsights() {
 
       {/* Spending Personality */}
       <Text style={styles.sectionTitle}>Spending Personality</Text>
-      <Card style={styles.personalityCard}>
+      <View style={styles.personalityCard}>
         {personality && (
-          <>
-            <Text style={styles.personalityEmoji}>{personality.emoji}</Text>
-            <Text style={styles.personalityName}>{personality.name}</Text>
-            <Text style={styles.personalityDesc}>{personality.description}</Text>
-            {categoryMoM.length > 0 && (
-              <Text style={styles.personalityBasis}>
-                Based on your top category:{' '}
-                <Text style={styles.personalityCategory}>
-                  {categoryMoM[0].category.charAt(0).toUpperCase() + categoryMoM[0].category.slice(1)}
+          <View style={styles.personalityRow}>
+            <View style={styles.personalityIconBadge}>
+              <Ionicons name={personality.icon} size={28} color={Colors.accentBright} />
+            </View>
+            <View style={styles.personalityTextContainer}>
+              <Text style={styles.personalityName}>{personality.name}</Text>
+              <Text style={styles.personalityDesc}>{personality.description}</Text>
+              {categoryMoM.length > 0 && (
+                <Text style={styles.personalityBasis}>
+                  Based on:{' '}
+                  <Text style={styles.personalityCategory}>
+                    {categoryMoM[0].category.charAt(0).toUpperCase() + categoryMoM[0].category.slice(1)}
+                  </Text>
                 </Text>
-              </Text>
-            )}
-          </>
+              )}
+            </View>
+          </View>
         )}
-      </Card>
+      </View>
 
       {/* Smart Budget Suggestions */}
       {budgetSuggestions.length > 0 && (
@@ -344,12 +349,28 @@ const styles = StyleSheet.create({
     textAlign: 'right',
   },
   personalityCard: {
-    alignItems: 'center',
-    paddingVertical: Spacing.xl,
-  },
-  personalityEmoji: {
-    fontSize: 48,
+    backgroundColor: Colors.accentBright + '15',
+    borderWidth: 1,
+    borderColor: Colors.accentBright + '30',
+    borderRadius: Spacing.radiusMd ?? 12,
+    padding: Spacing.lg,
     marginBottom: Spacing.md,
+  },
+  personalityRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: Spacing.lg,
+  },
+  personalityIconBadge: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: Colors.accentBright + '25',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  personalityTextContainer: {
+    flex: 1,
   },
   personalityName: {
     ...Typography.heading.h2,
@@ -360,12 +381,11 @@ const styles = StyleSheet.create({
   personalityDesc: {
     ...Typography.body.regular,
     color: Colors.textSecondary,
-    textAlign: 'center',
   },
   personalityBasis: {
     ...Typography.caption.meta,
     color: Colors.textMuted,
-    marginTop: Spacing.md,
+    marginTop: Spacing.sm,
   },
   personalityCategory: {
     color: Colors.accentBright,

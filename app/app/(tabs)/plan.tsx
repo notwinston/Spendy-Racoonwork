@@ -103,6 +103,9 @@ export default function PlanScreen() {
   // GoalEditor modal state
   const [goalEditorVisible, setGoalEditorVisible] = useState(false);
 
+  // Navigation debounce for transaction review
+  const [navLock, setNavLock] = useState(false);
+
   // Savings rules local state
   const [roundUpEnabled, setRoundUpEnabled] = useState(false);
   const [saveDifferenceEnabled, setSaveDifferenceEnabled] = useState(false);
@@ -491,7 +494,12 @@ export default function PlanScreen() {
         <Text style={styles.sectionTitle}>Transaction Review</Text>
         <TouchableOpacity
           activeOpacity={0.7}
-          onPress={() => router.push('/transaction-review')}
+          onPress={() => {
+            if (navLock) return;
+            setNavLock(true);
+            router.push('/transaction-review');
+            setTimeout(() => setNavLock(false), 1500);
+          }}
         >
           <Card style={styles.reviewCard}>
             <View style={styles.reviewRow}>
