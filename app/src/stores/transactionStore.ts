@@ -4,6 +4,7 @@ import type {
   RecurringTransaction,
   PlaidConnection,
   Account,
+  ParsedReceipt,
 } from '../types';
 import {
   connectBank as connectBankService,
@@ -11,6 +12,7 @@ import {
   detectRecurringTransactions,
   syncTransactions,
 } from '../services/plaidService';
+import { createTransactionFromReceipt } from '../services/receiptService';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 
 interface TransactionState {
@@ -24,6 +26,11 @@ interface TransactionState {
   fetchTransactions: (userId: string) => Promise<void>;
   connectBank: (userId: string) => Promise<void>;
   loadDemoData: (userId: string, persona?: 'sarah' | 'marcus') => Promise<void>;
+  createFromReceipt: (
+    userId: string,
+    accountId: string,
+    receipt: ParsedReceipt,
+  ) => Promise<void>;
   detectRecurring: (userId: string) => void;
   syncBankTransactions: (connectionId: string) => Promise<void>;
   clearTransactions: () => void;
@@ -114,6 +121,27 @@ export const useTransactionStore = create<TransactionState>((set, get) => ({
       }
     } catch (err) {
       console.warn('loadDemoData error:', err);
+    } finally {
+      set({ isLoading: false });
+    }
+  },
+
+  createFromReceipt: async (
+    userId: string,
+    accountId: string,
+    receipt: ParsedReceipt,
+  ) => {
+    set({ isLoading: true });
+    try {
+      const newTransaction = await createTransactionFromReceipt(
+        userId,
+        accountId,
+        receipt,
+      );
+      set({ transactions: [newTransaction, ...get().transactions] });
+    } catch (err) {
+      console.warn('createFromReceipt error:', err);
+      throw err;
     } finally {
       set({ isLoading: false });
     }

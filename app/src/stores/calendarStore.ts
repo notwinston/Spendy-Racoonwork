@@ -4,6 +4,7 @@ import {
   syncGoogleCalendar,
   loadDemoCalendarData,
   parseICSFile,
+  connectAppleCalendar as connectAppleCalendarService,
 } from '../services/calendarService';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 
@@ -26,6 +27,7 @@ interface CalendarState {
     connectionId?: string,
   ) => Promise<void>;
   loadDemoData: (userId: string, persona?: 'sarah' | 'marcus') => Promise<void>;
+  connectAppleCalendar: (userId: string) => Promise<void>;
   importICSEvents: (userId: string, content: string) => Promise<void>;
   clearEvents: () => void;
 }
@@ -129,6 +131,26 @@ export const useCalendarStore = create<CalendarState>((set, get) => ({
       set({ events });
     } catch (err) {
       console.warn('loadDemoData error:', err);
+    } finally {
+      set({ isLoading: false });
+    }
+  },
+
+  connectAppleCalendar: async (userId: string) => {
+    set({ isLoading: true });
+    try {
+      const appleEvents = await connectAppleCalendarService(userId);
+      // Merge with existing events
+      const existingMap = new Map(
+        get().events.map((e) => [e.external_id ?? e.id, e]),
+      );
+      for (const event of appleEvents) {
+        existingMap.set(event.external_id ?? event.id, event);
+      }
+      set({ events: Array.from(existingMap.values()) });
+    } catch (err) {
+      console.warn('connectAppleCalendar error:', err);
+      throw err;
     } finally {
       set({ isLoading: false });
     }
