@@ -16,6 +16,7 @@ import { Header } from '../../src/components/ui/Header';
 import { Card } from '../../src/components/ui/Card';
 import { HiddenCostBreakdown } from '../../src/components/HiddenCostBreakdown';
 import { FloatingChatButton } from '../../src/components/FloatingChatButton';
+import { DayDetailSheet } from '../../src/components/DayDetailSheet';
 import { useCalendarStore } from '../../src/stores/calendarStore';
 import { usePredictionStore } from '../../src/stores/predictionStore';
 import { useTransactionStore } from '../../src/stores/transactionStore';
@@ -48,11 +49,28 @@ const CATEGORY_ICONS: Record<EventCategory, string> = {
   other: 'ellipsis-horizontal',
 };
 
-function getSpendingColor(amount: number): string {
+const CATEGORY_COLORS: Record<string, string> = {
+  dining: '#FF6B6B',
+  groceries: '#22C55E',
+  transport: '#3B82F6',
+  entertainment: '#A855F7',
+  shopping: '#F59E0B',
+  travel: '#06B6D4',
+  health: '#EC4899',
+  education: '#8B5CF6',
+  fitness: '#14B8A6',
+  social: '#F97316',
+  professional: '#6366F1',
+  bills: '#EF4444',
+  personal: '#64748B',
+  other: '#94A3B8',
+};
+
+function getSpendingColor(amount: number, maxSpending: number): string {
   if (amount <= 0) return 'transparent';
-  if (amount <= 50) return 'rgba(0, 208, 156, 0.25)'; // green tint
-  if (amount <= 150) return 'rgba(255, 176, 32, 0.3)'; // yellow tint
-  return 'rgba(255, 71, 87, 0.35)'; // red tint
+  // Opacity-based heatmap: more spending = more opaque accent background
+  const opacity = Math.min(0.5, 0.1 + (amount / Math.max(maxSpending, 1)) * 0.4);
+  return `rgba(0, 208, 156, ${opacity})`;
 }
 
 function getConfidenceColor(label: string): string {
@@ -153,17 +171,33 @@ export default function CalendarScreen() {
     return map;
   }, [predictions]);
 
-  // Compute daily spending totals for heatmap
+  // Compute daily spending totals for heatmap (from transactions + predictions)
   const dailySpending = useMemo(() => {
     const map = new Map<string, number>();
+    // Include actual transaction spending
+    for (const txn of transactions) {
+      const dateKey = new Date(txn.date).toISOString().split('T')[0];
+      map.set(dateKey, (map.get(dateKey) ?? 0) + Math.abs(txn.amount));
+    }
+    // Include predicted spending for future events
     for (const event of events) {
-      const dateKey = new Date(event.start_time).toISOString().split('T')[0];
       const prediction = predictionMap.get(event.id);
-      const amount = prediction?.predicted_amount ?? 0;
-      map.set(dateKey, (map.get(dateKey) ?? 0) + amount);
+      if (prediction && new Date(event.start_time) > new Date()) {
+        const dateKey = new Date(event.start_time).toISOString().split('T')[0];
+        map.set(dateKey, (map.get(dateKey) ?? 0) + prediction.predicted_amount);
+      }
     }
     return map;
-  }, [events, predictionMap]);
+  }, [events, predictionMap, transactions]);
+
+  // Max daily spending for heatmap scaling
+  const maxDailySpending = useMemo(() => {
+    let max = 0;
+    for (const val of dailySpending.values()) {
+      if (val > max) max = val;
+    }
+    return max;
+  }, [dailySpending]);
 
   // Get events for a specific date
   const getEventsForDate = useCallback(
@@ -226,7 +260,8 @@ export default function CalendarScreen() {
           key={`day-${day}`}
           style={[
             styles.dayCell,
-            { backgroundColor: getSpendingColor(spending) },
+            { backgroundColor: getSpendingColor(spending, maxDailySpending) },
+            isFuture && styles.dayCellFuture,
             isToday && styles.dayCellToday,
             isSelected && styles.dayCellSelected,
           ]}
@@ -244,12 +279,15 @@ export default function CalendarScreen() {
           </Text>
           {dayEvents.length > 0 && (
             <View style={styles.eventDotRow}>
-              <View
-                style={[
-                  styles.eventDot,
-                  { backgroundColor: hasPrediction ? Colors.accent : Colors.info },
-                ]}
-              />
+              {dayEvents.slice(0, 3).map((evt) => (
+                <View
+                  key={evt.id}
+                  style={[
+                    styles.eventDot,
+                    { backgroundColor: CATEGORY_COLORS[evt.category] ?? Colors.info },
+                  ]}
+                />
+              ))}
             </View>
           )}
           {hasPrediction && (

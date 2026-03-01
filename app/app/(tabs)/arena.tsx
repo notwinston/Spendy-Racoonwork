@@ -15,6 +15,8 @@ import { Header } from '../../src/components/ui/Header';
 import { Card } from '../../src/components/ui/Card';
 import { Button } from '../../src/components/ui/Button';
 import { FloatingChatButton } from '../../src/components/FloatingChatButton';
+import { PodiumDisplay } from '../../src/components/PodiumDisplay';
+import { BadgeDetailModal, type BadgeInfo } from '../../src/components/BadgeDetailModal';
 import { useAuthStore } from '../../src/stores/authStore';
 import { useGamificationStore } from '../../src/stores/gamificationStore';
 import { useSocialStore } from '../../src/stores/socialStore';
@@ -28,9 +30,15 @@ const BADGE_TIER_COLORS: Record<string, string> = {
   diamond: Colors.badgeDiamond,
 };
 
+type LeaderboardScope = 'global' | 'friends' | 'circle';
+
 export default function ArenaScreen() {
   const [activeTab, setActiveTab] = useState(0);
   const [friendCodeInput, setFriendCodeInput] = useState('');
+  const [leaderboardScope, setLeaderboardScope] = useState<LeaderboardScope>('global');
+  const [selectedBadge, setSelectedBadge] = useState<BadgeInfo | null>(null);
+  const [selectedBadgeEarned, setSelectedBadgeEarned] = useState(false);
+  const [showBadgeModal, setShowBadgeModal] = useState(false);
   const user = useAuthStore((s) => s.user);
   const userId = user?.id ?? 'demo-user';
 
@@ -166,7 +174,21 @@ export default function ArenaScreen() {
               {badges.map((badge) => {
                 const earned = earnedBadgeIds.has(badge.id);
                 return (
-                  <View key={badge.id} style={[styles.badgeItem, !earned && styles.badgeLocked]}>
+                  <TouchableOpacity
+                    key={badge.id}
+                    style={[styles.badgeItem, !earned && styles.badgeLocked]}
+                    onPress={() => {
+                      setSelectedBadge({
+                        name: badge.name,
+                        description: badge.description,
+                        tier: badge.tier,
+                        icon: badge.icon_url || undefined,
+                      });
+                      setSelectedBadgeEarned(earned);
+                      setShowBadgeModal(true);
+                    }}
+                    activeOpacity={0.7}
+                  >
                     <View
                       style={[
                         styles.badgeCircle,
@@ -183,10 +205,17 @@ export default function ArenaScreen() {
                     <Text style={[styles.badgeName, !earned && styles.badgeNameLocked]} numberOfLines={1}>
                       {badge.name}
                     </Text>
-                  </View>
+                  </TouchableOpacity>
                 );
               })}
             </View>
+
+            <BadgeDetailModal
+              badge={selectedBadge}
+              earned={selectedBadgeEarned}
+              visible={showBadgeModal}
+              onClose={() => setShowBadgeModal(false)}
+            />
           </>
         )}
 
@@ -238,10 +267,46 @@ export default function ArenaScreen() {
         {/* Leaderboard Tab */}
         {activeTab === 2 && (
           <>
+            {/* Scope selector */}
+            <View style={styles.scopeSelector}>
+              {(['global', 'friends', 'circle'] as LeaderboardScope[]).map((scope) => (
+                <TouchableOpacity
+                  key={scope}
+                  style={[
+                    styles.scopePill,
+                    leaderboardScope === scope && styles.scopePillActive,
+                  ]}
+                  onPress={() => setLeaderboardScope(scope)}
+                >
+                  <Text
+                    style={[
+                      styles.scopePillText,
+                      leaderboardScope === scope && styles.scopePillTextActive,
+                    ]}
+                  >
+                    {scope === 'global' ? 'Global' : scope === 'friends' ? 'Friends' : 'Circle'}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {/* Podium for top 3 */}
+            {leaderboard.length >= 3 && (
+              <Card style={styles.podiumCard}>
+                <PodiumDisplay
+                  top3={leaderboard.slice(0, 3).map((entry) => ({
+                    displayName: entry.display_name,
+                    xp: entry.xp,
+                    rank: entry.rank,
+                  }))}
+                />
+              </Card>
+            )}
+
             <Text style={styles.sectionTitle}>Top Players</Text>
-            {leaderboard.map((entry, i) => (
+            {leaderboard.slice(leaderboard.length >= 3 ? 3 : 0).map((entry, i) => (
               <Card key={entry.user_id} style={styles.leaderRow}>
-                <Text style={[styles.rank, i < 3 && { color: Colors.accent }]}>
+                <Text style={[styles.rank, entry.rank <= 3 && { color: Colors.accent }]}>
                   #{entry.rank}
                 </Text>
                 <View style={styles.leaderAvatar}>
@@ -407,4 +472,10 @@ const styles = StyleSheet.create({
   circleName: { fontSize: Typography.sizes.md, fontWeight: Typography.weights.medium, color: Colors.textPrimary },
   circleCode: { fontSize: Typography.sizes.xs, color: Colors.textMuted },
   emptyText: { fontSize: Typography.sizes.md, color: Colors.textMuted, textAlign: 'center', paddingVertical: Spacing.lg },
+  scopeSelector: { flexDirection: 'row', gap: Spacing.sm, marginBottom: Spacing.md },
+  scopePill: { flex: 1, paddingVertical: Spacing.sm, borderRadius: 20, borderWidth: 1, borderColor: Colors.border, backgroundColor: Colors.card, alignItems: 'center' },
+  scopePillActive: { borderColor: Colors.accent, backgroundColor: Colors.accent + '20' },
+  scopePillText: { fontSize: Typography.sizes.sm, color: Colors.textMuted, fontWeight: Typography.weights.medium },
+  scopePillTextActive: { color: Colors.accent },
+  podiumCard: { paddingBottom: Spacing.lg },
 });

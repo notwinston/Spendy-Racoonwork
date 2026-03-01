@@ -567,3 +567,86 @@ export function generateDailyBrief(
     savings_opportunity: savingsOpportunity,
   };
 }
+
+/**
+ * Match predictions and hidden costs against actual transactions (morning-after pattern).
+ * Matches by category + date proximity (+/- 1 day).
+ */
+export function matchPredictionsToActuals(
+  predictions: SpendingPrediction[],
+  hiddenCosts: HiddenCost[],
+  transactions: Transaction[],
+): {
+  predictionId: string;
+  actual_amount: number;
+  was_accurate: boolean;
+  hiddenCostMatches: { costId: string; actual_amount: number; was_accurate: boolean }[];
+}[] {
+  const results: {
+    predictionId: string;
+    actual_amount: number;
+    was_accurate: boolean;
+    hiddenCostMatches: { costId: string; actual_amount: number; was_accurate: boolean }[];
+  }[] = [];
+
+  for (const prediction of predictions) {
+    if (!prediction.calendar_event_id) continue;
+
+    const predDate = new Date(prediction.created_at);
+    const predDateStr = predDate.toISOString().slice(0, 10);
+
+    // Find transactions matching category and date (+/- 1 day)
+    const matchingTxns = transactions.filter((t) => {
+      if (t.category !== prediction.predicted_category) return false;
+      const txDate = new Date(t.date).toISOString().slice(0, 10);
+      const dayDiff = Math.abs(
+        (new Date(txDate).getTime() - new Date(predDateStr).getTime()) / (1000 * 60 * 60 * 24),
+      );
+      return dayDiff <= 1;
+    });
+
+    if (matchingTxns.length === 0) continue;
+
+    const actualAmount = matchingTxns.reduce((sum, t) => sum + Math.abs(t.amount), 0);
+    const predicted = prediction.predicted_amount;
+    const ratio = Math.abs(predicted - actualAmount) / Math.max(predicted, actualAmount);
+    const wasAccurate = ratio < 0.30;
+
+    // Match hidden costs for this prediction
+    const relatedHidden = hiddenCosts.filter(
+      (hc) => hc.prediction_id === prediction.id,
+    );
+
+    const hiddenCostMatches = relatedHidden.map((hc) => {
+      // Find a transaction matching the hidden cost category and date
+      const hcTxns = transactions.filter((t) => {
+        if (t.category !== hc.category) return false;
+        const txDate = new Date(t.date).toISOString().slice(0, 10);
+        const dayDiff = Math.abs(
+          (new Date(txDate).getTime() - new Date(predDateStr).getTime()) / (1000 * 60 * 60 * 24),
+        );
+        return dayDiff <= 1;
+      });
+
+      const hcActual = hcTxns.reduce((sum, t) => sum + Math.abs(t.amount), 0);
+      const hcRatio = hc.predicted_amount > 0
+        ? Math.abs(hc.predicted_amount - hcActual) / Math.max(hc.predicted_amount, hcActual)
+        : hcActual === 0 ? 0 : 1;
+
+      return {
+        costId: hc.id,
+        actual_amount: Math.round(hcActual * 100) / 100,
+        was_accurate: hcRatio < 0.30,
+      };
+    });
+
+    results.push({
+      predictionId: prediction.id,
+      actual_amount: Math.round(actualAmount * 100) / 100,
+      was_accurate: wasAccurate,
+      hiddenCostMatches,
+    });
+  }
+
+  return results;
+}

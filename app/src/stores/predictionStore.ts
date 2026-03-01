@@ -48,6 +48,9 @@ interface PredictionState {
   /** True while analyzing hidden costs. */
   isAnalyzingHiddenCosts: boolean;
 
+  /** ISO date string of last accuracy check to prevent re-running. */
+  lastAccuracyCheck: string | null;
+
   // ---- Actions ----
 
   /**
@@ -98,6 +101,9 @@ interface PredictionState {
     events: CalendarEvent[];
     budgets: Budget[];
   }) => void;
+
+  /** Track accuracy of predictions against actual transactions (morning-after pattern). */
+  trackAccuracy: (transactions: Transaction[]) => void;
 
   /** Clear all predictions and reset state. */
   clear: () => void;
