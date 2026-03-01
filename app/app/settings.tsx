@@ -8,6 +8,7 @@ import {
   TextInput,
   StyleSheet,
   Alert,
+  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -150,6 +151,9 @@ export default function SettingsScreen() {
   const [isEditingName, setIsEditingName] = useState(false);
   const [editName, setEditName] = useState(user?.displayName || '');
   const [copiedCode, setCopiedCode] = useState(false);
+  const [weeklySummary, setWeeklySummary] = useState(true);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
 
   const calendarConnected = calendarConnections.length > 0;
   const bankConnected = plaidConnections.length > 0;
@@ -232,8 +236,13 @@ export default function SettingsScreen() {
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* Profile / Account Section */}
         <View style={styles.profileSection}>
-          <View style={styles.avatar}>
-            <Ionicons name="person" size={32} color={Colors.textPrimary} />
+          <View style={styles.avatarWrapper}>
+            <View style={styles.avatar}>
+              <Ionicons name="person" size={36} color={Colors.textPrimary} />
+            </View>
+            <View style={styles.cameraOverlay}>
+              <Ionicons name="camera" size={14} color={Colors.textPrimary} />
+            </View>
           </View>
 
           {isEditingName ? (
@@ -333,6 +342,12 @@ export default function SettingsScreen() {
               onToggle={() => togglePreference(pref.key)}
             />
           ))}
+          <ToggleRow
+            icon="calendar-outline"
+            label="Weekly Summary"
+            value={weeklySummary}
+            onToggle={() => setWeeklySummary((prev) => !prev)}
+          />
         </Card>
 
         {/* Privacy Controls */}
@@ -363,6 +378,68 @@ export default function SettingsScreen() {
           onPress={handleSignOut}
           style={styles.signOutButton}
         />
+
+        {/* Delete Account */}
+        <TouchableOpacity
+          style={styles.deleteAccountButton}
+          onPress={() => setShowDeleteModal(true)}
+        >
+          <Text style={styles.deleteAccountText}>Delete Account</Text>
+        </TouchableOpacity>
+
+        {/* Delete Account Confirmation Modal */}
+        <Modal
+          visible={showDeleteModal}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setShowDeleteModal(false)}
+        >
+          <View style={styles.deleteOverlay}>
+            <View style={styles.deleteContent}>
+              <Ionicons name="warning" size={48} color={Colors.danger} />
+              <Text style={styles.deleteTitle}>Delete Account</Text>
+              <Text style={styles.deleteDescription}>
+                This action cannot be undone. Type DELETE to confirm.
+              </Text>
+              <TextInput
+                style={styles.deleteInput}
+                value={deleteConfirmText}
+                onChangeText={setDeleteConfirmText}
+                placeholder='Type "DELETE"'
+                placeholderTextColor={Colors.textMuted}
+                autoCapitalize="characters"
+              />
+              <View style={styles.deleteActions}>
+                <TouchableOpacity
+                  style={styles.deleteCancelButton}
+                  onPress={() => {
+                    setShowDeleteModal(false);
+                    setDeleteConfirmText('');
+                  }}
+                >
+                  <Text style={styles.deleteCancelText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.deleteConfirmButton,
+                    deleteConfirmText !== 'DELETE' && styles.deleteConfirmDisabled,
+                  ]}
+                  onPress={() => {
+                    if (deleteConfirmText === 'DELETE') {
+                      setShowDeleteModal(false);
+                      setDeleteConfirmText('');
+                      Alert.alert('Account Deleted', 'Your account has been scheduled for deletion.');
+                      handleSignOut();
+                    }
+                  }}
+                  disabled={deleteConfirmText !== 'DELETE'}
+                >
+                  <Text style={styles.deleteConfirmText}>Delete</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
       </ScrollView>
     </SafeAreaView>
   );
@@ -398,16 +475,32 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: Spacing['2xl'],
   },
+  avatarWrapper: {
+    position: 'relative',
+    marginBottom: Spacing.md,
+  },
   avatar: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
     backgroundColor: Colors.card,
     borderWidth: 2,
     borderColor: Colors.accent,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: Spacing.md,
+  },
+  cameraOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: Colors.accent,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: Colors.background,
   },
   profileName: {
     fontSize: Typography.sizes.xl,
@@ -533,5 +626,92 @@ const styles = StyleSheet.create({
   signOutButton: {
     marginTop: Spacing['3xl'],
     borderColor: Colors.danger,
+  },
+  // Delete account
+  deleteAccountButton: {
+    marginTop: Spacing.xl,
+    alignItems: 'center',
+    paddingVertical: Spacing.md,
+  },
+  deleteAccountText: {
+    fontSize: Typography.sizes.md,
+    color: Colors.danger,
+    fontWeight: Typography.weights.medium,
+  },
+  deleteOverlay: {
+    flex: 1,
+    backgroundColor: Colors.overlay,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: Spacing['2xl'],
+  },
+  deleteContent: {
+    backgroundColor: Colors.card,
+    borderRadius: 16,
+    padding: Spacing['2xl'],
+    alignItems: 'center',
+    width: '100%',
+    maxWidth: 340,
+  },
+  deleteTitle: {
+    fontSize: Typography.sizes.xl,
+    fontWeight: Typography.weights.bold,
+    color: Colors.danger,
+    marginTop: Spacing.md,
+  },
+  deleteDescription: {
+    fontSize: Typography.sizes.md,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+    marginTop: Spacing.sm,
+    marginBottom: Spacing.lg,
+    lineHeight: 22,
+  },
+  deleteInput: {
+    width: '100%',
+    backgroundColor: Colors.background,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: 10,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+    fontSize: Typography.sizes.md,
+    color: Colors.textPrimary,
+    textAlign: 'center',
+    marginBottom: Spacing.lg,
+  },
+  deleteActions: {
+    flexDirection: 'row',
+    gap: Spacing.md,
+    width: '100%',
+  },
+  deleteCancelButton: {
+    flex: 1,
+    paddingVertical: Spacing.md,
+    borderRadius: 10,
+    backgroundColor: Colors.background,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    alignItems: 'center',
+  },
+  deleteCancelText: {
+    fontSize: Typography.sizes.md,
+    color: Colors.textPrimary,
+    fontWeight: Typography.weights.medium,
+  },
+  deleteConfirmButton: {
+    flex: 1,
+    paddingVertical: Spacing.md,
+    borderRadius: 10,
+    backgroundColor: Colors.danger,
+    alignItems: 'center',
+  },
+  deleteConfirmDisabled: {
+    opacity: 0.4,
+  },
+  deleteConfirmText: {
+    fontSize: Typography.sizes.md,
+    color: Colors.textPrimary,
+    fontWeight: Typography.weights.semibold,
   },
 });

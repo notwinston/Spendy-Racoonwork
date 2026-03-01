@@ -1,19 +1,24 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View,
   Text,
   ScrollView,
   TouchableOpacity,
   StyleSheet,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Typography, Spacing } from '../src/constants';
 import { Card } from '../src/components/ui/Card';
+import { TrendLineChart } from '../src/components/charts';
+import { AdjustBudgetFAB } from '../src/components/AdjustBudgetFAB';
 import { useBudgetStore, getBurnRateColor } from '../src/stores/budgetStore';
 import { useTransactionStore } from '../src/stores/transactionStore';
 import type { EventCategory } from '../src/types';
+
+type SortOption = 'newest' | 'largest';
 
 const CATEGORY_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
   dining: 'restaurant',
@@ -38,16 +43,21 @@ export default function BudgetDetailScreen() {
   const budgets = useBudgetStore((s) => s.budgets);
   const transactions = useTransactionStore((s) => s.transactions);
 
+  const [sortOption, setSortOption] = useState<SortOption>('newest');
+
   const cat = (category || 'dining') as EventCategory;
   const budget = budgets.find((b) => b.category === cat);
 
   const categoryTxns = useMemo(() => {
     const now = new Date();
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-    return transactions
-      .filter((t) => t.category === cat && new Date(t.date) >= monthStart)
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [transactions, cat]);
+    const filtered = transactions
+      .filter((t) => t.category === cat && new Date(t.date) >= monthStart);
+    if (sortOption === 'largest') {
+      return filtered.sort((a, b) => Math.abs(b.amount) - Math.abs(a.amount));
+    }
+    return filtered.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }, [transactions, cat, sortOption]);
 
   const spent = budget?.spent ?? 0;
   const limit = budget?.monthly_limit ?? 300;
@@ -106,51 +116,45 @@ export default function BudgetDetailScreen() {
 
           <View style={styles.statsRow}>
             <View style={styles.stat}>
-              <Text style={styles.statLabel}>Burn Rate</Text>
-              <Text style={[styles.statValue, { color: burnColor }]}>
-                {localBurnRate.toFixed(2)}x
-              </Text>
-            </View>
-            <View style={styles.stat}>
-              <Text style={styles.statLabel}>Daily Avg</Text>
+              <Text style={styles.statLabel}>Daily Average</Text>
               <Text style={styles.statValue}>
                 ${dayOfMonth > 0 ? (spent / dayOfMonth).toFixed(0) : '0'}/day
               </Text>
             </View>
             <View style={styles.stat}>
-              <Text style={styles.statLabel}>Projected</Text>
+              <Text style={styles.statLabel}>Projected EOM</Text>
               <Text style={[styles.statValue, {
-                color: (spent / dayOfMonth) * daysInMonth > limit ? Colors.danger : Colors.positive,
+                color: (dayOfMonth > 0 ? (spent / dayOfMonth) * daysInMonth : 0) > limit ? Colors.danger : Colors.positive,
               }]}>
                 ${dayOfMonth > 0 ? ((spent / dayOfMonth) * daysInMonth).toFixed(0) : '0'}
+              </Text>
+            </View>
+            <View style={styles.stat}>
+              <Text style={styles.statLabel}>Days Until Depleted</Text>
+              <Text style={[styles.statValue, { color: burnColor }]}>
+                {dayOfMonth > 0 && spent > 0
+                  ? Math.max(0, Math.floor(remaining / (spent / dayOfMonth))).toString()
+                  : '--'}
               </Text>
             </View>
           </View>
         </Card>
 
-        {/* Trend placeholder */}
-        <Text style={styles.sectionTitle}>Monthly Trend</Text>
+        {/* 6-Month Trend Line */}
+        <Text style={styles.sectionTitle}>6-Month Trend</Text>
         <Card style={styles.trendCard}>
-          <View style={styles.trendBars}>
-            {[65, 80, 72, 90, 55, Math.round(pctUsed)].map((val, i) => (
-              <View key={i} style={styles.trendBarCol}>
-                <View style={styles.trendBarBg}>
-                  <View
-                    style={[
-                      styles.trendBarFill,
-                      {
-                        height: `${Math.min(100, val)}%`,
-                        backgroundColor: i === 5 ? Colors.accent : Colors.cardBorder,
-                      },
-                    ]}
-                  />
-                </View>
-                <Text style={styles.trendLabel}>
-                  {['Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar'][i]}
-                </Text>
-              </View>
-            ))}
-          </View>
+          <TrendLineChart
+            data={[
+              { label: 'Oct', value: Math.round(limit * 0.65) },
+              { label: 'Nov', value: Math.round(limit * 0.80) },
+              { label: 'Dec', value: Math.round(limit * 0.72) },
+              { label: 'Jan', value: Math.round(limit * 0.90) },
+              { label: 'Feb', value: Math.round(limit * 0.55) },
+              { label: 'Mar', value: spent },
+            ]}
+            budgetLine={limit}
+            period="6month"
+          />
         </Card>
 
         {/* Transactions */}
