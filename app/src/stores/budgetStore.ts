@@ -66,12 +66,12 @@ export const DEMO_BUDGET_VARIATIONS: Record<string, Partial<Record<EventCategory
     health: 120,
   },
   '2026-03': {
-    dining: 290,
-    groceries: 410,
+    dining: 280,
+    groceries: 400,
     entertainment: 200,
     shopping: 230,
     fitness: 100,
-    bills: 520,
+    bills: 500,
   },
 };
 
@@ -104,7 +104,7 @@ function makeDefaultBudgets(userId: string, month?: { year: number; month: numbe
 }
 
 export const useBudgetStore = create<BudgetState>((set, get) => ({
-  totalBudget: 1980,
+  totalBudget: 1960,
   totalSpent: 0,
   totalPredicted: 0,
   budgets: [],

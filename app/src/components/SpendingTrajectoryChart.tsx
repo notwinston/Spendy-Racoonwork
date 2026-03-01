@@ -41,7 +41,7 @@ export function SpendingTrajectoryChart({
   totalDays,
 }: SpendingTrajectoryChartProps) {
   const chartData = useMemo(() => {
-    const maxY = Math.max(budget * 1.15, spent, predicted) || 1;
+    const maxY = Math.max(budget * 1.3, spent * 1.15, Math.min(predicted, budget * 1.5)) || 1;
     const safeTotalDays = totalDays || 30;
     const safeDaysElapsed = Math.max(0, Math.min(daysElapsed, safeTotalDays));
 
