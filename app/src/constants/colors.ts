@@ -1,7 +1,7 @@
 export const Colors = {
   // Background Layers
   bgApp: '#050D1A',
-  bgCard: '#0A1628',
+  bgCard: '#0F2847',
   bgElevated: '#0F2040',
   bgHover: '#162B55',
   borderSubtle: 'rgba(37,99,235,0.18)',
@@ -18,7 +18,7 @@ export const Colors = {
 
   // Text Colors
   textPrimary: '#F0F4FF',
-  textSecondary: '#94A3B8',
+  textSecondary: '#8899AA',
   textMuted: '#4A5568',
 
   // Chart Color Sequence
@@ -66,6 +66,28 @@ export const Colors = {
   // Chart
   chartPredictionDashed: '#2563EB',
   chartConfidenceFill: 'rgba(37,99,235,0.15)',
+
+  // Glass
+  glassBg: 'rgba(10, 22, 40, 0.65)',
+  glassBorder: 'rgba(255, 255, 255, 0.08)',
+  glassBorderLight: 'rgba(255, 255, 255, 0.15)',
+
+  // Glow
+  glowTeal: 'rgba(0, 208, 156, 0.4)',
+  glowBlue: 'rgba(37, 99, 235, 0.3)',
+  glowGold: 'rgba(255, 215, 0, 0.3)',
+
+  // Gradients
+  gradientMeshPrimary: ['#050D1A', '#0A1628', '#0F1E3D', '#050D1A'] as readonly string[],
+  gradientDashboard: ['#050D1A', '#0A1628', '#0D1F35', '#081A2E'] as readonly string[],
+  gradientInsights: ['#050D1A', '#0F1830', '#141E3D', '#0A1225'] as readonly string[],
+  gradientArena: ['#0A0D1A', '#1A1520', '#251A15', '#0A0D1A'] as readonly string[],
+  gradientCalendar: ['#050D1A', '#0A1628', '#0E1A30', '#050D1A'] as readonly string[],
+  gradientPlan: ['#050D1A', '#0A1628', '#0D1830', '#081520'] as readonly string[],
+  gradientOnboarding: ['#050D1A', '#0A1830', '#0F2040', '#050D1A'] as readonly string[],
+
+  // Noise
+  noiseOverlay: 'rgba(255, 255, 255, 0.02)',
 
   // Legacy compat
   warningYellow: '#F59E0B',

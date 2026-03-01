@@ -13,4 +13,9 @@ export const Spacing = {
   radiusMd: 10,
   radiusLg: 14,
   radiusXl: 20,
+  radiusFull: 9999,
+  // Structural tokens
+  sectionGap: 28,
+  heroTopPadding: 48,
+  cardOverlap: -12,
 } as const;

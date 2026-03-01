@@ -9,10 +9,12 @@ export const Typography = {
   brand: {
     logo: { fontFamily: 'Syne_800ExtraBold', fontSize: 20, fontWeight: '800' as const, color: '#F0F4FF' },
     pageTitle: { fontFamily: 'Syne_700Bold', fontSize: 18, fontWeight: '700' as const, color: '#F0F4FF' },
+    screenTitle: { fontFamily: 'Syne_800ExtraBold', fontSize: 28, letterSpacing: -0.5, color: '#F0F4FF' },
   },
   // Numeric Display - DM Mono ONLY
   numeric: {
-    displayLarge: { fontFamily: 'DMMono_500Medium', fontSize: 32, fontWeight: '500' as const, color: '#F0F4FF', letterSpacing: -0.5 },
+    displayHero: { fontFamily: 'DMMono_500Medium', fontSize: 56, letterSpacing: -2, color: '#F0F4FF' },
+    displayLarge: { fontFamily: 'DMMono_500Medium', fontSize: 42, fontWeight: '500' as const, color: '#F0F4FF', letterSpacing: -0.5 },
     displayMedium: { fontFamily: 'DMMono_500Medium', fontSize: 18, fontWeight: '500' as const, color: '#F0F4FF', letterSpacing: -0.3 },
     inlineValue: { fontFamily: 'DMMono_500Medium', fontSize: 14, fontWeight: '600' as const, color: '#F0F4FF' },
     chartAxis: { fontFamily: 'DMMono_400Regular', fontSize: 10, fontWeight: '400' as const, color: '#4A5568' },
@@ -32,6 +34,7 @@ export const Typography = {
     card: { fontFamily: 'DMSans_700Bold', fontSize: 10, fontWeight: '700' as const, color: '#4A5568', textTransform: 'uppercase' as const, letterSpacing: 1.2 },
     metric: { fontFamily: 'DMSans_700Bold', fontSize: 10, fontWeight: '700' as const, color: '#4A5568', textTransform: 'uppercase' as const, letterSpacing: 1 },
     sectionDivider: { fontFamily: 'DMSans_700Bold', fontSize: 11, fontWeight: '700' as const, color: '#4A5568', textTransform: 'uppercase' as const, letterSpacing: 1.5 },
+    sectionDividerLarge: { fontFamily: 'Syne_700Bold', fontSize: 13, letterSpacing: 2.5, textTransform: 'uppercase' as const, color: '#4A5568' },
     tier: { fontFamily: 'DMSans_700Bold', fontSize: 12, fontWeight: '700' as const },
     sortTab: { fontFamily: 'DMSans_700Bold', fontSize: 12, fontWeight: '700' as const, color: '#FFFFFF' },
     trend: { fontFamily: 'DMSans_700Bold', fontSize: 12, fontWeight: '700' as const },
