@@ -13,6 +13,7 @@ export interface NotificationPreferences {
   socialNudges: boolean;
   challengeUpdates: boolean;
   streakReminders: boolean;
+  hiddenCostAlerts: boolean;
 }
 
 export type ProfileVisibility = 'public' | 'friends_only' | 'private';
@@ -118,6 +119,30 @@ function generateDemoNotifications(userId: string): Notification[] {
       sent_at: new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000).toISOString(),
       read_at: new Date(now.getTime() - 2.8 * 24 * 60 * 60 * 1000).toISOString(),
     },
+    {
+      id: 'notif-7',
+      user_id: userId,
+      title: 'Hidden Cost Alert: Dinner Tonight',
+      body: 'Budget $113 for dinner at Earls, not just $45. Drinks & Uber likely.',
+      category: 'hidden_cost_alert',
+      priority: 'medium' as NotificationPriority,
+      data: null,
+      is_read: false,
+      sent_at: new Date(now.getTime() - 15 * 60 * 1000).toISOString(),
+      read_at: null,
+    },
+    {
+      id: 'notif-8',
+      user_id: userId,
+      title: 'Pre-Event Cost Reminder',
+      body: 'Gym in 2 hours — expect $8-12 for a post-workout smoothie.',
+      category: 'hidden_cost_alert',
+      priority: 'low' as NotificationPriority,
+      data: null,
+      is_read: true,
+      sent_at: new Date(now.getTime() - 4 * 60 * 60 * 1000).toISOString(),
+      read_at: new Date(now.getTime() - 3.5 * 60 * 60 * 1000).toISOString(),
+    },
   ];
 }
 
@@ -128,6 +153,7 @@ export const useNotificationStore = create<NotificationState>((set) => ({
     socialNudges: true,
     challengeUpdates: true,
     streakReminders: true,
+    hiddenCostAlerts: true,
   },
 
   privacy: {

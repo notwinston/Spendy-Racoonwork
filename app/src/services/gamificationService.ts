@@ -515,6 +515,33 @@ function evaluateCondition(
       const length = (condition.length as number) ?? 0;
       return stats.longest_streak >= length;
     }
+    case 'hidden_cost_views': {
+      // TODO: hidden_cost_views not yet tracked on UserStats
+      const count = (condition.count as number) ?? 0;
+      return ((stats as any).hidden_cost_views ?? 0) >= count;
+    }
+    case 'hidden_cost_accuracy': {
+      // TODO: hidden_cost_accurate not yet tracked on UserStats
+      const count = (condition.count as number) ?? 0;
+      return ((stats as any).hidden_cost_accurate ?? 0) >= count;
+    }
+    case 'budget_under_month': {
+      // TODO: needs transaction history to evaluate
+      return false;
+    }
+    case 'hidden_cost_acknowledged': {
+      // TODO: needs daily acknowledgment tracking
+      return false;
+    }
+    case 'cci_achievement': {
+      // TODO: cci_score not yet tracked on UserStats
+      const score = (condition.score as number) ?? 0;
+      return ((stats as any).cci_score ?? 0) >= score;
+    }
+    case 'health_score_streak': {
+      // TODO: needs weekly health score history
+      return false;
+    }
     default:
       return false;
   }
@@ -991,6 +1018,15 @@ function buildDemoBadges(): Badge[] {
     { id: 'badge-18', name: 'Night Owl', description: 'Review finances after 10 PM for 7 days', icon_url: '/badges/night-owl.png', tier: 'bronze', unlock_condition: { type: 'late_checkin', days: 7, after_hour: 22 }, xp_reward: 50, created_at: now },
     { id: 'badge-19', name: 'Versatile', description: 'Complete challenges from 5 different categories', icon_url: '/badges/versatile.png', tier: 'silver', unlock_condition: { type: 'challenge_categories', count: 5 }, xp_reward: 150, created_at: now },
     { id: 'badge-20', name: 'Eternal', description: 'Maintain a 365-day streak of any type', icon_url: '/badges/eternal.png', tier: 'diamond', unlock_condition: { type: 'any_streak', length: 365 }, xp_reward: 2000, created_at: now },
+    // Hidden cost engagement badges
+    { id: 'badge-21', name: 'First Forecast', description: 'View your first hidden cost breakdown', icon_url: '/badges/first-forecast.png', tier: 'bronze', unlock_condition: { type: 'hidden_cost_views', count: 1 }, xp_reward: 25, created_at: now },
+    { id: 'badge-22', name: 'Crystal Ball', description: 'Have 10 hidden cost predictions at 70%+ accuracy', icon_url: '/badges/crystal-ball.png', tier: 'silver', unlock_condition: { type: 'hidden_cost_accuracy', count: 10, threshold: 0.7 }, xp_reward: 100, created_at: now },
+    { id: 'badge-23', name: 'Budget Guardian', description: 'Stay under budget for a full month', icon_url: '/badges/budget-guardian.png', tier: 'silver', unlock_condition: { type: 'budget_under_month', months: 1 }, xp_reward: 150, created_at: now },
+    { id: 'badge-24', name: 'Hidden Cost Hunter', description: 'Acknowledge hidden costs for 7 consecutive days', icon_url: '/badges/hidden-cost-hunter.png', tier: 'gold', unlock_condition: { type: 'hidden_cost_acknowledged', days: 7 }, xp_reward: 200, created_at: now },
+    { id: 'badge-25', name: 'Prediction Master', description: 'Achieve CCI score of 80+ for a month', icon_url: '/badges/prediction-master.png', tier: 'gold', unlock_condition: { type: 'cci_achievement', score: 80, months: 1 }, xp_reward: 250, created_at: now },
+    { id: 'badge-26', name: 'Financial Sage', description: 'Maintain A+ health score for 2 weeks', icon_url: '/badges/financial-sage.png', tier: 'diamond', unlock_condition: { type: 'health_score_streak', grade: 'A+', weeks: 2 }, xp_reward: 500, created_at: now },
+    { id: 'badge-27', name: 'Social Saver', description: 'Complete 3 challenges', icon_url: '/badges/social-saver.png', tier: 'silver', unlock_condition: { type: 'challenges_completed', count: 3 }, xp_reward: 150, created_at: now },
+    { id: 'badge-28', name: 'Streak Legend', description: 'Maintain a 30-day daily check-in streak', icon_url: '/badges/streak-legend.png', tier: 'diamond', unlock_condition: { type: 'streak', streak_type: 'daily_checkin', length: 30 }, xp_reward: 300, created_at: now },
   ];
   return badges;
 }

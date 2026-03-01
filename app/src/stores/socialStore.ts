@@ -15,6 +15,8 @@ import type {
   Profile,
   LeaderboardEntry,
   FriendWithProfile,
+  CalendarEvent,
+  EventCostBreakdown,
 } from '../types';
 import {
   sendFriendRequest as svcSendFriendRequest,
@@ -95,11 +97,18 @@ interface SocialState {
   markNotificationRead: (notificationId: string) => Promise<void>;
   fetchUnreadCount: (userId: string) => Promise<void>;
 
+  // Actions - Hidden Cost Alerts
+  sendPreEventHiddenCostAlert: (
+    userId: string,
+    event: CalendarEvent,
+    breakdown: EventCostBreakdown,
+  ) => Promise<void>;
+
   // Actions - Leaderboard
   fetchLeaderboard: (challengeId?: string) => Promise<void>;
 }
 
-export const useSocialStore = create<SocialState>((set, _get) => ({
+export const useSocialStore = create<SocialState>((set, get) => ({
   friends: [],
   pendingRequests: [],
   circles: [],
@@ -375,6 +384,40 @@ export const useSocialStore = create<SocialState>((set, _get) => ({
         error: err instanceof Error ? err.message : 'Failed to fetch unread count',
       });
     }
+  },
+
+  // ---- Hidden Cost Alerts ----
+
+  sendPreEventHiddenCostAlert: async (
+    userId: string,
+    event: CalendarEvent,
+    breakdown: EventCostBreakdown,
+  ) => {
+    const now = new Date();
+    const eventStart = new Date(event.start_time);
+    const hoursUntil = Math.max(0, Math.round((eventStart.getTime() - now.getTime()) / (1000 * 60 * 60)));
+
+    const topLabels = breakdown.hidden_costs
+      .filter((c) => !c.is_dismissed && c.tier === 'likely')
+      .slice(0, 2)
+      .map((c) => c.label)
+      .join(' & ');
+
+    const title = `${event.title} in ${hoursUntil} hours`;
+    const body = `Budget $${Math.round(breakdown.total_likely)} (not just $${Math.round(breakdown.base_prediction.predicted_amount)}!)${topLabels ? ` — ${topLabels} likely.` : ''}`;
+
+    const store = get();
+    await store.createNotification(
+      userId,
+      title,
+      body,
+      'hidden_cost_alert',
+      'medium',
+      {
+        calendar_event_id: event.id,
+        total_predicted: breakdown.total_likely,
+      },
+    );
   },
 
   // ---- Leaderboard ----
