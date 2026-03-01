@@ -6,8 +6,8 @@ import type {
 } from '../types';
 
 // Bundled demo data
-import sarahEvents from '../../../data/output/sarah_events.json';
-import marcusEvents from '../../../data/output/marcus_events.json';
+import sarahEvents from '../data/sarah_events.json';
+import marcusEvents from '../data/marcus_events.json';
 
 // ---------- Category detection ----------
 

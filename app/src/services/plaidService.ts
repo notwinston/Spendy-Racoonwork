@@ -10,8 +10,8 @@ import type {
 } from '../types';
 
 // Bundled demo data
-import sarahTransactions from '../../../data/output/sarah_transactions.json';
-import marcusTransactions from '../../../data/output/marcus_transactions.json';
+import sarahTransactions from '../data/sarah_transactions.json';
+import marcusTransactions from '../data/marcus_transactions.json';
 
 // ---------- Helpers ----------
 
