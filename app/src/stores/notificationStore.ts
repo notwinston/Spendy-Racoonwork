@@ -5,6 +5,8 @@
  * In demo mode, pre-populates with sample notifications.
  */
 import { create } from 'zustand';
+import * as Notifications from 'expo-notifications';
+import { SchedulableTriggerInputTypes } from 'expo-notifications';
 import type { Notification, NotificationPriority } from '../types';
 
 export interface NotificationPreferences {
@@ -42,6 +44,10 @@ interface NotificationState {
   markRead: (notificationId: string) => void;
   markAllRead: () => void;
   clearAll: () => void;
+
+  // Morning brief scheduling
+  scheduleMorningBrief: () => Promise<void>;
+  cancelMorningBrief: () => Promise<void>;
 }
 
 function generateDemoNotifications(userId: string): Notification[] {
@@ -146,7 +152,7 @@ function generateDemoNotifications(userId: string): Notification[] {
   ];
 }
 
-export const useNotificationStore = create<NotificationState>((set) => ({
+export const useNotificationStore = create<NotificationState>((set, get) => ({
   preferences: {
     spendingAlerts: true,
     budgetWarnings: true,

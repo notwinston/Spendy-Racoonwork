@@ -60,6 +60,18 @@ export default function RootLayout() {
             animation: 'slide_from_right',
           }}
         />
+        <Stack.Screen
+          name="arena"
+          options={{
+            animation: 'slide_from_right',
+          }}
+        />
+        <Stack.Screen
+          name="plan"
+          options={{
+            animation: 'slide_from_right',
+          }}
+        />
       </Stack>
     </>
   );
