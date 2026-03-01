@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
+import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Typography, Spacing } from '../../constants';
 import {
@@ -33,7 +34,14 @@ export function MonthSelector() {
       </Pressable>
 
       <Pressable onPress={isCurrent ? undefined : resetToCurrent} style={styles.labelContainer}>
-        <Text style={styles.label}>{label}</Text>
+        <Animated.Text
+          key={label}
+          entering={FadeIn.duration(250)}
+          exiting={FadeOut.duration(150)}
+          style={styles.label}
+        >
+          {label}
+        </Animated.Text>
         {!isCurrent && (
           <Text style={styles.resetHint}>Tap to reset</Text>
         )}
