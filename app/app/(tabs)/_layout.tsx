@@ -3,13 +3,13 @@ import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Typography } from '../../src/constants';
 
-type TabIconName = 'grid' | 'calendar' | 'navigate-circle' | 'trophy' | 'bulb';
-type TabIconOutline = 'grid-outline' | 'calendar-outline' | 'navigate-circle-outline' | 'trophy-outline' | 'bulb-outline';
+type TabIconName = 'grid' | 'calendar' | 'locate' | 'trophy' | 'bulb';
+type TabIconOutline = 'grid-outline' | 'calendar-outline' | 'locate-outline' | 'trophy-outline' | 'bulb-outline';
 
 const TAB_ICONS: Record<string, { active: TabIconName; inactive: TabIconOutline }> = {
   dashboard: { active: 'grid', inactive: 'grid-outline' },
   calendar: { active: 'calendar', inactive: 'calendar-outline' },
-  plan: { active: 'navigate-circle', inactive: 'navigate-circle-outline' },
+  plan: { active: 'locate', inactive: 'locate-outline' },
   arena: { active: 'trophy', inactive: 'trophy-outline' },
   insights: { active: 'bulb', inactive: 'bulb-outline' },
 };
