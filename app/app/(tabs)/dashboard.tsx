@@ -12,10 +12,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { Colors, Typography, Spacing } from '../../src/constants';
 import { Header } from '../../src/components/ui/Header';
 import { Card } from '../../src/components/ui/Card';
+import { DailyBriefCard } from '../../src/components/DailyBriefCard';
 import { FloatingChatButton } from '../../src/components/FloatingChatButton';
 import { useAuthStore } from '../../src/stores/authStore';
 import { useTransactionStore } from '../../src/stores/transactionStore';
 import { usePredictionStore } from '../../src/stores/predictionStore';
+import { useCalendarStore } from '../../src/stores/calendarStore';
 import {
   useBudgetStore,
   calculateBurnRate,
@@ -45,7 +47,8 @@ export default function DashboardScreen() {
   const router = useRouter();
   const user = useAuthStore((s) => s.user);
   const { transactions, loadDemoData: loadTxns } = useTransactionStore();
-  const { predictions } = usePredictionStore();
+  const { predictions, hiddenCosts, generateDailyBrief } = usePredictionStore();
+  const { events } = useCalendarStore();
   const {
     budgets,
     totalBudget,
@@ -78,6 +81,13 @@ export default function DashboardScreen() {
       );
     }
   }, [budgets.length, transactions.length, predictions.length]);
+
+  // Generate daily brief when predictions and hidden costs are available
+  useEffect(() => {
+    if (predictions.length > 0 && events.length > 0) {
+      generateDailyBrief({ events, budgets });
+    }
+  }, [predictions.length, hiddenCosts.length, events.length, budgets.length, generateDailyBrief]);
 
   const now = new Date();
   const dayOfMonth = now.getDate();
@@ -112,6 +122,9 @@ export default function DashboardScreen() {
     <SafeAreaView style={styles.container} edges={['top']}>
       <Header title="Dashboard" />
       <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
+        {/* Daily Brief */}
+        <DailyBriefCard />
+
         {/* Hero Budget Card */}
         <Card style={styles.heroCard}>
           <Text style={styles.heroLabel}>Monthly Budget</Text>
