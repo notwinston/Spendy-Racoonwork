@@ -45,7 +45,6 @@
           "calendarPermission": "FutureSpend needs access to your calendar to predict spending from upcoming events."
         }
       ],
-      "react-native-reanimated/plugin",
       "expo-notifications"
     ]
   }

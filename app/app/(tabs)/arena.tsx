@@ -182,7 +182,6 @@ export default function ArenaScreen() {
                         name: badge.name,
                         description: badge.description,
                         tier: badge.tier,
-                        icon: badge.icon_url || undefined,
                       });
                       setSelectedBadgeEarned(earned);
                       setShowBadgeModal(true);

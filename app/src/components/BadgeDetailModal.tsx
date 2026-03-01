@@ -32,11 +32,42 @@ const TIER_COLORS: Record<string, string> = {
   diamond: Colors.badgeDiamond,
 };
 
+const BADGE_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
+  'Invested': 'flame',
+  'Steadfast': 'shield-checkmark',
+  'Radiant': 'sunny',
+  'Legendary': 'star',
+  'Prismatic': 'diamond',
+  'Budget Boss': 'wallet',
+  'Penny Pincher': 'cash',
+  'Social Butterfly': 'people',
+  'Fortune Teller': 'eye',
+  'Early Bird': 'alarm',
+  'Zero Hero': 'ban',
+  'Challenge Champion': 'trophy',
+  'Data Driven': 'analytics',
+  'Consistent': 'calendar',
+  'Dedicated': 'heart',
+  'Thrift Lord': 'trending-down',
+  'Prediction Pro': 'bulb',
+  'Night Owl': 'moon',
+  'Versatile': 'grid',
+  'Eternal': 'infinite',
+  'First Forecast': 'search',
+  'Crystal Ball': 'globe',
+  'Budget Guardian': 'shield',
+  'Hidden Cost Hunter': 'flashlight',
+  'Prediction Master': 'telescope',
+  'Financial Sage': 'school',
+  'Social Saver': 'chatbubbles',
+  'Streak Legend': 'bonfire',
+};
+
 export function BadgeDetailModal({ badge, earned, visible, onClose }: BadgeDetailModalProps) {
   if (!badge) return null;
 
   const tierColor = TIER_COLORS[badge.tier] || Colors.textMuted;
-  const iconName = (badge.icon as keyof typeof Ionicons.glyphMap) || (earned ? 'trophy' : 'medal');
+  const iconName = BADGE_ICONS[badge.name] || (earned ? 'trophy' : 'medal');
 
   return (
     <Modal
