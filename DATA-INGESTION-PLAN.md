@@ -4,15 +4,70 @@
 
 ---
 
+## Credentials
+
+```env
+EXPO_PUBLIC_SUPABASE_URL='sb_publishable_Gd-y2TJuzP48h4Ix_t0nkQ_lfR7Qgbk'
+EXPO_PUBLIC_SUPABASE_ANON_KEY='sb_secret_CDhMHq3t3KrMlFVUaGhuhg_3TcFgUN2'
+
+EXPO_PUBLIC_GEMINI_API_KEY='AIzaSyCeIQGpsyw9hgi7bpm4qlSMYVJBj4eVpZg'
+EXPO_PUBLIC_LLM_PROVIDER=gemini
+```
+
+**We are using Gemini as our LLM provider.** All LLM calls (receipt scanning, price predictions, AI chat, insight generation) should use the Gemini API, NOT Claude. Use the `parseReceiptGemini()` path for receipt scanning, and configure the LLM adapter to default to Gemini everywhere. Claude is not available for this project.
+
+## IMPORTANT: Migration Files Do Not Exist Yet — Create Them
+
+The database schema is fully documented in Section 0 of this document (the Complete Database Schema starting around line 106, plus the migration SQL in the "Migration SQL" section around line 863). However, the actual `.sql` migration files (`supabase/migrations/001` through `010`) **do not exist on disk yet**.
+
+**Before implementing any data ingestion feature, you MUST:**
+
+1. Create the directory `supabase/migrations/` at the project root
+2. Read the complete schema from this document (Section 0: all table definitions, ENUMs, RLS policies, indexes, triggers, and seed data)
+3. Generate the migration `.sql` files from that schema, split logically:
+   - `001_create_enums.sql` — all 15 custom ENUM types
+   - `002_create_core_tables.sql` — profiles, calendar_connections, calendar_events, plaid_connections, accounts, transactions, recurring_transactions
+   - `003_create_prediction_tables.sql` — spending_predictions, prediction_feedback
+   - `004_create_budget_tables.sql` — budgets, budget_snapshots
+   - `005_create_gamification_tables.sql` — badges, user_badges, challenges, challenge_participants, streak_history, xp_transactions
+   - `006_create_social_tables.sql` — friendships, friend_circles, circle_members, social_nudges, notifications
+   - `007_create_rls_policies.sql` — all 48 RLS policies
+   - `008_create_indexes.sql` — all 32 indexes
+   - `009_create_triggers_functions.sql` — handle_new_user trigger, update_updated_at trigger
+   - `010_seed_data.sql` — 20 badges + 10 challenge templates
+   - `011_create_metrics_tables.sql` — the additional metrics tables from the "Migration SQL — New Tables" section
+4. Run them against Supabase using either `supabase db push` or by pasting into the Supabase SQL Editor
+
+**Do not skip this step.** Every store in the app checks `isSupabaseConfigured` and will attempt to read/write these tables once the env vars are set.
+
+## Implementation Scope — What to Build, What to Skip
+
+We are running on **Expo Go** (no EAS dev build). This constrains which features are possible.
+
+**Build these (in order):**
+
+1. **Migration SQL files** — Create all 11 `.sql` files from the schema in this document and run them against Supabase
+2. **Receipt scanning with camera** — `expo-camera` + `expo-image-picker` + Gemini Vision API. Works in Expo Go.
+3. **Apple Calendar** — `expo-calendar` reads the device's local calendars. No OAuth, no API keys, no EAS build. Works in Expo Go (read-only).
+4. **Manual calendar entry with price prediction** — User types "Lunch at Earls on Friday" → Gemini parses it into a structured event + spending prediction. Pure frontend + LLM, no native modules.
+
+**Skip these (require EAS dev build or API keys we don't have):**
+
+- **Google Calendar** — requires `@react-native-google-signin/google-signin` (native module, no Expo Go) + Google Cloud Console OAuth setup + `GoogleService-Info.plist`
+- **Microsoft Outlook** — requires Azure AD app registration. Lower priority.
+- **Plaid bank integration** — requires `react-native-plaid-link-sdk` (native module, no Expo Go) + backend Edge Functions + Plaid dashboard signup. Most complex integration.
+- **Cross-institution tracking** — depends on Plaid being implemented first
+
+---
+
 ## Table of Contents
 
 0. [Supabase Setup — Do This First](#0-supabase-setup--do-this-first)
-1. [Transaction Ingestion via Plaid](#1-transaction-ingestion-via-plaid)
-2. [Cross-Institution Tracking](#2-cross-institution-tracking)
-3. [Calendar Integration](#3-calendar-integration)
-4. [Camera Integration — Receipt Scanning](#4-camera-integration--receipt-scanning)
-5. [Manual Calendar Entry with Price Prediction](#5-manual-calendar-entry-with-price-prediction)
-6. [Architecture Summary](#6-architecture-summary)
+1. [Plaid, Google Calendar, Microsoft Outlook (Deferred)](#1-plaid-google-calendar-microsoft-outlook-deferred) → see [EXTERNAL-INTEGRATIONS.md](./EXTERNAL-INTEGRATIONS.md)
+2. [Calendar Integration (Apple Calendar)](#2-calendar-integration)
+3. [Camera Integration — Receipt Scanning](#3-camera-integration--receipt-scanning)
+4. [Manual Calendar Entry with Price Prediction](#4-manual-calendar-entry-with-price-prediction)
+5. [Architecture Summary](#5-architecture-summary)
 
 ---
 
@@ -860,60 +915,62 @@ Level thresholds: cumulative sum of 100 * n^1.5
 
 XP is awarded for: check-ins (10), budget adherence (varies), challenge completion (`challenges.reward_xp`), prediction reviews (5-10), social actions (5-10), referrals (50).
 
-### Schema Gaps — Columns/Tables That Need to Be Added
+### Migration SQL — New Tables and Columns for MVP.md Metrics
 
-These are things the app references or needs but the current schema doesn't support.
-
-#### Gap 1: No income/savings tracking
+Run this as migration `011_metrics_analytics.sql` after the existing 10 migrations.
 
 ```sql
--- Option: Add to profiles
-ALTER TABLE profiles ADD COLUMN monthly_income FLOAT;
+-- ============================================================
+-- Migration 011: Metrics & Analytics tables for MVP.md Section 5
+-- ============================================================
 
--- Or create a dedicated table for flexibility
-CREATE TABLE income_sources (
+-- New columns on profiles
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS monthly_income FLOAT;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS cci_score FLOAT;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS savings_efficiency FLOAT;
+
+-- New columns on spending_predictions
+ALTER TABLE spending_predictions ADD COLUMN IF NOT EXISTS confidence_decay_lambda FLOAT DEFAULT 0.05;
+ALTER TABLE spending_predictions ADD COLUMN IF NOT EXISTS matched_transaction_id UUID REFERENCES transactions(id);
+
+-- New columns on transactions (for receipt scanning + source tracking)
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS source TEXT NOT NULL DEFAULT 'manual';
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS receipt_data JSONB;
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS receipt_image_url TEXT;
+
+-- Plaid sync cursor
+ALTER TABLE plaid_connections ADD COLUMN IF NOT EXISTS sync_cursor TEXT;
+
+-- ---- Income Sources ----
+CREATE TABLE IF NOT EXISTS income_sources (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
-  source_name TEXT NOT NULL,          -- "Salary", "Freelance", etc.
+  source_name TEXT NOT NULL,
   amount FLOAT NOT NULL,
   frequency transaction_frequency NOT NULL DEFAULT 'monthly',
   is_active BOOLEAN NOT NULL DEFAULT true,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
-```
+CREATE INDEX IF NOT EXISTS idx_income_sources_user ON income_sources(user_id);
+ALTER TABLE income_sources ENABLE ROW LEVEL SECURITY;
+CREATE POLICY income_sources_user ON income_sources FOR ALL USING (auth.uid() = user_id);
 
-#### Gap 2: No daily check-in timestamp tracking
-
-```sql
-CREATE TABLE daily_checkins (
+-- ---- Daily Check-ins ----
+CREATE TABLE IF NOT EXISTS daily_checkins (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
   checked_in_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   xp_awarded INTEGER NOT NULL DEFAULT 10,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  UNIQUE(user_id, (checked_in_at::date))   -- one per day
+  UNIQUE(user_id, (checked_in_at::date))
 );
-```
+CREATE INDEX IF NOT EXISTS idx_daily_checkins_user ON daily_checkins(user_id);
+ALTER TABLE daily_checkins ENABLE ROW LEVEL SECURITY;
+CREATE POLICY daily_checkins_user ON daily_checkins FOR ALL USING (auth.uid() = user_id);
 
-This enables the "Early Bird" (before 8 AM) and "Night Owl" (after 10 PM) badges.
-
-#### Gap 3: No receipt storage
-
-```sql
-ALTER TABLE transactions ADD COLUMN source TEXT NOT NULL DEFAULT 'manual';
--- Values: 'plaid', 'receipt_scan', 'manual', 'csv_import'
-
-ALTER TABLE transactions ADD COLUMN receipt_data JSONB;
--- Stores: merchant, items[], subtotal, tax, tip, etc.
-
-ALTER TABLE transactions ADD COLUMN receipt_image_url TEXT;
--- Points to Supabase Storage bucket
-```
-
-#### Gap 4: No notification preferences table
-
-```sql
-CREATE TABLE notification_preferences (
+-- ---- Notification Preferences ----
+CREATE TABLE IF NOT EXISTS notification_preferences (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID UNIQUE NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
   spending_alerts BOOLEAN NOT NULL DEFAULT true,
@@ -925,14 +982,176 @@ CREATE TABLE notification_preferences (
   push_token TEXT,
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+ALTER TABLE notification_preferences ENABLE ROW LEVEL SECURITY;
+CREATE POLICY notification_preferences_user ON notification_preferences FOR ALL USING (auth.uid() = user_id);
+
+-- ---- Spending Velocity (MVP 5.3) ----
+CREATE TABLE IF NOT EXISTS spending_velocity_daily (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  date DATE NOT NULL,
+  raw_velocity FLOAT NOT NULL DEFAULT 0,
+  smoothed_velocity FLOAT NOT NULL DEFAULT 0,
+  daily_spend FLOAT NOT NULL DEFAULT 0,
+  rolling_7d_spend FLOAT NOT NULL DEFAULT 0,
+  projected_overspend_date DATE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE(user_id, date)
+);
+CREATE INDEX IF NOT EXISTS idx_velocity_user_date ON spending_velocity_daily(user_id, date DESC);
+ALTER TABLE spending_velocity_daily ENABLE ROW LEVEL SECURITY;
+CREATE POLICY velocity_user ON spending_velocity_daily FOR ALL USING (auth.uid() = user_id);
+
+-- ---- Category Risk Scores (MVP 5.5) ----
+CREATE TABLE IF NOT EXISTS category_risk_scores (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  category event_category NOT NULL,
+  cv_score FLOAT NOT NULL DEFAULT 0,
+  mean_daily_spend FLOAT NOT NULL DEFAULT 0,
+  stddev_daily_spend FLOAT NOT NULL DEFAULT 0,
+  sample_days INTEGER NOT NULL DEFAULT 0,
+  computed_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE(user_id, category, (computed_at::date))
+);
+CREATE INDEX IF NOT EXISTS idx_risk_user_cat ON category_risk_scores(user_id, category);
+ALTER TABLE category_risk_scores ENABLE ROW LEVEL SECURITY;
+CREATE POLICY risk_user ON category_risk_scores FOR ALL USING (auth.uid() = user_id);
+
+-- ---- CCI Scores (MVP 5.6) ----
+CREATE TABLE IF NOT EXISTS cci_scores (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  category event_category,                -- NULL = overall CCI
+  hit_rate FLOAT NOT NULL DEFAULT 0,
+  avg_accuracy_weight FLOAT NOT NULL DEFAULT 0,
+  cci_value FLOAT NOT NULL DEFAULT 0,
+  period_start TIMESTAMPTZ NOT NULL,
+  period_end TIMESTAMPTZ NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE(user_id, category, period_start)
+);
+CREATE INDEX IF NOT EXISTS idx_cci_user ON cci_scores(user_id, period_end DESC);
+ALTER TABLE cci_scores ENABLE ROW LEVEL SECURITY;
+CREATE POLICY cci_user ON cci_scores FOR ALL USING (auth.uid() = user_id);
+
+-- ---- Health Score Snapshots (MVP 5.8) ----
+CREATE TABLE IF NOT EXISTS health_score_snapshots (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  date DATE NOT NULL,
+  overall_score FLOAT NOT NULL CHECK (overall_score >= 0 AND overall_score <= 100),
+  grade TEXT NOT NULL,
+  budget_adherence FLOAT NOT NULL DEFAULT 0,
+  savings_rate FLOAT NOT NULL DEFAULT 0,
+  spending_stability FLOAT NOT NULL DEFAULT 0,
+  calendar_correlation FLOAT NOT NULL DEFAULT 0,
+  streak_bonus FLOAT NOT NULL DEFAULT 0,
+  trend FLOAT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE(user_id, date)
+);
+CREATE INDEX IF NOT EXISTS idx_health_user_date ON health_score_snapshots(user_id, date DESC);
+ALTER TABLE health_score_snapshots ENABLE ROW LEVEL SECURITY;
+CREATE POLICY health_user ON health_score_snapshots FOR ALL USING (auth.uid() = user_id);
+
+-- ---- Savings Goals (MVP 5.2) ----
+CREATE TABLE IF NOT EXISTS savings_goals (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  target_amount FLOAT NOT NULL CHECK (target_amount > 0),
+  current_amount FLOAT NOT NULL DEFAULT 0,
+  monthly_contribution FLOAT NOT NULL DEFAULT 0,
+  annual_interest_rate FLOAT NOT NULL DEFAULT 0.04,
+  target_date DATE,
+  is_active BOOLEAN NOT NULL DEFAULT true,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_savings_goals_user ON savings_goals(user_id);
+ALTER TABLE savings_goals ENABLE ROW LEVEL SECURITY;
+CREATE POLICY savings_goals_user ON savings_goals FOR ALL USING (auth.uid() = user_id);
+
+-- ---- Savings Rules (MVP 5.9) ----
+CREATE TABLE IF NOT EXISTS savings_rules (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID UNIQUE NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  round_up_enabled BOOLEAN NOT NULL DEFAULT false,
+  round_up_multiplier FLOAT NOT NULL DEFAULT 1.0,
+  save_the_difference_enabled BOOLEAN NOT NULL DEFAULT false,
+  save_the_difference_rate FLOAT NOT NULL DEFAULT 0.5,
+  daily_sweep_enabled BOOLEAN NOT NULL DEFAULT false,
+  monthly_cap_pct FLOAT NOT NULL DEFAULT 0.15,
+  target_savings_goal_id UUID REFERENCES savings_goals(id),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+ALTER TABLE savings_rules ENABLE ROW LEVEL SECURITY;
+CREATE POLICY savings_rules_user ON savings_rules FOR ALL USING (auth.uid() = user_id);
+
+-- ---- Auto-Save Transactions (MVP 5.9) ----
+CREATE TABLE IF NOT EXISTS auto_save_transactions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  savings_goal_id UUID REFERENCES savings_goals(id),
+  trigger_type TEXT NOT NULL,             -- 'event_match', 'daily_sweep', 'round_up'
+  trigger_reference_id UUID,
+  amount FLOAT NOT NULL CHECK (amount > 0),
+  predicted_amount FLOAT,
+  actual_amount FLOAT,
+  status TEXT NOT NULL DEFAULT 'pending',  -- 'pending', 'completed', 'cancelled'
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  completed_at TIMESTAMPTZ
+);
+CREATE INDEX IF NOT EXISTS idx_autosave_user ON auto_save_transactions(user_id, created_at DESC);
+ALTER TABLE auto_save_transactions ENABLE ROW LEVEL SECURITY;
+CREATE POLICY autosave_user ON auto_save_transactions FOR ALL USING (auth.uid() = user_id);
+
+-- ---- Seasonal Factors (MVP 5.1) ----
+CREATE TABLE IF NOT EXISTS seasonal_factors (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  category event_category NOT NULL,
+  month INTEGER NOT NULL CHECK (month >= 1 AND month <= 12),
+  adjustment_factor FLOAT NOT NULL DEFAULT 1.0,
+  sample_size INTEGER NOT NULL DEFAULT 0,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE(user_id, category, month)
+);
+CREATE INDEX IF NOT EXISTS idx_seasonal_user ON seasonal_factors(user_id);
+ALTER TABLE seasonal_factors ENABLE ROW LEVEL SECURITY;
+CREATE POLICY seasonal_user ON seasonal_factors FOR ALL USING (auth.uid() = user_id);
+
+-- ---- Metrics Computation Log (MVP 5.10) ----
+CREATE TABLE IF NOT EXISTS metrics_computation_log (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  metric_name TEXT NOT NULL,
+  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
+  started_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  completed_at TIMESTAMPTZ,
+  duration_ms INTEGER,
+  status TEXT NOT NULL DEFAULT 'running',
+  error_message TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_metrics_log_name ON metrics_computation_log(metric_name, created_at DESC);
+-- No RLS on metrics_computation_log — it's a system table
 ```
 
-#### Gap 5: No Plaid sync cursor
+### Schema Summary — Full Table Count After Migration 011
 
-```sql
-ALTER TABLE plaid_connections ADD COLUMN sync_cursor TEXT;
--- Stores the cursor for Plaid /transactions/sync incremental fetching
-```
+| Domain | Tables | New in 011 |
+|---|---|---|
+| Core | 7 | 0 (columns added to `profiles`, `transactions`, `plaid_connections`, `spending_predictions`) |
+| Predictions | 2 | 0 |
+| Budgets | 2 | 0 |
+| Gamification | 6 | 0 |
+| Social | 5 | 0 |
+| Metrics & Analytics | 11 | 11 (`income_sources`, `daily_checkins`, `notification_preferences`, `spending_velocity_daily`, `category_risk_scores`, `cci_scores`, `health_score_snapshots`, `savings_goals`, `savings_rules`, `auto_save_transactions`, `seasonal_factors`) |
+| System | 1 | 1 (`metrics_computation_log`) |
+| **Total** | **34** | **12** |
 
 ### What Happens When You Flip the Switch
 
@@ -957,431 +1176,36 @@ Once you set the two env vars, here's what changes in each part of the app:
 
 These are the code changes needed to fully utilize the database:
 
+#### Priority 1 — Core data flow
 1. **`chatStore.ts`** — Replace hardcoded system prompt with dynamic data from stores
 2. **`notificationStore.ts`** — Query real `notifications` table instead of always generating demo data
 3. **`transaction-review.tsx`** — Write review changes back to `transactions` table via store
-4. **`insights.tsx`** — Compute savings rate from real data instead of hardcoded `0.1`
-5. **`budget-detail.tsx`** — Query `budget_snapshots` for real trend data instead of fabricated array
-6. **`set-budget.tsx`** — Create real per-category `budgets` rows from onboarding selection
-7. **`profiles.financial_health_score`** — Write computed health score back to database
-8. **`gamificationService.ts`** — Implement the 10 stubbed badge conditions
-9. **`arena.tsx`** — Wire challenge progress bar to real `challenge_participants.progress` instead of hardcoded 40%
+4. **`set-budget.tsx`** — Create real per-category `budgets` rows from onboarding selection
+
+#### Priority 2 — Metric formulas (MVP 5.x alignment)
+5. **`budgetStore.ts`** — Update `calculateHealthScore` from 4 components (0.35/0.30/0.15/0.20) to MVP's 5 components (0.30/0.25/0.20/0.15/0.10). Wire SpendingStability from `category_risk_scores` and CalendarCorrelation from `cci_scores`
+6. **`insights.tsx`** — Compute savings rate from `income_sources` or `profiles.monthly_income` instead of hardcoded `0.1`. Add compound savings projection (FV formula) replacing simple multiplication
+7. **`budget-detail.tsx`** — Query `budget_snapshots` for real trend data instead of fabricated array `[65, 80, 72, 90, 55, current]`
+8. **`profiles.financial_health_score`** — Write computed health score back to database. Also write `cci_score` and `savings_efficiency`
+
+#### Priority 3 — New metric computations
+9. **New: `metricsService.ts`** — Create service to compute spending velocity (EWMA), CV/risk scores, CCI batch, health score snapshots, and seasonal factors. Write results to the new Metrics & Analytics tables
+10. **New: `savingsService.ts`** — Implement auto-save matching (event match within ±2 hours, daily sweep, round-up). Log to `auto_save_transactions`. Enforce monthly cap (`income × 0.15`)
+11. **`plan.tsx`** — Wire savings rule toggles to `savings_rules` table instead of no-op
+
+#### Priority 4 — Gamification + UI
+12. **`gamificationService.ts`** — Implement the 10 stubbed badge conditions (use `daily_checkins` for early/late badges, `category_risk_scores` for zero-spend-day)
+13. **`arena.tsx`** — Wire challenge progress bar to real `challenge_participants.progress` instead of hardcoded 40%
+14. **Dashboard** — Add spending velocity indicator, projected overspend date warning
 
 
-## 1. Transaction Ingestion via Plaid
+## 1. Plaid, Google Calendar, Microsoft Outlook (Deferred)
 
-### Current State
-
-`plaidService.ts` returns hardcoded "Demo Bank" data. There is no Plaid SDK, no token exchange, and `syncTransactions()` is a no-op that returns `[]`.
-
-### What Plaid Actually Requires
-
-Plaid does **not** allow direct client-side API calls. The flow is:
-
-```
-Mobile App  ──>  Your Backend Server  ──>  Plaid API
-    │                    │
-    │  (1) Link Token    │
-    │  <─────────────────│
-    │                    │
-    │  (2) Plaid Link UI │
-    │  (opens in-app)    │
-    │                    │
-    │  (3) Public Token  │
-    │  ─────────────────>│
-    │                    │
-    │         (4) Exchange for Access Token
-    │                    │──────────────────> Plaid
-    │                    │<──────────────────
-    │                    │
-    │  (5) Transactions  │
-    │  <─────────────────│──────────────────> Plaid /transactions/sync
-```
-
-### Implementation Steps
-
-#### Step 1: Backend Server (Supabase Edge Function or standalone)
-
-You need a server that holds your Plaid credentials. This cannot live in the mobile app.
-
-**Option A: Supabase Edge Functions** (recommended for your stack)
-
-Create three Edge Functions:
-
-```
-supabase/functions/
-├── plaid-create-link-token/index.ts   # POST — creates a Link token
-├── plaid-exchange-token/index.ts      # POST — exchanges public_token for access_token
-└── plaid-sync-transactions/index.ts   # POST — fetches transactions for a connection
-```
-
-**Option B: Standalone Express/Fastify server** — same three endpoints, deployed to Railway/Fly/Render.
-
-#### Step 2: Create Link Token
-
-```typescript
-// supabase/functions/plaid-create-link-token/index.ts
-import { PlaidApi, Configuration, PlaidEnvironments, Products, CountryCode } from 'plaid';
-
-const plaid = new PlaidApi(new Configuration({
-  basePath: PlaidEnvironments[Deno.env.get('PLAID_ENV') ?? 'sandbox'],
-  baseOptions: {
-    headers: {
-      'PLAID-CLIENT-ID': Deno.env.get('PLAID_CLIENT_ID'),
-      'PLAID-SECRET': Deno.env.get('PLAID_SECRET'),
-    },
-  },
-}));
-
-Deno.serve(async (req) => {
-  const { userId } = await req.json();
-
-  const response = await plaid.linkTokenCreate({
-    user: { client_user_id: userId },
-    client_name: 'FutureSpend',
-    products: [Products.Transactions],
-    country_codes: [CountryCode.Ca],        // Canadian banks
-    language: 'en',
-    // For Canadian institutions (RBC, CIBC, TD, etc.):
-    // Plaid covers them but some require OAuth redirect
-    redirect_uri: 'https://your-app.com/plaid-oauth',
-  });
-
-  return Response.json({ link_token: response.data.link_token });
-});
-```
-
-**Environment variables needed:**
-- `PLAID_CLIENT_ID` — from Plaid dashboard
-- `PLAID_SECRET` — sandbox, development, or production key
-- `PLAID_ENV` — `sandbox`, `development`, or `production`
-
-#### Step 3: Mobile App — Plaid Link
-
-Install the React Native Plaid Link SDK:
-
-```bash
-npx expo install react-native-plaid-link-sdk
-```
-
-> **Important**: This is a native module. It will NOT work in Expo Go. You must use an EAS development build (`eas build --profile development`).
-
-```typescript
-// src/services/plaidService.ts (replace connectBank)
-import { openLink, LinkSuccess } from 'react-native-plaid-link-sdk';
-
-export async function connectBank(userId: string): Promise<{ connection: PlaidConnection; accounts: Account[] }> {
-  // 1. Get link token from your backend
-  const { link_token } = await fetch('YOUR_BACKEND/plaid-create-link-token', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ userId }),
-  }).then(r => r.json());
-
-  // 2. Open Plaid Link UI
-  return new Promise((resolve, reject) => {
-    openLink({
-      tokenConfig: { token: link_token },
-      onSuccess: async (success: LinkSuccess) => {
-        // 3. Exchange public token via your backend
-        const result = await fetch('YOUR_BACKEND/plaid-exchange-token', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            publicToken: success.publicToken,
-            institutionId: success.metadata.institution?.id,
-            institutionName: success.metadata.institution?.name,
-            accounts: success.metadata.accounts,
-            userId,
-          }),
-        }).then(r => r.json());
-
-        resolve(result);
-      },
-      onExit: (error) => {
-        if (error) reject(error);
-      },
-    });
-  });
-}
-```
-
-#### Step 4: Exchange Token (Backend)
-
-```typescript
-// supabase/functions/plaid-exchange-token/index.ts
-Deno.serve(async (req) => {
-  const { publicToken, institutionId, institutionName, accounts, userId } = await req.json();
-
-  // Exchange for permanent access token
-  const exchangeResponse = await plaid.itemPublicTokenExchange({
-    public_token: publicToken,
-  });
-
-  const accessToken = exchangeResponse.data.access_token;
-  const itemId = exchangeResponse.data.item_id;
-
-  // Store encrypted access token in your database
-  // CRITICAL: Never send the access_token to the client
-  const { data: connection } = await supabase.from('plaid_connections').insert({
-    user_id: userId,
-    institution_id: institutionId,
-    institution_name: institutionName,
-    access_token_encrypted: encrypt(accessToken),  // Use your encryption method
-    plaid_item_id: itemId,
-    status: 'active',
-  }).select().single();
-
-  // Store accounts
-  for (const acct of accounts) {
-    await supabase.from('accounts').insert({
-      user_id: userId,
-      plaid_connection_id: connection.id,
-      plaid_account_id: acct.id,
-      name: acct.name,
-      type: acct.type,
-      subtype: acct.subtype,
-      mask: acct.mask,
-    });
-  }
-
-  return Response.json({ connection, accounts });
-});
-```
-
-#### Step 5: Transaction Sync (Backend)
-
-Plaid recommends the `/transactions/sync` endpoint (cursor-based, incremental):
-
-```typescript
-// supabase/functions/plaid-sync-transactions/index.ts
-Deno.serve(async (req) => {
-  const { connectionId } = await req.json();
-
-  // Get the stored access token and cursor
-  const { data: conn } = await supabase
-    .from('plaid_connections')
-    .select('access_token_encrypted, sync_cursor')
-    .eq('id', connectionId)
-    .single();
-
-  const accessToken = decrypt(conn.access_token_encrypted);
-  let cursor = conn.sync_cursor || '';
-  let hasMore = true;
-  const allAdded = [];
-  const allModified = [];
-  const allRemoved = [];
-
-  while (hasMore) {
-    const response = await plaid.transactionsSync({
-      access_token: accessToken,
-      cursor: cursor,
-    });
-
-    allAdded.push(...response.data.added);
-    allModified.push(...response.data.modified);
-    allRemoved.push(...response.data.removed);
-    hasMore = response.data.has_more;
-    cursor = response.data.next_cursor;
-  }
-
-  // Upsert transactions into your database
-  for (const txn of allAdded) {
-    await supabase.from('transactions').upsert({
-      user_id: userId,
-      plaid_transaction_id: txn.transaction_id,
-      account_id: txn.account_id,
-      amount: txn.amount,
-      date: txn.date,
-      merchant_name: txn.merchant_name || txn.name,
-      category: mapPlaidCategory(txn.personal_finance_category),
-      pending: txn.pending,
-      // Plaid provides its own categorization
-    }, { onConflict: 'plaid_transaction_id' });
-  }
-
-  // Save cursor for next sync
-  await supabase.from('plaid_connections')
-    .update({ sync_cursor: cursor, last_sync_at: new Date().toISOString() })
-    .eq('id', connectionId);
-
-  return Response.json({ added: allAdded.length, modified: allModified.length, removed: allRemoved.length });
-});
-```
-
-#### Step 6: Ongoing Sync
-
-Two approaches (use both):
-
-1. **Plaid Webhooks** — Plaid sends `SYNC_UPDATES_AVAILABLE` to your backend when new transactions arrive. Set up a webhook endpoint that triggers the sync function.
-2. **Pull on app open** — Call sync when the user opens the app or pulls to refresh on the dashboard.
-
-### Canadian Bank Coverage
-
-Plaid supports major Canadian institutions in production:
-
-| Institution | Plaid Support | Notes |
-|---|---|---|
-| RBC Royal Bank | Yes | OAuth flow required |
-| CIBC | Yes | OAuth flow required |
-| TD Canada Trust | Yes | OAuth flow required |
-| Scotiabank | Yes | OAuth flow required |
-| BMO | Yes | OAuth flow required |
-| Desjardins | Yes | OAuth flow required |
-| National Bank | Yes | — |
-| Tangerine | Yes | — |
-| Simplii Financial | Yes | — |
-| Wealthsimple | Yes | — |
-
-> **Plaid pricing**: Sandbox is free. Production starts at $0.30/connection/month + $0.05/transaction call. There's a free tier for < 100 connections during development.
+> These integrations require EAS dev builds, external API credentials, or third-party accounts. Full implementation details have been moved to **[EXTERNAL-INTEGRATIONS.md](./EXTERNAL-INTEGRATIONS.md)**.
 
 ---
 
-## 2. Cross-Institution Tracking
-
-### The Problem
-
-A user might have:
-- RBC chequing (daily spending)
-- CIBC Visa (credit card)
-- TD savings account
-- Wealthsimple TFSA
-
-Each is a separate Plaid connection. You need to unify them into one financial picture.
-
-### Implementation
-
-#### Data Model (already in your schema)
-
-```
-plaid_connections (one per institution)
-  └── accounts (one per card/account at that institution)
-       └── transactions (all transactions across all accounts)
-```
-
-The key is `user_id` — all queries filter by user, not by institution.
-
-#### Unified Dashboard Query
-
-```typescript
-// Already works with current schema — transactions table has user_id
-const { data: allTransactions } = await supabase
-  .from('transactions')
-  .select('*, accounts!inner(name, type, plaid_connections!inner(institution_name))')
-  .eq('user_id', userId)
-  .order('date', { ascending: false });
-
-// Group by institution for the "Connected Accounts" section
-const byInstitution = allTransactions.reduce((acc, txn) => {
-  const inst = txn.accounts.plaid_connections.institution_name;
-  if (!acc[inst]) acc[inst] = [];
-  acc[inst].push(txn);
-  return acc;
-}, {});
-```
-
-#### Account Aggregation View (new screen needed)
-
-Build an "Accounts" screen showing:
-- Total net worth (sum of all account balances)
-- Per-institution breakdown with account cards
-- Per-account balance, last synced time, and recent transactions
-- Color-coded by account type (chequing = blue, credit = red, savings = green)
-
-#### Duplicate Detection
-
-When a user pays their CIBC Visa from their RBC chequing account, Plaid reports two transactions:
-1. RBC: -$500 "CIBC VISA PAYMENT"
-2. CIBC: +$500 "PAYMENT RECEIVED"
-
-Handle this with transfer detection:
-
-```typescript
-function isTransfer(txn: PlaidTransaction): boolean {
-  // Plaid's personal_finance_category includes TRANSFER_IN / TRANSFER_OUT
-  return txn.personal_finance_category?.primary === 'TRANSFER';
-}
-
-// Filter out transfers from spending calculations
-const spending = transactions.filter(t => !isTransfer(t) && t.amount > 0);
-```
-
----
-
-## 3. Calendar Integration
-
-### Current State
-
-`calendarService.ts` has real Google Calendar fetch code but it can't run because OAuth requires a native build. Apple and Outlook are Alert stubs.
-
-### Google Calendar
-
-#### Prerequisites
-1. Google Cloud Console project with Calendar API enabled
-2. OAuth 2.0 client ID (iOS + Android)
-3. EAS build (not Expo Go)
-
-#### Implementation
-
-Install the Google Sign-In library:
-
-```bash
-npx expo install @react-native-google-signin/google-signin
-```
-
-Configure in `app.json`:
-
-```json
-{
-  "expo": {
-    "ios": {
-      "googleServicesFile": "./GoogleService-Info.plist",
-      "infoPlist": {
-        "CFBundleURLSchemes": ["com.googleusercontent.apps.YOUR_CLIENT_ID"]
-      }
-    },
-    "android": {
-      "googleServicesFile": "./google-services.json"
-    },
-    "plugins": ["@react-native-google-signin/google-signin"]
-  }
-}
-```
-
-```typescript
-// src/services/calendarService.ts — replace the Alert stubs
-import { GoogleSignin } from '@react-native-google-signin/google-signin';
-
-GoogleSignin.configure({
-  scopes: ['https://www.googleapis.com/auth/calendar.readonly'],
-  webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
-  iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
-});
-
-export async function connectGoogleCalendar(userId: string) {
-  // 1. Sign in with Google
-  await GoogleSignin.hasPlayServices();
-  const userInfo = await GoogleSignin.signIn();
-  const tokens = await GoogleSignin.getTokens();
-
-  // 2. Store the connection
-  await calendarStore.addConnection(userId, 'google', tokens.accessToken);
-
-  // 3. Sync events (your existing syncGoogleCalendar function already works)
-  await calendarStore.syncCalendar(userId, tokens.accessToken);
-
-  return { success: true, eventCount: calendarStore.getState().events.length };
-}
-
-// Token refresh (Google tokens expire after 1 hour)
-export async function refreshGoogleToken(): Promise<string> {
-  const tokens = await GoogleSignin.getTokens();
-  // getTokens() automatically refreshes if expired
-  return tokens.accessToken;
-}
-```
-
-Your existing `syncGoogleCalendar()` function in `calendarService.ts` already makes the right API calls — it just needs a valid OAuth token.
+## 2. Calendar Integration
 
 ### Apple Calendar
 
@@ -1446,142 +1270,9 @@ export async function connectAppleCalendar(userId: string): Promise<CalendarEven
 
 > **Note**: `expo-calendar` works in Expo Go on iOS for reading. For writing events, you need a development build.
 
-### Microsoft Outlook / Office 365
-
-Outlook uses Microsoft Graph API with OAuth 2.0.
-
-```bash
-npm install react-native-msal  # or use expo-auth-session
-```
-
-#### Option A: Using `expo-auth-session` (works in Expo Go for testing)
-
-```typescript
-// src/services/outlookCalendarService.ts
-import * as AuthSession from 'expo-auth-session';
-import { detectCategory } from './calendarService';
-
-const TENANT_ID = 'common'; // multi-tenant
-const CLIENT_ID = process.env.EXPO_PUBLIC_MICROSOFT_CLIENT_ID;
-
-const discovery = {
-  authorizationEndpoint: `https://login.microsoftonline.com/${TENANT_ID}/oauth2/v2.0/authorize`,
-  tokenEndpoint: `https://login.microsoftonline.com/${TENANT_ID}/oauth2/v2.0/token`,
-};
-
-export async function connectOutlookCalendar(userId: string): Promise<CalendarEvent[]> {
-  // 1. OAuth flow
-  const redirectUri = AuthSession.makeRedirectUri({ scheme: 'futurespend' });
-
-  const request = new AuthSession.AuthRequest({
-    clientId: CLIENT_ID,
-    scopes: ['Calendars.Read', 'User.Read'],
-    redirectUri,
-  });
-
-  const result = await request.promptAsync(discovery);
-
-  if (result.type !== 'success') {
-    throw new Error('Outlook auth cancelled');
-  }
-
-  // 2. Exchange code for token
-  const tokenResult = await AuthSession.exchangeCodeAsync(
-    {
-      clientId: CLIENT_ID,
-      code: result.params.code,
-      redirectUri,
-      extraParams: { code_verifier: request.codeVerifier! },
-    },
-    discovery,
-  );
-
-  const accessToken = tokenResult.accessToken;
-
-  // 3. Fetch calendar events from Microsoft Graph
-  const now = new Date().toISOString();
-  const future = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString();
-
-  const response = await fetch(
-    `https://graph.microsoft.com/v1.0/me/calendarView?startDateTime=${now}&endDateTime=${future}&$top=500&$select=subject,start,end,location,bodyPreview,isAllDay,recurrence`,
-    {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    },
-  );
-
-  const data = await response.json();
-
-  // 4. Map to CalendarEvent
-  return data.value.map((event: any) => ({
-    id: `outlook-${event.id}`,
-    user_id: userId,
-    external_id: event.id,
-    title: event.subject,
-    description: event.bodyPreview ?? null,
-    start_time: event.start.dateTime,
-    end_time: event.end.dateTime,
-    location: event.location?.displayName ?? null,
-    is_all_day: event.isAllDay,
-    is_recurring: event.recurrence != null,
-    detected_category: detectCategory(event.subject),
-    source: 'outlook',
-    created_at: new Date().toISOString(),
-  }));
-}
-```
-
-**Azure AD setup required:**
-1. Register an app at https://portal.azure.com → App registrations
-2. Add redirect URI: `futurespend://auth`
-3. Add API permissions: `Calendars.Read`, `User.Read`
-4. Set `EXPO_PUBLIC_MICROSOFT_CLIENT_ID` in `.env`
-
-### Unified Calendar Store Update
-
-Update your store to handle all three providers:
-
-```typescript
-// In calendarStore.ts — add a unified connect method
-connectCalendar: async (userId: string, provider: CalendarProvider) => {
-  set({ isLoading: true });
-  try {
-    let events: CalendarEvent[];
-
-    switch (provider) {
-      case 'google':
-        events = await connectGoogleCalendar(userId);
-        break;
-      case 'apple':
-        events = await connectAppleCalendar(userId);
-        break;
-      case 'outlook':
-        events = await connectOutlookCalendar(userId);
-        break;
-    }
-
-    // Merge with existing events (dedup by external_id)
-    const existingMap = new Map(get().events.map(e => [e.external_id ?? e.id, e]));
-    for (const event of events) {
-      existingMap.set(event.external_id ?? event.id, event);
-    }
-    set({ events: Array.from(existingMap.values()) });
-
-    // Persist to Supabase
-    if (isSupabaseConfigured) {
-      const rows = events.map(({ id, ...rest }) => rest);
-      await supabase.from('calendar_events').upsert(rows, {
-        onConflict: 'user_id,external_id,calendar_connection_id',
-      });
-    }
-  } finally {
-    set({ isLoading: false });
-  }
-},
-```
-
 ---
 
-## 4. Camera Integration — Receipt Scanning
+## 3. Camera Integration — Receipt Scanning
 
 ### Overview
 
@@ -1804,7 +1495,7 @@ ALTER TABLE transactions ADD COLUMN source TEXT DEFAULT 'manual';
 
 ---
 
-## 5. Manual Calendar Entry with Price Prediction
+## 4. Manual Calendar Entry with Price Prediction
 
 ### The Feature
 
@@ -2005,7 +1696,7 @@ export function getPersonalizedPrediction(
 
 ---
 
-## 6. Architecture Summary
+## 5. Architecture Summary
 
 ### Data Flow Diagram
 
@@ -2013,22 +1704,15 @@ export function getPersonalizedPrediction(
 ┌─────────────────────────────────────────────────────────┐
 │                    DATA SOURCES                          │
 │                                                         │
-│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌────────┐ │
-│  │  Plaid    │  │  Google   │  │  Apple   │  │Outlook │ │
-│  │  (banks)  │  │ Calendar  │  │ Calendar │  │Calendar│ │
-│  └────┬─────┘  └────┬─────┘  └────┬─────┘  └───┬────┘ │
-│       │              │              │             │      │
-│  ┌────┴──────────────┴──────────────┴─────────────┴───┐ │
-│  │              Your Backend Server                    │ │
-│  │  (Supabase Edge Functions or Express)               │ │
-│  │  - Token exchange    - Webhook handlers             │ │
-│  │  - Encrypted storage - Transaction sync             │ │
-│  └────────────────────┬───────────────────────────────┘ │
-│                       │                                  │
-│  ┌────────────────────┴───────────────────────────────┐ │
+│  ┌──────────┐  ┌──────────┐  ┌──────────────────────┐  │
+│  │  Apple   │  │  Demo    │  │  Receipt Scanner     │  │
+│  │ Calendar │  │  Data    │  │  (camera + Gemini)   │  │
+│  └────┬─────┘  └────┬─────┘  └──────────┬───────────┘  │
+│       │              │                    │              │
+│  ┌────┴──────────────┴────────────────────┴───────────┐ │
 │  │              Supabase PostgreSQL                     │ │
-│  │  transactions | calendar_events | accounts          │ │
-│  │  plaid_connections | calendar_connections            │ │
+│  │  transactions | calendar_events | budgets           │ │
+│  │  predictions  | calendar_connections                │ │
 │  └────────────────────┬───────────────────────────────┘ │
 └───────────────────────┼─────────────────────────────────┘
                         │
@@ -2043,34 +1727,34 @@ export function getPersonalizedPrediction(
 │  ┌──────┴─────┐   ┌───────┴───────┐   ┌──────┴──────┐ │
 │  │  Receipt   │   │  Manual Entry  │   │    LLM      │ │
 │  │  Scanner   │   │  NL Parser     │   │  Predictions│ │
-│  │ (camera +  │   │ "lunch at x"   │   │ (Claude /   │ │
-│  │  LLM OCR)  │   │  → $25-$55     │   │  Gemini)    │ │
+│  │ (camera +  │   │ "lunch at x"   │   │  (Gemini)   │ │
+│  │  Gemini)   │   │  → $25-$55     │   │             │ │
 │  └────────────┘   └────────────────┘   └─────────────┘ │
 └─────────────────────────────────────────────────────────┘
+
+> For the full architecture including Plaid, Google Calendar, and Outlook,
+> see EXTERNAL-INTEGRATIONS.md
 ```
 
 ### API Keys / Credentials Needed
 
 | Service | Key | Where to Get | Required? |
 |---|---|---|---|
-| Plaid | `PLAID_CLIENT_ID`, `PLAID_SECRET` | plaid.com/dashboard | Yes for bank data |
-| Google Calendar | `GOOGLE_WEB_CLIENT_ID`, `GOOGLE_IOS_CLIENT_ID` | console.cloud.google.com | Yes for Google Cal |
-| Microsoft / Outlook | `MICROSOFT_CLIENT_ID` | portal.azure.com | Yes for Outlook |
-| Claude (Anthropic) | `CLAUDE_API_KEY` | console.anthropic.com | Yes for receipt scanning + predictions |
-| Gemini (Google AI) | `GEMINI_API_KEY` | aistudio.google.com | Alternative to Claude |
+| Gemini (Google AI) | `GEMINI_API_KEY` | aistudio.google.com | Yes for receipt scanning + predictions |
 | Supabase | `SUPABASE_URL`, `SUPABASE_ANON_KEY` | supabase.com dashboard | Yes for persistence |
+
+> Plaid, Google Calendar, and Microsoft Outlook credentials are documented in [EXTERNAL-INTEGRATIONS.md](./EXTERNAL-INTEGRATIONS.md).
 
 ### Build Requirements
 
 | Feature | Expo Go? | EAS Dev Build? | Production Build? |
 |---|---|---|---|
 | Demo mode (current) | Yes | Yes | Yes |
-| Google Calendar OAuth | No | Yes | Yes |
 | Apple Calendar | Partial (read) | Yes | Yes |
-| Outlook Calendar | Yes (via expo-auth-session) | Yes | Yes |
-| Plaid Link | No | Yes | Yes |
 | Camera (receipt scan) | Yes | Yes | Yes |
 | Push notifications | No | Yes | Yes |
+
+> Google Calendar, Outlook, and Plaid build requirements are in [EXTERNAL-INTEGRATIONS.md](./EXTERNAL-INTEGRATIONS.md).
 
 ### Migration Order
 
@@ -2080,8 +1764,5 @@ Recommended implementation sequence:
 2. **Camera + Receipt scanning** — Highest user delight, works in Expo Go, only needs an LLM API key.
 3. **Apple Calendar** — `expo-calendar` mostly works in Expo Go. Lowest friction calendar integration.
 4. **Manual event entry + price prediction** — Pure frontend + LLM, no native modules needed.
-5. **EAS dev build** — Transition from Expo Go. Unlocks native modules.
-6. **Google Calendar OAuth** — Requires EAS build + Google Cloud setup.
-7. **Outlook Calendar** — Requires Azure AD app registration.
-8. **Plaid integration** — Requires backend server + Plaid account + EAS build. Most complex.
-9. **Cross-institution tracking** — Builds on Plaid, mostly a UI/query layer on top.
+
+> For deferred integrations (Google Calendar, Outlook, Plaid), see [EXTERNAL-INTEGRATIONS.md](./EXTERNAL-INTEGRATIONS.md).
