@@ -3,6 +3,8 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Typography, Spacing } from '../../constants';
+import { NotificationBell } from './NotificationBell';
+import { useNotificationStore } from '../../stores/notificationStore';
 
 interface HeaderProps {
   title?: string;
@@ -10,18 +12,23 @@ interface HeaderProps {
 
 export function Header({ title }: HeaderProps) {
   const router = useRouter();
+  const notifications = useNotificationStore((s) => s.notifications);
+  const unreadCount = notifications.filter((n) => !n.is_read).length;
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>{title ?? 'FutureSpend'}</Text>
-      <TouchableOpacity
-        style={styles.avatarButton}
-        onPress={() => router.push('/settings')}
-      >
-        <View style={styles.avatar}>
-          <Ionicons name="person" size={18} color={Colors.textPrimary} />
-        </View>
-      </TouchableOpacity>
+      <View style={styles.rightSection}>
+        <NotificationBell count={unreadCount} onPress={() => router.push('/settings')} />
+        <TouchableOpacity
+          style={styles.avatarButton}
+          onPress={() => router.push('/settings')}
+        >
+          <View style={styles.avatar}>
+            <Ionicons name="person" size={18} color={Colors.textPrimary} />
+          </View>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
@@ -39,6 +46,11 @@ const styles = StyleSheet.create({
     fontSize: Typography.sizes['2xl'],
     fontWeight: Typography.weights.bold,
     color: Colors.textPrimary,
+  },
+  rightSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
   },
   avatarButton: {
     padding: Spacing.xs,
