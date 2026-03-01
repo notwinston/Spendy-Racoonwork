@@ -345,23 +345,63 @@ export async function getFriends(userId: string): Promise<FriendWithProfile[]> {
 /**
  * Get pending friend requests (where the current user needs to accept).
  */
-export async function getPendingRequests(userId: string): Promise<Friendship[]> {
+export async function getPendingRequests(userId: string): Promise<FriendWithProfile[]> {
   if (isDemoMode()) {
-    return demoFriendships.filter(
-      (f) =>
-        f.status === 'pending' &&
-        (f.user_id === userId || f.friend_id === userId),
-    );
+    return demoFriendships
+      .filter(
+        (f) =>
+          f.status === 'pending' &&
+          (f.user_id === userId || f.friend_id === userId) &&
+          f.requested_by !== userId,
+      )
+      .map((f) => {
+        const senderId = f.requested_by || (f.user_id === userId ? f.friend_id : f.user_id);
+        const profile = demoProfiles[senderId] ?? {
+          id: senderId,
+          display_name: 'Unknown',
+          avatar_url: null,
+          friend_code: '',
+          xp: 0,
+          level: 1,
+          streak_count: 0,
+          longest_streak: 0,
+          financial_health_score: null,
+          privacy_level: 'private' as const,
+          timezone: 'UTC',
+          created_at: now,
+          updated_at: now,
+        };
+        return { ...f, profile };
+      });
   }
 
   const { data, error } = await supabase
     .from('friendships')
-    .select('*')
+    .select('*, profiles!friendships_user_id_fkey(id, display_name, avatar_url, friend_code, xp, level, streak_count, longest_streak, financial_health_score, privacy_level, timezone, created_at, updated_at)')
     .eq('status', 'pending')
-    .or(`user_id.eq.${userId},friend_id.eq.${userId}`);
+    .or(`user_id.eq.${userId},friend_id.eq.${userId}`)
+    .neq('requested_by', userId);
 
   if (error) throw new Error(`getPendingRequests failed: ${error.message}`);
-  return (data ?? []) as Friendship[];
+
+  return (data ?? []).map((row: Record<string, unknown>) => {
+    const profile = (row.profiles as Profile) ?? {
+      id: 'unknown',
+      display_name: 'Unknown',
+      avatar_url: null,
+      friend_code: '',
+      xp: 0,
+      level: 1,
+      streak_count: 0,
+      longest_streak: 0,
+      financial_health_score: null,
+      privacy_level: 'private' as const,
+      timezone: 'UTC',
+      created_at: now,
+      updated_at: now,
+    };
+    return { ...(row as unknown as Friendship), profile };
+  });
 }
 
 /**

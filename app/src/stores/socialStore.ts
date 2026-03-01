@@ -42,7 +42,7 @@ import { getLeaderboard as svcGetLeaderboard } from '../services/gamificationSer
 interface SocialState {
   // Friends
   friends: FriendWithProfile[];
-  pendingRequests: Friendship[];
+  pendingRequests: FriendWithProfile[];
 
   // Circles
   circles: FriendCircle[];
