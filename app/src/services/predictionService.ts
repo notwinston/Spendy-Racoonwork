@@ -9,6 +9,12 @@ import type {
   LLMPredictionResponse,
   Budget,
   Transaction,
+  HiddenCost,
+  HiddenCostTier,
+  EventCostBreakdown,
+  DailyBrief,
+  LLMHiddenCostItem,
+  LLMHiddenCostResponse,
 } from '../types';
 
 // ---- Constants ----
