@@ -1,17 +1,26 @@
 import React from 'react';
-import { TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../constants';
+import { useChatStore } from '../stores/chatStore';
+import { ChatSheet } from './ChatSheet';
 
 export function FloatingChatButton() {
+  const { isOpen, setOpen } = useChatStore();
+
   return (
-    <TouchableOpacity
-      style={styles.button}
-      onPress={() => Alert.alert('AI Chat', 'Chat assistant coming soon!')}
-      activeOpacity={0.8}
-    >
-      <Ionicons name="chatbubble-ellipses" size={24} color={Colors.textPrimary} />
-    </TouchableOpacity>
+    <>
+      {!isOpen && (
+        <TouchableOpacity
+          style={styles.button}
+          onPress={() => setOpen(true)}
+          activeOpacity={0.8}
+        >
+          <Ionicons name="chatbubble-ellipses" size={24} color={Colors.textPrimary} />
+        </TouchableOpacity>
+      )}
+      <ChatSheet />
+    </>
   );
 }
 
