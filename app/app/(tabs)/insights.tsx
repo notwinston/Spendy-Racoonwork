@@ -547,8 +547,17 @@ export default function InsightsScreen() {
                     <Text style={styles.varianceCat} numberOfLines={1}>
                       {cat.charAt(0).toUpperCase() + cat.slice(1)}
                     </Text>
-                    <Text style={styles.varianceCv}>
-                      {(data.cv * 100).toFixed(0)}%
+                    <Text style={[
+                      styles.varianceCv,
+                      {
+                        color: data.rating === 'low'
+                          ? Colors.positive
+                          : data.rating === 'medium'
+                          ? Colors.warning
+                          : Colors.danger,
+                      },
+                    ]}>
+                      {data.rating === 'low' ? 'Stable' : data.rating === 'medium' ? 'Variable' : 'Volatile'}
                     </Text>
                   </View>
                 ))}
