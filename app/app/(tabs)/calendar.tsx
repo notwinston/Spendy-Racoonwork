@@ -5,7 +5,6 @@ import {
   ScrollView,
   StyleSheet,
   TouchableOpacity,
-  Modal,
   Dimensions,
   ActivityIndicator,
 } from 'react-native';
@@ -441,166 +440,6 @@ export default function CalendarScreen() {
     );
   };
 
-  // -- Day Detail Modal --
-  const renderDayDetailModal = () => {
-    if (!selectedDate) return null;
-    const today = new Date();
-
-    return (
-      <Modal
-        visible={showDayDetail}
-        animationType="slide"
-        transparent
-        onRequestClose={() => setShowDayDetail(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            {/* Modal Header */}
-            <View style={styles.modalHeader}>
-              <View style={styles.modalHandle} />
-              <View style={styles.modalTitleRow}>
-                <Text style={styles.modalTitle}>
-                  {MONTHS[selectedDate.getMonth()]} {selectedDate.getDate()},{' '}
-                  {selectedDate.getFullYear()}
-                </Text>
-                <TouchableOpacity onPress={() => setShowDayDetail(false)}>
-                  <Ionicons name="close-circle" size={28} color={Colors.textMuted} />
-                </TouchableOpacity>
-              </View>
-              {isSameDay(selectedDate, today) && (
-                <View style={styles.todayBadge}>
-                  <Text style={styles.todayBadgeText}>Today</Text>
-                </View>
-              )}
-            </View>
-
-            {/* Events List */}
-            <ScrollView style={styles.modalScroll}>
-              {selectedDayEvents.length === 0 ? (
-                <View style={styles.emptyState}>
-                  <Ionicons name="calendar-outline" size={48} color={Colors.textMuted} />
-                  <Text style={styles.emptyStateText}>No events for this day</Text>
-                </View>
-              ) : (
-                selectedDayEvents.map((event) => {
-                  const prediction = predictionMap.get(event.id);
-                  const isFutureEvent = new Date(event.start_time) > today;
-                  const iconName = CATEGORY_ICONS[event.category] ?? 'ellipsis-horizontal';
-
-                  return (
-                    <Card key={event.id} style={styles.eventCard}>
-                      <View style={styles.eventCardHeader}>
-                        <View style={styles.eventCategoryIcon}>
-                          <Ionicons
-                            name={iconName as keyof typeof Ionicons.glyphMap}
-                            size={18}
-                            color={Colors.accent}
-                          />
-                        </View>
-                        <View style={styles.eventCardInfo}>
-                          <Text style={styles.eventTitle}>{event.title}</Text>
-                          <Text style={styles.eventTime}>
-                            {formatTime(event.start_time)}
-                            {event.end_time ? ` - ${formatTime(event.end_time)}` : ''}
-                          </Text>
-                        </View>
-                      </View>
-
-                      {event.location && (
-                        <View style={styles.eventDetailRow}>
-                          <Ionicons name="location-outline" size={14} color={Colors.textMuted} />
-                          <Text style={styles.eventDetailText}>{event.location}</Text>
-                        </View>
-                      )}
-
-                      <View style={styles.eventDetailRow}>
-                        <Ionicons name="pricetag-outline" size={14} color={Colors.textMuted} />
-                        <Text style={styles.eventDetailText}>
-                          {event.category.charAt(0).toUpperCase() + event.category.slice(1)}
-                        </Text>
-                      </View>
-
-                      {/* Prediction Info */}
-                      {prediction && (
-                        <View style={styles.predictionSection}>
-                          <View style={styles.predictionHeader}>
-                            <Ionicons name="analytics-outline" size={14} color={Colors.accent} />
-                            <Text style={styles.predictionLabel}>
-                              {isFutureEvent ? 'Predicted Spend' : 'Estimated Spend'}
-                            </Text>
-                          </View>
-                          <View style={styles.predictionAmountRow}>
-                            <Text style={styles.predictionAmount}>
-                              ${prediction.predicted_amount.toFixed(2)}
-                            </Text>
-                            <Text style={styles.predictionRange}>
-                              (${prediction.prediction_low.toFixed(0)} - $
-                              {prediction.prediction_high.toFixed(0)})
-                            </Text>
-                          </View>
-                          <View style={styles.confidenceRow}>
-                            <Text style={styles.confidenceLabel}>Confidence:</Text>
-                            <View
-                              style={[
-                                styles.confidenceBadge,
-                                {
-                                  backgroundColor: getConfidenceColor(
-                                    prediction.confidence_label
-                                  ) + '22',
-                                },
-                              ]}
-                            >
-                              <View
-                                style={[
-                                  styles.confidenceDot,
-                                  {
-                                    backgroundColor: getConfidenceColor(
-                                      prediction.confidence_label
-                                    ),
-                                  },
-                                ]}
-                              />
-                              <Text
-                                style={[
-                                  styles.confidenceText,
-                                  {
-                                    color: getConfidenceColor(prediction.confidence_label),
-                                  },
-                                ]}
-                              >
-                                {prediction.confidence_label.charAt(0).toUpperCase() +
-                                  prediction.confidence_label.slice(1)}{' '}
-                                ({Math.round(prediction.confidence_score * 100)}%)
-                              </Text>
-                            </View>
-                          </View>
-                          {prediction.explanation && (
-                            <Text style={styles.predictionExplanation}>
-                              {prediction.explanation}
-                            </Text>
-                          )}
-                        </View>
-                      )}
-
-                      {/* Hidden Cost Breakdown */}
-                      {eventCostBreakdowns[event.id] && (
-                        <HiddenCostBreakdown
-                          eventCostBreakdown={eventCostBreakdowns[event.id]}
-                          defaultExpanded={false}
-                          onDismissCost={dismissHiddenCost}
-                        />
-                      )}
-                    </Card>
-                  );
-                })
-              )}
-            </ScrollView>
-          </View>
-        </View>
-      </Modal>
-    );
-  };
-
   if (calendarLoading) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
@@ -706,7 +545,14 @@ export default function CalendarScreen() {
         )}
       </ScrollView>
 
-      {renderDayDetailModal()}
+      <DayDetailSheet
+        date={selectedDate ? selectedDate.toISOString() : new Date().toISOString()}
+        events={selectedDayEvents}
+        spending={selectedDate ? (dailySpending.get(selectedDate.toISOString().split('T')[0]) ?? 0) : 0}
+        predictions={predictions}
+        visible={showDayDetail}
+        onClose={() => setShowDayDetail(false)}
+      />
       <FloatingChatButton />
     </SafeAreaView>
   );
@@ -807,6 +653,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderRadius: 8,
     position: 'relative',
+  },
+  dayCellFuture: {
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderColor: Colors.cardBorder,
   },
   dayCellToday: {
     borderWidth: 2,
