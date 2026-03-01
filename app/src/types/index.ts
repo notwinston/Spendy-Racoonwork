@@ -483,3 +483,15 @@ export interface LLMHiddenCostItem {
 export interface LLMHiddenCostResponse {
   hidden_costs: LLMHiddenCostItem[];
 }
+
+// -- Savings Goal --
+
+export interface SavingsGoal {
+  id: string;
+  name: string;
+  targetAmount: number;
+  currentSaved: number;
+  targetDate: string;
+  monthlyContribution: number;
+  isPaused: boolean;
+}

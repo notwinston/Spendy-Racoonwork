@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { supabase, isDemoMode } from '../lib/supabase';
-import type { Budget, EventCategory, Transaction, SpendingPrediction, RecurringTransaction } from '../types';
+import type { Budget, EventCategory, Transaction, SpendingPrediction, RecurringTransaction, SavingsGoal } from '../types';
 
 interface CategoryBudget extends Budget {
   spent: number;
@@ -15,6 +15,13 @@ interface BudgetState {
   totalPredicted: number;
   budgets: CategoryBudget[];
   isLoading: boolean;
+
+  // Goal state
+  goals: SavingsGoal[];
+  goalAdd: (goal: Omit<SavingsGoal, 'id'>) => void;
+  goalUpdate: (id: string, updates: Partial<SavingsGoal>) => void;
+  goalDelete: (id: string) => void;
+  goalReorder: (id: string, direction: 'up' | 'down') => void;
 
   fetchBudgets: (userId: string) => Promise<void>;
   createBudget: (userId: string, category: EventCategory, monthlyLimit: number) => Promise<void>;
@@ -60,6 +67,41 @@ export const useBudgetStore = create<BudgetState>((set, get) => ({
   totalPredicted: 0,
   budgets: [],
   isLoading: false,
+
+  // Goal state
+  goals: [],
+
+  goalAdd: (goal: Omit<SavingsGoal, 'id'>) => {
+    const newGoal: SavingsGoal = {
+      ...goal,
+      id: `goal-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    };
+    set((state) => ({ goals: [...state.goals, newGoal] }));
+  },
+
+  goalUpdate: (id: string, updates: Partial<SavingsGoal>) => {
+    set((state) => ({
+      goals: state.goals.map((g) => (g.id === id ? { ...g, ...updates } : g)),
+    }));
+  },
+
+  goalDelete: (id: string) => {
+    set((state) => ({
+      goals: state.goals.filter((g) => g.id !== id),
+    }));
+  },
+
+  goalReorder: (id: string, direction: 'up' | 'down') => {
+    set((state) => {
+      const goals = [...state.goals];
+      const idx = goals.findIndex((g) => g.id === id);
+      if (idx < 0) return state;
+      const swapIdx = direction === 'up' ? idx - 1 : idx + 1;
+      if (swapIdx < 0 || swapIdx >= goals.length) return state;
+      [goals[idx], goals[swapIdx]] = [goals[swapIdx], goals[idx]];
+      return { goals };
+    });
+  },
 
   fetchBudgets: async (userId: string) => {
     set({ isLoading: true });
