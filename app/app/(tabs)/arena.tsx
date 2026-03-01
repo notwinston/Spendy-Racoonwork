@@ -31,6 +31,10 @@ import { FloatingChatButton } from '../../src/components/FloatingChatButton';
 import { PodiumDisplay } from '../../src/components/PodiumDisplay';
 import { BadgeDetailModal, type BadgeInfo } from '../../src/components/BadgeDetailModal';
 import { RankCard } from '../../src/components/RankCard';
+import { FriendComparisonCard } from '../../src/components/FriendComparisonCard';
+import { ChallengeCard } from '../../src/components/ChallengeCard';
+import { FRIEND_CHALLENGE_TEMPLATES } from '../../src/services/socialService';
+import type { NudgeType } from '../../src/types';
 import { useAuthStore } from '../../src/stores/authStore';
 import {
   useGamificationStore,
@@ -50,6 +54,13 @@ const BADGE_TIER_COLORS: Record<string, string> = {
 
 type LeaderboardScope = 'global' | 'friends' | 'circle';
 
+const NUDGE_CONFIG: { type: NudgeType; icon: keyof typeof Ionicons.glyphMap; label: string; content: string }[] = [
+  { type: 'encouragement', icon: 'heart-outline', label: 'Encourage', content: 'Keep up the great work!' },
+  { type: 'reminder', icon: 'alarm-outline', label: 'Remind', content: "Don't forget to check your budget today!" },
+  { type: 'celebration', icon: 'trophy-outline', label: 'Celebrate', content: 'Congrats on your progress!' },
+  { type: 'challenge_invite', icon: 'flash-outline', label: 'Challenge', content: 'I challenge you!' },
+];
+
 export default function ArenaScreen() {
   const [activeTab, setActiveTab] = useState(0);
   const [friendCodeInput, setFriendCodeInput] = useState('');
@@ -59,6 +70,7 @@ export default function ArenaScreen() {
   const [showBadgeModal, setShowBadgeModal] = useState(false);
   const [joinedTemplateIds, setJoinedTemplateIds] = useState<Set<string>>(new Set());
   const [joinedMessage, setJoinedMessage] = useState<string | null>(null);
+  const [expandedFriendId, setExpandedFriendId] = useState<string | null>(null);
   const user = useAuthStore((s) => s.user);
   const userId = user?.id ?? 'demo-user';
 
@@ -98,13 +110,18 @@ export default function ArenaScreen() {
     friends,
     pendingRequests,
     circles,
+    nudges,
+    nudgeSentTimestamps,
     sendFriendRequest,
     acceptRequest,
     removeFriend,
+    sendNudge,
     fetchFriends,
     fetchPendingRequests,
+    fetchNudges,
     fetchCircles,
     fetchLeaderboard: fetchSocialLeaderboard,
+    createFriendChallenge,
   } = useSocialStore();
 
   useEffect(() => {
@@ -114,6 +131,7 @@ export default function ArenaScreen() {
     fetchLeaderboard();
     fetchFriends(userId);
     fetchPendingRequests(userId);
+    fetchNudges(userId);
     fetchCircles(userId);
   }, [userId]);
 
@@ -509,19 +527,119 @@ export default function ArenaScreen() {
 
             {/* Friends List */}
             <Text style={styles.sectionTitle}>Friends ({friends.length})</Text>
-            {friends.map((f) => (
-              <Card key={f.id} style={styles.friendRow}>
-                <View style={styles.friendAvatar}>
-                  <Ionicons name="person" size={18} color={Colors.accent} />
+            {friends.map((f) => {
+              const isExpanded = expandedFriendId === f.id;
+              const friendNudgeCount = nudges.filter((n) => n.sender_id === f.profile?.id).length;
+              return (
+                <View key={f.id}>
+                  <TouchableOpacity
+                    activeOpacity={0.7}
+                    onPress={() => setExpandedFriendId(isExpanded ? null : f.id)}
+                  >
+                    <Card style={styles.friendRow}>
+                      <View style={styles.friendAvatar}>
+                        <Ionicons name="person" size={18} color={Colors.accent} />
+                        {friendNudgeCount > 0 && (
+                          <View style={styles.nudgeBadge}>
+                            <Text style={styles.nudgeBadgeText}>{friendNudgeCount}</Text>
+                          </View>
+                        )}
+                      </View>
+                      <View style={styles.friendInfo}>
+                        <Text style={styles.friendName}>{f.profile?.display_name || 'Friend'}</Text>
+                        <Text style={styles.friendLevel}>
+                          Level {f.profile?.level || 1} | {f.profile?.xp || 0} XP
+                        </Text>
+                      </View>
+                      <Ionicons
+                        name={isExpanded ? 'chevron-up' : 'chevron-down'}
+                        size={20}
+                        color={Colors.textMuted}
+                      />
+                    </Card>
+                  </TouchableOpacity>
+
+                  {isExpanded && (
+                    <Animated.View entering={FadeIn.duration(200)}>
+                      {/* Comparison Card */}
+                      <FriendComparisonCard
+                        myStats={{
+                          healthScore: profile.healthScore,
+                          savingsRate,
+                          streakCount: profile.streakCount,
+                          level: profile.level,
+                          xp: profile.xp,
+                        }}
+                        friendProfile={f.profile}
+                      />
+
+                      {/* Nudge Buttons */}
+                      <Card style={styles.nudgeRow}>
+                        <Text style={styles.nudgeTitle}>Send a Nudge</Text>
+                        <View style={styles.nudgeButtons}>
+                          {NUDGE_CONFIG.map((nudge) => {
+                            const key = `${f.profile?.id}:${nudge.type}`;
+                            const lastSent = nudgeSentTimestamps[key] || 0;
+                            const recentlySent = Date.now() - lastSent < 10000;
+                            return (
+                              <Pressable
+                                key={nudge.type}
+                                style={[styles.nudgeButton, recentlySent && styles.nudgeButtonDisabled]}
+                                disabled={recentlySent}
+                                onPress={async () => {
+                                  try {
+                                    await sendNudge(userId, f.profile.id, nudge.type, nudge.content);
+                                    Alert.alert('Sent!', `Nudge sent to ${f.profile?.display_name || 'friend'}`);
+                                  } catch (err) {
+                                    Alert.alert('Error', err instanceof Error ? err.message : 'Failed to send nudge');
+                                  }
+                                }}
+                              >
+                                <Ionicons
+                                  name={nudge.icon}
+                                  size={22}
+                                  color={recentlySent ? Colors.textMuted : Colors.accent}
+                                />
+                                <Text style={[styles.nudgeLabel, recentlySent && styles.nudgeLabelDisabled]}>
+                                  {nudge.label}
+                                </Text>
+                              </Pressable>
+                            );
+                          })}
+                        </View>
+                      </Card>
+
+                      {/* Challenge Section */}
+                      <Card style={styles.challengeSection}>
+                        <Text style={styles.nudgeTitle}>Challenge</Text>
+                        {FRIEND_CHALLENGE_TEMPLATES.map((tmpl) => (
+                          <TouchableOpacity
+                            key={tmpl.id}
+                            style={styles.challengeTemplateRow}
+                            onPress={async () => {
+                              try {
+                                await createFriendChallenge(userId, f.profile.id, tmpl.id);
+                                Alert.alert('Challenge Created!', `"${tmpl.title}" started with ${f.profile?.display_name || 'friend'}`);
+                              } catch (err) {
+                                Alert.alert('Error', err instanceof Error ? err.message : 'Failed to create challenge');
+                              }
+                            }}
+                          >
+                            <View style={{ flex: 1 }}>
+                              <Text style={styles.challengeTemplateName}>{tmpl.title}</Text>
+                              <Text style={styles.challengeTemplateMeta}>
+                                {tmpl.duration} days | {tmpl.reward_xp} XP
+                              </Text>
+                            </View>
+                            <Ionicons name="add-circle-outline" size={24} color={Colors.accent} />
+                          </TouchableOpacity>
+                        ))}
+                      </Card>
+                    </Animated.View>
+                  )}
                 </View>
-                <View style={styles.friendInfo}>
-                  <Text style={styles.friendName}>{f.profile?.display_name || 'Friend'}</Text>
-                  <Text style={styles.friendLevel}>
-                    Level {f.profile?.level || 1} | {f.profile?.xp || 0} XP
-                  </Text>
-                </View>
-              </Card>
-            ))}
+              );
+            })}
             {friends.length === 0 && (
               <Card>
                 <Text style={styles.emptyText}>No friends yet. Add some using friend codes!</Text>
@@ -623,4 +741,17 @@ const styles = StyleSheet.create({
   socialToggleLabel: { fontSize: Typography.sizes.md, fontWeight: Typography.weights.medium, color: Colors.textPrimary },
   socialToggleDesc: { fontSize: Typography.sizes.sm, color: Colors.textMuted, marginTop: 2 },
   socialDivider: { height: 1, backgroundColor: Colors.borderSubtle, marginVertical: Spacing.md },
+  nudgeBadge: { position: 'absolute', top: -4, right: -4, backgroundColor: Colors.warning, borderRadius: 8, width: 16, height: 16, justifyContent: 'center', alignItems: 'center' },
+  nudgeBadgeText: { fontSize: 10, fontWeight: Typography.weights.bold, color: '#fff' },
+  nudgeRow: { marginTop: Spacing.sm },
+  nudgeTitle: { fontSize: Typography.sizes.md, fontWeight: Typography.weights.semibold, color: Colors.textPrimary, marginBottom: Spacing.sm },
+  nudgeButtons: { flexDirection: 'row', justifyContent: 'space-around' },
+  nudgeButton: { alignItems: 'center', gap: Spacing.xs, paddingVertical: Spacing.sm, paddingHorizontal: Spacing.md },
+  nudgeButtonDisabled: { opacity: 0.4 },
+  nudgeLabel: { fontSize: Typography.sizes.xs, color: Colors.textSecondary },
+  nudgeLabelDisabled: { color: Colors.textMuted },
+  challengeSection: { marginTop: Spacing.sm },
+  challengeTemplateRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: Spacing.sm, borderBottomWidth: 1, borderBottomColor: Colors.borderSubtle },
+  challengeTemplateName: { fontSize: Typography.sizes.md, fontWeight: Typography.weights.medium, color: Colors.textPrimary },
+  challengeTemplateMeta: { fontSize: Typography.sizes.xs, color: Colors.textMuted, marginTop: 2 },
 });
