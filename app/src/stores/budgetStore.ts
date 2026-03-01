@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { supabase, isDemoMode } from '../lib/supabase';
-import type { Budget, EventCategory, Transaction } from '../types';
+import type { Budget, EventCategory, Transaction, SpendingPrediction, RecurringTransaction } from '../types';
 
 interface CategoryBudget extends Budget {
   spent: number;
@@ -231,13 +231,28 @@ export function calculateHealthScore(
   budgetAdherence: number, // % of categories under budget
   streakDays: number,
   savingsRate: number, // fraction saved
+  cciScore?: number,             // 0-100, optional v2 param
+  hiddenCostAwareness?: number,  // 0-1, optional v2 param
 ): number {
-  // Weighted composite score 0-100 (legacy 4-component)
   const burnScore = Math.max(0, Math.min(100, (1 - Math.abs(1 - burnRate)) * 100));
   const adherenceScore = budgetAdherence;
   const streakScore = Math.min(100, streakDays * 5);
   const savingsScore = Math.min(100, savingsRate * 200);
 
+  // v2 formula when CCI and hiddenCostAwareness are available
+  if (cciScore !== undefined && hiddenCostAwareness !== undefined) {
+    const awarenessScore = hiddenCostAwareness * 100;
+    return Math.round(
+      burnScore * 0.25 +
+      adherenceScore * 0.20 +
+      cciScore * 0.20 +
+      savingsScore * 0.15 +
+      streakScore * 0.10 +
+      awarenessScore * 0.10
+    );
+  }
+
+  // Legacy 4-component formula
   return Math.round(
     burnScore * 0.35 +
     adherenceScore * 0.30 +
@@ -324,4 +339,162 @@ export function getHealthGrade(score: number): { grade: string; color: string } 
   if (score >= 60) return { grade: 'C', color: Colors.gradeC };
   if (score >= 50) return { grade: 'D', color: Colors.gradeD };
   return { grade: 'F', color: Colors.gradeF };
+}
+
+/**
+ * Calendar Correlation Index (CCI): measures how well predictions match actual spending.
+ * Matches predictions to transactions by category + date proximity (same day ± 1 day).
+ */
+export function calculateCCI(
+  predictions: SpendingPrediction[],
+  transactions: Transaction[],
+): { score: number; label: string; perCategory: Record<string, number> } {
+  if (predictions.length === 0 || transactions.length === 0) {
+    return { score: 0, label: 'No data', perCategory: {} };
+  }
+
+  const perCategory: Record<string, { totalWeight: number; count: number }> = {};
+  let totalWeight = 0;
+  let matched = 0;
+
+  for (const pred of predictions) {
+    const predDate = new Date(pred.created_at);
+
+    // Find transactions matching by category and date proximity (±1 day)
+    const matchingTxns = transactions.filter((t) => {
+      if (t.category !== pred.predicted_category) return false;
+      const txnDate = new Date(t.date);
+      const diffMs = Math.abs(txnDate.getTime() - predDate.getTime());
+      return diffMs <= 2 * 24 * 60 * 60 * 1000; // ±1 day tolerance
+    });
+
+    if (matchingTxns.length === 0) continue;
+
+    const actual = matchingTxns.reduce((s, t) => s + Math.abs(t.amount), 0);
+    const predicted = pred.predicted_amount;
+    const maxVal = Math.max(predicted, actual);
+    const weight = maxVal > 0 ? Math.max(0, 1 - Math.abs(predicted - actual) / maxVal) : 1;
+
+    totalWeight += weight;
+    matched++;
+
+    const cat = pred.predicted_category;
+    if (!perCategory[cat]) perCategory[cat] = { totalWeight: 0, count: 0 };
+    perCategory[cat].totalWeight += weight;
+    perCategory[cat].count++;
+  }
+
+  if (matched === 0) return { score: 0, label: 'No matches', perCategory: {} };
+
+  const hitRate = matched / predictions.length;
+  const avgWeight = totalWeight / matched;
+  const score = Math.round(hitRate * avgWeight * 100);
+
+  const perCatScores: Record<string, number> = {};
+  for (const [cat, data] of Object.entries(perCategory)) {
+    perCatScores[cat] = Math.round((data.totalWeight / data.count) * 100);
+  }
+
+  const label = score >= 70 ? 'Strong' : score >= 40 ? 'Moderate' : 'Weak';
+
+  return { score, label, perCategory: perCatScores };
+}
+
+/**
+ * Spending Velocity: daily spending rate vs budget pace.
+ */
+export function calculateSpendingVelocity(
+  transactions: Transaction[],
+): { daily: number; budgetPace: number; ratio: number } {
+  const now = new Date();
+  const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+  const recentTxns = transactions.filter((t) => new Date(t.date) >= sevenDaysAgo);
+  const totalRecent = recentTxns.reduce((s, t) => s + Math.abs(t.amount), 0);
+  const daily = totalRecent / 7;
+
+  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  // Use a default monthly budget estimate from recent spending pattern
+  const monthlyEstimate = daily * daysInMonth;
+  const budgetPace = monthlyEstimate / daysInMonth;
+
+  const ratio = budgetPace > 0 ? daily / budgetPace : 0;
+
+  return { daily, budgetPace, ratio: ratio || 1 };
+}
+
+/**
+ * Surprise Spend Ratio: (total - predicted - recurring) / total.
+ * Lower is better (0-1).
+ */
+export function calculateSurpriseSpendRatio(
+  transactions: Transaction[],
+  predictions: SpendingPrediction[],
+  recurringTransactions: RecurringTransaction[],
+): number {
+  if (transactions.length === 0) return 0;
+
+  const total = transactions.reduce((s, t) => s + Math.abs(t.amount), 0);
+  if (total === 0) return 0;
+
+  const predicted = predictions.reduce((s, p) => s + p.predicted_amount, 0);
+  const recurring = recurringTransactions
+    .filter((r) => r.is_active)
+    .reduce((s, r) => s + r.avg_amount, 0);
+
+  const surprise = Math.max(0, total - predicted - recurring);
+  return Math.min(1, surprise / total);
+}
+
+/**
+ * Event Cost Variance: per-category coefficient of variation.
+ */
+export function calculateEventCostVariance(
+  transactions: Transaction[],
+  predictions: SpendingPrediction[],
+): Record<string, { mean: number; stddev: number; cv: number; rating: 'low' | 'medium' | 'high' }> {
+  // Group transaction amounts by category
+  const byCategory: Record<string, number[]> = {};
+
+  for (const t of transactions) {
+    if (!byCategory[t.category]) byCategory[t.category] = [];
+    byCategory[t.category].push(Math.abs(t.amount));
+  }
+
+  // Also include prediction amounts
+  for (const p of predictions) {
+    const cat = p.predicted_category;
+    if (!byCategory[cat]) byCategory[cat] = [];
+    byCategory[cat].push(p.predicted_amount);
+  }
+
+  const result: Record<string, { mean: number; stddev: number; cv: number; rating: 'low' | 'medium' | 'high' }> = {};
+
+  for (const [cat, amounts] of Object.entries(byCategory)) {
+    if (amounts.length < 2) {
+      result[cat] = { mean: amounts[0] ?? 0, stddev: 0, cv: 0, rating: 'low' };
+      continue;
+    }
+
+    const mean = amounts.reduce((s, a) => s + a, 0) / amounts.length;
+    if (mean === 0) {
+      result[cat] = { mean: 0, stddev: 0, cv: 0, rating: 'low' };
+      continue;
+    }
+
+    const variance = amounts.reduce((s, a) => s + Math.pow(a - mean, 2), 0) / amounts.length;
+    const stddev = Math.sqrt(variance);
+    const cv = stddev / mean;
+
+    const rating: 'low' | 'medium' | 'high' = cv < 0.2 ? 'low' : cv <= 0.5 ? 'medium' : 'high';
+
+    result[cat] = {
+      mean: Math.round(mean * 100) / 100,
+      stddev: Math.round(stddev * 100) / 100,
+      cv: Math.round(cv * 100) / 100,
+      rating,
+    };
+  }
+
+  return result;
 }
