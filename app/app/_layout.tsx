@@ -1,16 +1,52 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useCallback } from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { ActivityIndicator, View, StyleSheet } from 'react-native';
+import { useFonts } from 'expo-font';
+import * as SplashScreen from 'expo-splash-screen';
+import { Syne_700Bold, Syne_800ExtraBold } from '@expo-google-fonts/syne';
+import {
+  DMMono_400Regular,
+  DMMono_500Medium,
+} from '@expo-google-fonts/dm-mono';
+import {
+  DMSans_400Regular,
+  DMSans_500Medium,
+  DMSans_600SemiBold,
+  DMSans_700Bold,
+} from '@expo-google-fonts/dm-sans';
 import { Colors } from '../src/constants';
 import { useAuthStore } from '../src/stores/authStore';
+
+SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   const { isLoading, initialize } = useAuthStore();
 
+  const [fontsLoaded, fontError] = useFonts({
+    Syne_700Bold,
+    Syne_800ExtraBold,
+    DMMono_400Regular,
+    DMMono_500Medium,
+    DMSans_400Regular,
+    DMSans_500Medium,
+    DMSans_600SemiBold,
+    DMSans_700Bold,
+  });
+
   useEffect(() => {
     initialize();
   }, []);
+
+  useEffect(() => {
+    if (fontsLoaded || fontError) {
+      SplashScreen.hideAsync();
+    }
+  }, [fontsLoaded, fontError]);
+
+  if (!fontsLoaded && !fontError) {
+    return null;
+  }
 
   if (isLoading) {
     return (
