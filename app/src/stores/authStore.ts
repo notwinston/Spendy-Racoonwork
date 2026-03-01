@@ -33,15 +33,6 @@ interface AuthState {
   initialize: () => Promise<void>;
 }
 
-function generateFriendCode(): string {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  let code = '';
-  for (let i = 0; i < 8; i++) {
-    code += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return code;
-}
-
 export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   session: null,
@@ -87,21 +78,26 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       }
 
       if (data.user) {
-        // Update profile with display_name and friend_code
-        const friendCode = generateFriendCode();
+        // Update profile with display_name
         await supabase
           .from('profiles')
           .update({
             display_name: displayName,
-            friend_code: friendCode,
           })
           .eq('id', data.user.id);
+
+        // Fetch the DB-generated friend_code
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('friend_code')
+          .eq('id', data.user.id)
+          .single();
 
         const userProfile: UserProfile = {
           id: data.user.id,
           email: data.user.email || email,
           displayName,
-          friendCode,
+          friendCode: profile?.friend_code,
           xp: 0,
           level: 1,
           streakCount: 0,
