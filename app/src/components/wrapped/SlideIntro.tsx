@@ -30,7 +30,7 @@ export default function SlideIntro({ data, isActive, accent }: Props) {
         </ScaleIn>
 
         <RollIn isActive={isActive} delay={250}>
-          <Text style={styles.headline}>
+          <Text style={styles.headline} adjustsFontSizeToFit numberOfLines={2}>
             {data.monthName}{'\n'}
             <Text style={{ color: accent }}>Flashback</Text>
           </Text>
