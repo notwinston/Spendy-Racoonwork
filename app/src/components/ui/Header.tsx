@@ -1,0 +1,56 @@
+import React from 'react';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import { Colors, Typography, Spacing } from '../../constants';
+
+interface HeaderProps {
+  title?: string;
+}
+
+export function Header({ title }: HeaderProps) {
+  const router = useRouter();
+
+  return (
+    <View style={styles.container}>
+      <Text style={styles.title}>{title ?? 'FutureSpend'}</Text>
+      <TouchableOpacity
+        style={styles.avatarButton}
+        onPress={() => router.push('/settings')}
+      >
+        <View style={styles.avatar}>
+          <Ionicons name="person" size={18} color={Colors.textPrimary} />
+        </View>
+      </TouchableOpacity>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.sm,
+    paddingBottom: Spacing.md,
+  },
+  title: {
+    fontSize: Typography.sizes['2xl'],
+    fontWeight: Typography.weights.bold,
+    color: Colors.textPrimary,
+  },
+  avatarButton: {
+    padding: Spacing.xs,
+  },
+  avatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: Colors.card,
+    borderWidth: 1,
+    borderColor: Colors.accent,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+});
