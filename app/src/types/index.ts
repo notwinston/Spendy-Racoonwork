@@ -326,6 +326,7 @@ export interface Friendship {
   user_id: string;
   friend_id: string;
   status: FriendshipStatus;
+  requested_by?: string;
   created_at: string;
   accepted_at: string | null;
 }

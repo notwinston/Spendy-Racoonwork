@@ -61,10 +61,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       // Check if we're in demo mode (no Supabase URL configured)
       if (isDemoMode()) {
         const demoUser: UserProfile = {
-          id: 'demo-' + Date.now(),
+          id: 'demo-user',
           email,
           displayName,
-          friendCode: generateFriendCode(),
+          friendCode: 'DEMO1234',
           xp: 0,
           level: 1,
           streakCount: 0,
@@ -131,10 +131,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       // Demo mode
       if (isDemoMode()) {
         const demoUser: UserProfile = {
-          id: 'demo-' + Date.now(),
+          id: 'demo-user',
           email,
           displayName: email.split('@')[0],
-          friendCode: generateFriendCode(),
+          friendCode: 'DEMO1234',
           xp: 150,
           level: 2,
           streakCount: 3,

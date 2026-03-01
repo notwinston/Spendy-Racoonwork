@@ -112,6 +112,7 @@ let demoFriendships: Friendship[] = [
     user_id: 'demo-pending',
     friend_id: 'demo-user',
     status: 'pending',
+    requested_by: 'demo-pending',
     created_at: now,
     accepted_at: null,
   },
@@ -211,6 +212,7 @@ export async function sendFriendRequest(
       user_id: uid,
       friend_id: fid,
       status: 'pending',
+      requested_by: userId,
       created_at: new Date().toISOString(),
       accepted_at: null,
     };
@@ -236,6 +238,7 @@ export async function sendFriendRequest(
       user_id: uid,
       friend_id: fid,
       status: 'pending',
+      requested_by: userId,
     })
     .select()
     .single();
