@@ -1,0 +1,1430 @@
+[
+  {
+    "amount": 12,
+    "merchant_name": "Amazon Web Services",
+    "category": "professional",
+    "date": "2025-12-01",
+    "is_recurring": true
+  },
+  {
+    "amount": 49.99,
+    "merchant_name": "Equinox",
+    "category": "fitness",
+    "date": "2025-12-01",
+    "is_recurring": true
+  },
+  {
+    "amount": 17.78,
+    "merchant_name": "Uber",
+    "category": "transport",
+    "date": "2025-12-01",
+    "is_recurring": false
+  },
+  {
+    "amount": 18.2,
+    "merchant_name": "Shoppers Drug Mart",
+    "category": "personal",
+    "date": "2025-12-01",
+    "is_recurring": false
+  },
+  {
+    "amount": 26.15,
+    "merchant_name": "Tacofino",
+    "category": "dining",
+    "date": "2025-12-02",
+    "is_recurring": true
+  },
+  {
+    "amount": 14.85,
+    "merchant_name": "Evo Car Share",
+    "category": "transport",
+    "date": "2025-12-02",
+    "is_recurring": false
+  },
+  {
+    "amount": 15.49,
+    "merchant_name": "Netflix",
+    "category": "entertainment",
+    "date": "2025-12-03",
+    "is_recurring": true
+  },
+  {
+    "amount": 19.38,
+    "merchant_name": "Tacofino",
+    "category": "dining",
+    "date": "2025-12-04",
+    "is_recurring": true
+  },
+  {
+    "amount": 25.51,
+    "merchant_name": "Dry Cleaner — Gastown",
+    "category": "personal",
+    "date": "2025-12-04",
+    "is_recurring": false
+  },
+  {
+    "amount": 10.99,
+    "merchant_name": "Spotify",
+    "category": "entertainment",
+    "date": "2025-12-05",
+    "is_recurring": true
+  },
+  {
+    "amount": 19.02,
+    "merchant_name": "Compass Card — TransLink",
+    "category": "transport",
+    "date": "2025-12-05",
+    "is_recurring": false
+  },
+  {
+    "amount": 6.79,
+    "merchant_name": "Pallet Coffee",
+    "category": "dining",
+    "date": "2025-12-06",
+    "is_recurring": false
+  },
+  {
+    "amount": 104.95,
+    "merchant_name": "Bao Bei",
+    "category": "dining",
+    "date": "2025-12-06",
+    "is_recurring": false
+  },
+  {
+    "amount": 13.99,
+    "merchant_name": "YouTube",
+    "category": "entertainment",
+    "date": "2025-12-07",
+    "is_recurring": true
+  },
+  {
+    "amount": 63.47,
+    "merchant_name": "Save-On-Foods — Davie St",
+    "category": "groceries",
+    "date": "2025-12-07",
+    "is_recurring": false
+  },
+  {
+    "amount": 54.99,
+    "merchant_name": "Adobe",
+    "category": "professional",
+    "date": "2025-12-08",
+    "is_recurring": true
+  },
+  {
+    "amount": 16.89,
+    "merchant_name": "Uber",
+    "category": "transport",
+    "date": "2025-12-08",
+    "is_recurring": false
+  },
+  {
+    "amount": 24.76,
+    "merchant_name": "Tacofino",
+    "category": "dining",
+    "date": "2025-12-09",
+    "is_recurring": true
+  },
+  {
+    "amount": 17.89,
+    "merchant_name": "Evo Car Share",
+    "category": "transport",
+    "date": "2025-12-09",
+    "is_recurring": false
+  },
+  {
+    "amount": 4,
+    "merchant_name": "GitHub",
+    "category": "professional",
+    "date": "2025-12-10",
+    "is_recurring": true
+  },
+  {
+    "amount": 13.39,
+    "merchant_name": "Compass Card — TransLink",
+    "category": "transport",
+    "date": "2025-12-10",
+    "is_recurring": false
+  },
+  {
+    "amount": 5.23,
+    "merchant_name": "Revolver Coffee",
+    "category": "dining",
+    "date": "2025-12-11",
+    "is_recurring": false
+  },
+  {
+    "amount": 18.89,
+    "merchant_name": "Tacofino",
+    "category": "dining",
+    "date": "2025-12-11",
+    "is_recurring": true
+  },
+  {
+    "amount": 12.53,
+    "merchant_name": "Uber",
+    "category": "transport",
+    "date": "2025-12-11",
+    "is_recurring": false
+  },
+  {
+    "amount": 49.84,
+    "merchant_name": "BC Hydro",
+    "category": "bills",
+    "date": "2025-12-11",
+    "is_recurring": false
+  },
+  {
+    "amount": 15.86,
+    "merchant_name": "Stormcrow Tavern",
+    "category": "entertainment",
+    "date": "2025-12-12",
+    "is_recurring": true
+  },
+  {
+    "amount": 8,
+    "merchant_name": "Notion",
+    "category": "professional",
+    "date": "2025-12-12",
+    "is_recurring": true
+  },
+  {
+    "amount": 27.04,
+    "merchant_name": "Indigo Books",
+    "category": "shopping",
+    "date": "2025-12-12",
+    "is_recurring": false
+  },
+  {
+    "amount": 66.45,
+    "merchant_name": "Whole Foods — Cambie",
+    "category": "groceries",
+    "date": "2025-12-13",
+    "is_recurring": false
+  },
+  {
+    "amount": 20,
+    "merchant_name": "OpenAI",
+    "category": "professional",
+    "date": "2025-12-14",
+    "is_recurring": true
+  },
+  {
+    "amount": 83.7,
+    "merchant_name": "Whole Foods — Cambie",
+    "category": "groceries",
+    "date": "2025-12-14",
+    "is_recurring": false
+  },
+  {
+    "amount": 12.03,
+    "merchant_name": "Compass Card — TransLink",
+    "category": "transport",
+    "date": "2025-12-14",
+    "is_recurring": false
+  },
+  {
+    "amount": 7.99,
+    "merchant_name": "Disney+",
+    "category": "entertainment",
+    "date": "2025-12-15",
+    "is_recurring": true
+  },
+  {
+    "amount": 24.28,
+    "merchant_name": "Tacofino",
+    "category": "dining",
+    "date": "2025-12-16",
+    "is_recurring": true
+  },
+  {
+    "amount": 34.89,
+    "merchant_name": "The Cambie",
+    "category": "dining",
+    "date": "2025-12-17",
+    "is_recurring": false
+  },
+  {
+    "amount": 7.32,
+    "merchant_name": "7-Eleven",
+    "category": "dining",
+    "date": "2025-12-17",
+    "is_recurring": false
+  },
+  {
+    "amount": 6.11,
+    "merchant_name": "Timbertrain Coffee",
+    "category": "dining",
+    "date": "2025-12-18",
+    "is_recurring": false
+  },
+  {
+    "amount": 12.8,
+    "merchant_name": "Evo Car Share",
+    "category": "transport",
+    "date": "2025-12-18",
+    "is_recurring": false
+  },
+  {
+    "amount": 7.1,
+    "merchant_name": "Starbucks — Downtown",
+    "category": "dining",
+    "date": "2025-12-18",
+    "is_recurring": false
+  },
+  {
+    "amount": 7.65,
+    "merchant_name": "Tim Hortons — Downtown",
+    "category": "dining",
+    "date": "2025-12-18",
+    "is_recurring": false
+  },
+  {
+    "amount": 16.34,
+    "merchant_name": "Evo Car Share",
+    "category": "transport",
+    "date": "2025-12-19",
+    "is_recurring": false
+  },
+  {
+    "amount": 29.99,
+    "merchant_name": "LinkedIn",
+    "category": "professional",
+    "date": "2025-12-20",
+    "is_recurring": true
+  },
+  {
+    "amount": 80.47,
+    "merchant_name": "Urban Fare — Coal Harbour",
+    "category": "groceries",
+    "date": "2025-12-21",
+    "is_recurring": false
+  },
+  {
+    "amount": 16.57,
+    "merchant_name": "Uber",
+    "category": "transport",
+    "date": "2025-12-21",
+    "is_recurring": false
+  },
+  {
+    "amount": 2.99,
+    "merchant_name": "Apple",
+    "category": "bills",
+    "date": "2025-12-22",
+    "is_recurring": true
+  },
+  {
+    "amount": 11.12,
+    "merchant_name": "Uber",
+    "category": "transport",
+    "date": "2025-12-22",
+    "is_recurring": false
+  },
+  {
+    "amount": 25.78,
+    "merchant_name": "Shoppers Drug Mart",
+    "category": "personal",
+    "date": "2025-12-22",
+    "is_recurring": false
+  },
+  {
+    "amount": 15.64,
+    "merchant_name": "Freshii — Gastown",
+    "category": "dining",
+    "date": "2025-12-22",
+    "is_recurring": false
+  },
+  {
+    "amount": 21.99,
+    "merchant_name": "Tacofino",
+    "category": "dining",
+    "date": "2025-12-23",
+    "is_recurring": true
+  },
+  {
+    "amount": 6.74,
+    "merchant_name": "Pallet Coffee",
+    "category": "dining",
+    "date": "2025-12-23",
+    "is_recurring": false
+  },
+  {
+    "amount": 11.19,
+    "merchant_name": "Uber",
+    "category": "transport",
+    "date": "2025-12-23",
+    "is_recurring": false
+  },
+  {
+    "amount": 28.33,
+    "merchant_name": "London Drugs",
+    "category": "personal",
+    "date": "2025-12-23",
+    "is_recurring": false
+  },
+  {
+    "amount": 6.93,
+    "merchant_name": "7-Eleven",
+    "category": "dining",
+    "date": "2025-12-23",
+    "is_recurring": false
+  },
+  {
+    "amount": 42.83,
+    "merchant_name": "Safeway — Groceries",
+    "category": "groceries",
+    "date": "2025-12-24",
+    "is_recurring": false
+  },
+  {
+    "amount": 19.29,
+    "merchant_name": "Compass Card — TransLink",
+    "category": "transport",
+    "date": "2025-12-24",
+    "is_recurring": false
+  },
+  {
+    "amount": 24.88,
+    "merchant_name": "Apple Store",
+    "category": "shopping",
+    "date": "2025-12-24",
+    "is_recurring": false
+  },
+  {
+    "amount": 24.37,
+    "merchant_name": "Tacofino",
+    "category": "dining",
+    "date": "2025-12-25",
+    "is_recurring": true
+  },
+  {
+    "amount": 29.42,
+    "merchant_name": "The Cambie",
+    "category": "dining",
+    "date": "2025-12-25",
+    "is_recurring": false
+  },
+  {
+    "amount": 15.24,
+    "merchant_name": "Compass Card — TransLink",
+    "category": "transport",
+    "date": "2025-12-25",
+    "is_recurring": false
+  },
+  {
+    "amount": 61.54,
+    "merchant_name": "Whole Foods — Cambie",
+    "category": "groceries",
+    "date": "2025-12-27",
+    "is_recurring": false
+  },
+  {
+    "amount": 13.37,
+    "merchant_name": "Chipotle — Robson",
+    "category": "dining",
+    "date": "2025-12-27",
+    "is_recurring": false
+  },
+  {
+    "amount": 61.77,
+    "merchant_name": "IGA — Robson St",
+    "category": "groceries",
+    "date": "2025-12-28",
+    "is_recurring": false
+  },
+  {
+    "amount": 18.72,
+    "merchant_name": "Tacofino",
+    "category": "dining",
+    "date": "2025-12-30",
+    "is_recurring": true
+  },
+  {
+    "amount": 75.79,
+    "merchant_name": "Telus Mobility",
+    "category": "bills",
+    "date": "2025-12-30",
+    "is_recurring": false
+  },
+  {
+    "amount": 89.74,
+    "merchant_name": "Fairmont Hotel Vancouver",
+    "category": "entertainment",
+    "date": "2025-12-31",
+    "is_recurring": false
+  },
+  {
+    "amount": 7.68,
+    "merchant_name": "7-Eleven",
+    "category": "dining",
+    "date": "2025-12-31",
+    "is_recurring": false
+  },
+  {
+    "amount": 5.63,
+    "merchant_name": "JJ Bean Coffee — Gastown",
+    "category": "dining",
+    "date": "2025-12-31",
+    "is_recurring": false
+  },
+  {
+    "amount": 20.3,
+    "merchant_name": "Tacofino",
+    "category": "dining",
+    "date": "2026-01-01",
+    "is_recurring": true
+  },
+  {
+    "amount": 12,
+    "merchant_name": "Amazon Web Services",
+    "category": "professional",
+    "date": "2026-01-01",
+    "is_recurring": true
+  },
+  {
+    "amount": 49.99,
+    "merchant_name": "Equinox",
+    "category": "fitness",
+    "date": "2026-01-01",
+    "is_recurring": true
+  },
+  {
+    "amount": 14.25,
+    "merchant_name": "Uber",
+    "category": "transport",
+    "date": "2026-01-01",
+    "is_recurring": false
+  },
+  {
+    "amount": 21.31,
+    "merchant_name": "Indigo Books",
+    "category": "shopping",
+    "date": "2026-01-01",
+    "is_recurring": false
+  },
+  {
+    "amount": 14.32,
+    "merchant_name": "Uber",
+    "category": "transport",
+    "date": "2026-01-02",
+    "is_recurring": false
+  },
+  {
+    "amount": 12.59,
+    "merchant_name": "Freshii — Gastown",
+    "category": "dining",
+    "date": "2026-01-02",
+    "is_recurring": false
+  },
+  {
+    "amount": 15.49,
+    "merchant_name": "Netflix",
+    "category": "entertainment",
+    "date": "2026-01-03",
+    "is_recurring": true
+  },
+  {
+    "amount": 100.07,
+    "merchant_name": "Whole Foods — Cambie",
+    "category": "groceries",
+    "date": "2026-01-03",
+    "is_recurring": false
+  },
+  {
+    "amount": 12.25,
+    "merchant_name": "Evo Car Share",
+    "category": "transport",
+    "date": "2026-01-03",
+    "is_recurring": false
+  },
+  {
+    "amount": 5.77,
+    "merchant_name": "Revolver Coffee",
+    "category": "dining",
+    "date": "2026-01-05",
+    "is_recurring": false
+  },
+  {
+    "amount": 10.99,
+    "merchant_name": "Spotify",
+    "category": "entertainment",
+    "date": "2026-01-05",
+    "is_recurring": true
+  },
+  {
+    "amount": 63.15,
+    "merchant_name": "IGA — Robson St",
+    "category": "groceries",
+    "date": "2026-01-05",
+    "is_recurring": false
+  },
+  {
+    "amount": 17.04,
+    "merchant_name": "Evo Car Share",
+    "category": "transport",
+    "date": "2026-01-05",
+    "is_recurring": false
+  },
+  {
+    "amount": 21.05,
+    "merchant_name": "Tacofino",
+    "category": "dining",
+    "date": "2026-01-06",
+    "is_recurring": true
+  },
+  {
+    "amount": 31.5,
+    "merchant_name": "Apple Store",
+    "category": "shopping",
+    "date": "2026-01-06",
+    "is_recurring": false
+  },
+  {
+    "amount": 12.59,
+    "merchant_name": "Sushi Garden — Downtown",
+    "category": "dining",
+    "date": "2026-01-06",
+    "is_recurring": false
+  },
+  {
+    "amount": 13.99,
+    "merchant_name": "YouTube",
+    "category": "entertainment",
+    "date": "2026-01-07",
+    "is_recurring": true
+  },
+  {
+    "amount": 18.66,
+    "merchant_name": "Evo Car Share",
+    "category": "transport",
+    "date": "2026-01-07",
+    "is_recurring": false
+  },
+  {
+    "amount": 19.07,
+    "merchant_name": "Tacofino",
+    "category": "dining",
+    "date": "2026-01-08",
+    "is_recurring": true
+  },
+  {
+    "amount": 54.99,
+    "merchant_name": "Adobe",
+    "category": "professional",
+    "date": "2026-01-08",
+    "is_recurring": true
+  },
+  {
+    "amount": 23.64,
+    "merchant_name": "Indigo Books",
+    "category": "shopping",
+    "date": "2026-01-08",
+    "is_recurring": false
+  },
+  {
+    "amount": 16.56,
+    "merchant_name": "Stormcrow Tavern",
+    "category": "entertainment",
+    "date": "2026-01-09",
+    "is_recurring": true
+  },
+  {
+    "amount": 11.25,
+    "merchant_name": "Compass Card — TransLink",
+    "category": "transport",
+    "date": "2026-01-09",
+    "is_recurring": false
+  },
+  {
+    "amount": 27.04,
+    "merchant_name": "Dry Cleaner — Gastown",
+    "category": "personal",
+    "date": "2026-01-09",
+    "is_recurring": false
+  },
+  {
+    "amount": 87.98,
+    "merchant_name": "AnnaLena",
+    "category": "dining",
+    "date": "2026-01-10",
+    "is_recurring": false
+  },
+  {
+    "amount": 4,
+    "merchant_name": "GitHub",
+    "category": "professional",
+    "date": "2026-01-10",
+    "is_recurring": true
+  },
+  {
+    "amount": 23.35,
+    "merchant_name": "Dry Cleaner — Gastown",
+    "category": "personal",
+    "date": "2026-01-10",
+    "is_recurring": false
+  },
+  {
+    "amount": 86.47,
+    "merchant_name": "Urban Fare — Coal Harbour",
+    "category": "groceries",
+    "date": "2026-01-11",
+    "is_recurring": false
+  },
+  {
+    "amount": 25.92,
+    "merchant_name": "Shoppers Drug Mart",
+    "category": "personal",
+    "date": "2026-01-11",
+    "is_recurring": false
+  },
+  {
+    "amount": 8,
+    "merchant_name": "Notion",
+    "category": "professional",
+    "date": "2026-01-12",
+    "is_recurring": true
+  },
+  {
+    "amount": 11,
+    "merchant_name": "Uber",
+    "category": "transport",
+    "date": "2026-01-12",
+    "is_recurring": false
+  },
+  {
+    "amount": 19.11,
+    "merchant_name": "Tacofino",
+    "category": "dining",
+    "date": "2026-01-13",
+    "is_recurring": true
+  },
+  {
+    "amount": 68.12,
+    "merchant_name": "Urban Fare — Coal Harbour",
+    "category": "groceries",
+    "date": "2026-01-13",
+    "is_recurring": false
+  },
+  {
+    "amount": 14.19,
+    "merchant_name": "Evo Car Share",
+    "category": "transport",
+    "date": "2026-01-13",
+    "is_recurring": false
+  },
+  {
+    "amount": 54.53,
+    "merchant_name": "Best Buy",
+    "category": "shopping",
+    "date": "2026-01-13",
+    "is_recurring": false
+  },
+  {
+    "amount": 20,
+    "merchant_name": "OpenAI",
+    "category": "professional",
+    "date": "2026-01-14",
+    "is_recurring": true
+  },
+  {
+    "amount": 26.33,
+    "merchant_name": "Tacofino",
+    "category": "dining",
+    "date": "2026-01-15",
+    "is_recurring": true
+  },
+  {
+    "amount": 7.99,
+    "merchant_name": "Disney+",
+    "category": "entertainment",
+    "date": "2026-01-15",
+    "is_recurring": true
+  },
+  {
+    "amount": 53.77,
+    "merchant_name": "BC Hydro",
+    "category": "bills",
+    "date": "2026-01-15",
+    "is_recurring": false
+  },
+  {
+    "amount": 17.3,
+    "merchant_name": "Sushi Garden — Downtown",
+    "category": "dining",
+    "date": "2026-01-15",
+    "is_recurring": false
+  },
+  {
+    "amount": 45.49,
+    "merchant_name": "Noble Barbershop",
+    "category": "personal",
+    "date": "2026-01-17",
+    "is_recurring": false
+  },
+  {
+    "amount": 112.7,
+    "merchant_name": "Miku Restaurant",
+    "category": "dining",
+    "date": "2026-01-17",
+    "is_recurring": false
+  },
+  {
+    "amount": 67.17,
+    "merchant_name": "Whole Foods — Cambie",
+    "category": "groceries",
+    "date": "2026-01-17",
+    "is_recurring": false
+  },
+  {
+    "amount": 91.63,
+    "merchant_name": "Telus Mobility",
+    "category": "bills",
+    "date": "2026-01-17",
+    "is_recurring": false
+  },
+  {
+    "amount": 73.88,
+    "merchant_name": "Urban Fare — Coal Harbour",
+    "category": "groceries",
+    "date": "2026-01-18",
+    "is_recurring": false
+  },
+  {
+    "amount": 20.86,
+    "merchant_name": "Indigo Books",
+    "category": "shopping",
+    "date": "2026-01-18",
+    "is_recurring": false
+  },
+  {
+    "amount": 8.4,
+    "merchant_name": "Tim Hortons — Downtown",
+    "category": "dining",
+    "date": "2026-01-18",
+    "is_recurring": false
+  },
+  {
+    "amount": 7.11,
+    "merchant_name": "Timbertrain Coffee",
+    "category": "dining",
+    "date": "2026-01-19",
+    "is_recurring": false
+  },
+  {
+    "amount": 10.99,
+    "merchant_name": "Evo Car Share",
+    "category": "transport",
+    "date": "2026-01-19",
+    "is_recurring": false
+  },
+  {
+    "amount": 21.19,
+    "merchant_name": "Tacofino",
+    "category": "dining",
+    "date": "2026-01-20",
+    "is_recurring": true
+  },
+  {
+    "amount": 29.99,
+    "merchant_name": "LinkedIn",
+    "category": "professional",
+    "date": "2026-01-20",
+    "is_recurring": true
+  },
+  {
+    "amount": 15.24,
+    "merchant_name": "Evo Car Share",
+    "category": "transport",
+    "date": "2026-01-20",
+    "is_recurring": false
+  },
+  {
+    "amount": 43.04,
+    "merchant_name": "Steamworks Brew Pub",
+    "category": "dining",
+    "date": "2026-01-21",
+    "is_recurring": false
+  },
+  {
+    "amount": 6.33,
+    "merchant_name": "Starbucks — Downtown",
+    "category": "dining",
+    "date": "2026-01-21",
+    "is_recurring": false
+  },
+  {
+    "amount": 16.81,
+    "merchant_name": "Chipotle — Robson",
+    "category": "dining",
+    "date": "2026-01-21",
+    "is_recurring": false
+  },
+  {
+    "amount": 22.95,
+    "merchant_name": "Tacofino",
+    "category": "dining",
+    "date": "2026-01-22",
+    "is_recurring": true
+  },
+  {
+    "amount": 40.76,
+    "merchant_name": "Revel Room",
+    "category": "dining",
+    "date": "2026-01-22",
+    "is_recurring": false
+  },
+  {
+    "amount": 2.99,
+    "merchant_name": "Apple",
+    "category": "bills",
+    "date": "2026-01-22",
+    "is_recurring": true
+  },
+  {
+    "amount": 11.42,
+    "merchant_name": "Compass Card — TransLink",
+    "category": "transport",
+    "date": "2026-01-22",
+    "is_recurring": false
+  },
+  {
+    "amount": 5.55,
+    "merchant_name": "JJ Bean Coffee — Gastown",
+    "category": "dining",
+    "date": "2026-01-22",
+    "is_recurring": false
+  },
+  {
+    "amount": 68.55,
+    "merchant_name": "Save-On-Foods — Davie St",
+    "category": "groceries",
+    "date": "2026-01-24",
+    "is_recurring": false
+  },
+  {
+    "amount": 56.74,
+    "merchant_name": "Live Nation",
+    "category": "entertainment",
+    "date": "2026-01-25",
+    "is_recurring": false
+  },
+  {
+    "amount": 75.42,
+    "merchant_name": "IGA — Robson St",
+    "category": "groceries",
+    "date": "2026-01-25",
+    "is_recurring": false
+  },
+  {
+    "amount": 26.9,
+    "merchant_name": "Burrard Dental Centre",
+    "category": "health",
+    "date": "2026-01-26",
+    "is_recurring": false
+  },
+  {
+    "amount": 5.22,
+    "merchant_name": "7-Eleven",
+    "category": "dining",
+    "date": "2026-01-26",
+    "is_recurring": false
+  },
+  {
+    "amount": 22.39,
+    "merchant_name": "Tacofino",
+    "category": "dining",
+    "date": "2026-01-27",
+    "is_recurring": true
+  },
+  {
+    "amount": 5.22,
+    "merchant_name": "Revolver Coffee",
+    "category": "dining",
+    "date": "2026-01-27",
+    "is_recurring": false
+  },
+  {
+    "amount": 65.19,
+    "merchant_name": "Whole Foods — Cambie",
+    "category": "groceries",
+    "date": "2026-01-27",
+    "is_recurring": false
+  },
+  {
+    "amount": 147.42,
+    "merchant_name": "AirBnB",
+    "category": "travel",
+    "date": "2026-01-28",
+    "is_recurring": false
+  },
+  {
+    "amount": 12.32,
+    "merchant_name": "Compass Card — TransLink",
+    "category": "transport",
+    "date": "2026-01-28",
+    "is_recurring": false
+  },
+  {
+    "amount": 27.04,
+    "merchant_name": "London Drugs",
+    "category": "personal",
+    "date": "2026-01-28",
+    "is_recurring": false
+  },
+  {
+    "amount": 28.52,
+    "merchant_name": "Indigo Books",
+    "category": "shopping",
+    "date": "2026-01-28",
+    "is_recurring": false
+  },
+  {
+    "amount": 21.23,
+    "merchant_name": "Tacofino",
+    "category": "dining",
+    "date": "2026-01-29",
+    "is_recurring": true
+  },
+  {
+    "amount": 18.9,
+    "merchant_name": "Indigo Books",
+    "category": "shopping",
+    "date": "2026-01-29",
+    "is_recurring": false
+  },
+  {
+    "amount": 42.88,
+    "merchant_name": "Revel Room",
+    "category": "dining",
+    "date": "2026-01-30",
+    "is_recurring": false
+  },
+  {
+    "amount": 26.25,
+    "merchant_name": "Shoppers Drug Mart",
+    "category": "personal",
+    "date": "2026-01-30",
+    "is_recurring": false
+  },
+  {
+    "amount": 11.38,
+    "merchant_name": "Freshii — Gastown",
+    "category": "dining",
+    "date": "2026-01-30",
+    "is_recurring": false
+  },
+  {
+    "amount": 89.74,
+    "merchant_name": "Whole Foods — Cambie",
+    "category": "groceries",
+    "date": "2026-01-31",
+    "is_recurring": false
+  },
+  {
+    "amount": 12,
+    "merchant_name": "Amazon Web Services",
+    "category": "professional",
+    "date": "2026-02-01",
+    "is_recurring": true
+  },
+  {
+    "amount": 49.99,
+    "merchant_name": "Equinox",
+    "category": "fitness",
+    "date": "2026-02-01",
+    "is_recurring": true
+  },
+  {
+    "amount": 22.51,
+    "merchant_name": "Tacofino",
+    "category": "dining",
+    "date": "2026-02-03",
+    "is_recurring": true
+  },
+  {
+    "amount": 15.49,
+    "merchant_name": "Netflix",
+    "category": "entertainment",
+    "date": "2026-02-03",
+    "is_recurring": true
+  },
+  {
+    "amount": 17.49,
+    "merchant_name": "Compass Card — TransLink",
+    "category": "transport",
+    "date": "2026-02-03",
+    "is_recurring": false
+  },
+  {
+    "amount": 5.94,
+    "merchant_name": "7-Eleven",
+    "category": "dining",
+    "date": "2026-02-03",
+    "is_recurring": false
+  },
+  {
+    "amount": 15.61,
+    "merchant_name": "Freshii — Gastown",
+    "category": "dining",
+    "date": "2026-02-03",
+    "is_recurring": false
+  },
+  {
+    "amount": 6.02,
+    "merchant_name": "Timbertrain Coffee",
+    "category": "dining",
+    "date": "2026-02-04",
+    "is_recurring": false
+  },
+  {
+    "amount": 21.17,
+    "merchant_name": "Shoppers Drug Mart",
+    "category": "personal",
+    "date": "2026-02-04",
+    "is_recurring": false
+  },
+  {
+    "amount": 6.07,
+    "merchant_name": "Timbertrain Coffee",
+    "category": "dining",
+    "date": "2026-02-05",
+    "is_recurring": false
+  },
+  {
+    "amount": 23.95,
+    "merchant_name": "Tacofino",
+    "category": "dining",
+    "date": "2026-02-05",
+    "is_recurring": true
+  },
+  {
+    "amount": 10.99,
+    "merchant_name": "Spotify",
+    "category": "entertainment",
+    "date": "2026-02-05",
+    "is_recurring": true
+  },
+  {
+    "amount": 13.9,
+    "merchant_name": "Uber",
+    "category": "transport",
+    "date": "2026-02-05",
+    "is_recurring": false
+  },
+  {
+    "amount": 27.1,
+    "merchant_name": "Indigo Books",
+    "category": "shopping",
+    "date": "2026-02-05",
+    "is_recurring": false
+  },
+  {
+    "amount": 6.06,
+    "merchant_name": "Tim Hortons — Downtown",
+    "category": "dining",
+    "date": "2026-02-05",
+    "is_recurring": false
+  },
+  {
+    "amount": 13.99,
+    "merchant_name": "YouTube",
+    "category": "entertainment",
+    "date": "2026-02-07",
+    "is_recurring": true
+  },
+  {
+    "amount": 57.85,
+    "merchant_name": "Urban Fare — Coal Harbour",
+    "category": "groceries",
+    "date": "2026-02-07",
+    "is_recurring": false
+  },
+  {
+    "amount": 54.99,
+    "merchant_name": "Adobe",
+    "category": "professional",
+    "date": "2026-02-08",
+    "is_recurring": true
+  },
+  {
+    "amount": 94.09,
+    "merchant_name": "IGA — Robson St",
+    "category": "groceries",
+    "date": "2026-02-08",
+    "is_recurring": false
+  },
+  {
+    "amount": 12.24,
+    "merchant_name": "Compass Card — TransLink",
+    "category": "transport",
+    "date": "2026-02-09",
+    "is_recurring": false
+  },
+  {
+    "amount": 23.75,
+    "merchant_name": "Tacofino",
+    "category": "dining",
+    "date": "2026-02-10",
+    "is_recurring": true
+  },
+  {
+    "amount": 4,
+    "merchant_name": "GitHub",
+    "category": "professional",
+    "date": "2026-02-10",
+    "is_recurring": true
+  },
+  {
+    "amount": 18.34,
+    "merchant_name": "Uber",
+    "category": "transport",
+    "date": "2026-02-10",
+    "is_recurring": false
+  },
+  {
+    "amount": 18.26,
+    "merchant_name": "Tacofino",
+    "category": "dining",
+    "date": "2026-02-12",
+    "is_recurring": true
+  },
+  {
+    "amount": 8,
+    "merchant_name": "Notion",
+    "category": "professional",
+    "date": "2026-02-12",
+    "is_recurring": true
+  },
+  {
+    "amount": 18.53,
+    "merchant_name": "Evo Car Share",
+    "category": "transport",
+    "date": "2026-02-12",
+    "is_recurring": false
+  },
+  {
+    "amount": 7.2,
+    "merchant_name": "Tim Hortons — Downtown",
+    "category": "dining",
+    "date": "2026-02-12",
+    "is_recurring": false
+  },
+  {
+    "amount": 17.28,
+    "merchant_name": "Stormcrow Tavern",
+    "category": "entertainment",
+    "date": "2026-02-13",
+    "is_recurring": true
+  },
+  {
+    "amount": 80.72,
+    "merchant_name": "Ticketmaster",
+    "category": "entertainment",
+    "date": "2026-02-13",
+    "is_recurring": false
+  },
+  {
+    "amount": 15.11,
+    "merchant_name": "Evo Car Share",
+    "category": "transport",
+    "date": "2026-02-13",
+    "is_recurring": false
+  },
+  {
+    "amount": 42.23,
+    "merchant_name": "Barber & Co",
+    "category": "personal",
+    "date": "2026-02-14",
+    "is_recurring": false
+  },
+  {
+    "amount": 141.66,
+    "merchant_name": "Hawksworth Restaurant",
+    "category": "dining",
+    "date": "2026-02-14",
+    "is_recurring": false
+  },
+  {
+    "amount": 20,
+    "merchant_name": "OpenAI",
+    "category": "professional",
+    "date": "2026-02-14",
+    "is_recurring": true
+  },
+  {
+    "amount": 7.99,
+    "merchant_name": "Disney+",
+    "category": "entertainment",
+    "date": "2026-02-15",
+    "is_recurring": true
+  },
+  {
+    "amount": 59.81,
+    "merchant_name": "Whole Foods — Cambie",
+    "category": "groceries",
+    "date": "2026-02-15",
+    "is_recurring": false
+  },
+  {
+    "amount": 134.76,
+    "merchant_name": "Whistler Blackcomb",
+    "category": "travel",
+    "date": "2026-02-16",
+    "is_recurring": false
+  },
+  {
+    "amount": 19.18,
+    "merchant_name": "Tacofino",
+    "category": "dining",
+    "date": "2026-02-17",
+    "is_recurring": true
+  },
+  {
+    "amount": 24.3,
+    "merchant_name": "Indigo Books",
+    "category": "shopping",
+    "date": "2026-02-18",
+    "is_recurring": false
+  },
+  {
+    "amount": 15.88,
+    "merchant_name": "Chipotle — Robson",
+    "category": "dining",
+    "date": "2026-02-18",
+    "is_recurring": false
+  },
+  {
+    "amount": 12.08,
+    "merchant_name": "Evo Car Share",
+    "category": "transport",
+    "date": "2026-02-19",
+    "is_recurring": false
+  },
+  {
+    "amount": 29.99,
+    "merchant_name": "LinkedIn",
+    "category": "professional",
+    "date": "2026-02-20",
+    "is_recurring": true
+  },
+  {
+    "amount": 70.16,
+    "merchant_name": "Urban Fare — Coal Harbour",
+    "category": "groceries",
+    "date": "2026-02-20",
+    "is_recurring": false
+  },
+  {
+    "amount": 14.57,
+    "merchant_name": "Evo Car Share",
+    "category": "transport",
+    "date": "2026-02-20",
+    "is_recurring": false
+  },
+  {
+    "amount": 105.04,
+    "merchant_name": "IGA — Robson St",
+    "category": "groceries",
+    "date": "2026-02-21",
+    "is_recurring": false
+  },
+  {
+    "amount": 99.05,
+    "merchant_name": "Miku Restaurant",
+    "category": "dining",
+    "date": "2026-02-22",
+    "is_recurring": false
+  },
+  {
+    "amount": 2.99,
+    "merchant_name": "Apple",
+    "category": "bills",
+    "date": "2026-02-22",
+    "is_recurring": true
+  },
+  {
+    "amount": 78.63,
+    "merchant_name": "IGA — Robson St",
+    "category": "groceries",
+    "date": "2026-02-22",
+    "is_recurring": false
+  },
+  {
+    "amount": 17.61,
+    "merchant_name": "Tacofino",
+    "category": "dining",
+    "date": "2026-02-24",
+    "is_recurring": true
+  },
+  {
+    "amount": 41.89,
+    "merchant_name": "Revel Room",
+    "category": "dining",
+    "date": "2026-02-25",
+    "is_recurring": false
+  },
+  {
+    "amount": 10.93,
+    "merchant_name": "Compass Card — TransLink",
+    "category": "transport",
+    "date": "2026-02-25",
+    "is_recurring": false
+  },
+  {
+    "amount": 18.78,
+    "merchant_name": "Tacofino",
+    "category": "dining",
+    "date": "2026-02-26",
+    "is_recurring": true
+  },
+  {
+    "amount": 84.52,
+    "merchant_name": "Whole Foods — Cambie",
+    "category": "groceries",
+    "date": "2026-02-26",
+    "is_recurring": false
+  },
+  {
+    "amount": 11.93,
+    "merchant_name": "Uber",
+    "category": "transport",
+    "date": "2026-02-26",
+    "is_recurring": false
+  },
+  {
+    "amount": 19.91,
+    "merchant_name": "Indigo Books",
+    "category": "shopping",
+    "date": "2026-02-27",
+    "is_recurring": false
+  },
+  {
+    "amount": 44.49,
+    "merchant_name": "Noble Barbershop",
+    "category": "personal",
+    "date": "2026-02-28",
+    "is_recurring": false
+  },
+  {
+    "amount": 96.88,
+    "merchant_name": "IGA — Robson St",
+    "category": "groceries",
+    "date": "2026-02-28",
+    "is_recurring": false
+  },
+  {
+    "amount": 14.86,
+    "merchant_name": "Evo Car Share",
+    "category": "transport",
+    "date": "2026-02-28",
+    "is_recurring": false
+  },
+  {
+    "amount": 35.05,
+    "merchant_name": "Apple Store",
+    "category": "shopping",
+    "date": "2026-02-28",
+    "is_recurring": false
+  }
+]
