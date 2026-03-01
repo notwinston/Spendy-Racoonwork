@@ -69,6 +69,86 @@ export function detectCategory(title: string): EventCategory {
   return 'other';
 }
 
+// ---------- Apple Calendar (expo-calendar) ----------
+
+/**
+ * Connect to the device's Apple Calendar via expo-calendar.
+ * Requests permission, fetches 90 days of events, maps to CalendarEvent[].
+ * Optionally persists to Supabase if configured.
+ */
+export async function connectAppleCalendar(
+  userId: string,
+  connectionId?: string,
+): Promise<CalendarEvent[]> {
+  const ExpoCalendar = await import('expo-calendar');
+
+  const { status } = await ExpoCalendar.requestCalendarPermissionsAsync();
+  if (status !== 'granted') {
+    throw new Error('Calendar permission denied');
+  }
+
+  const calendars = await ExpoCalendar.getCalendarsAsync(
+    ExpoCalendar.EntityTypes.EVENT,
+  );
+
+  const startDate = new Date();
+  const endDate = new Date();
+  endDate.setDate(endDate.getDate() + 90);
+
+  const allEvents: CalendarEvent[] = [];
+
+  for (const cal of calendars) {
+    const events = await ExpoCalendar.getEventsAsync(
+      [cal.id],
+      startDate,
+      endDate,
+    );
+
+    for (const event of events) {
+      allEvents.push({
+        id: `apple-${event.id}`,
+        user_id: userId,
+        external_id: event.id,
+        calendar_connection_id: connectionId ?? `apple-${cal.id}`,
+        title: event.title,
+        description: event.notes ?? null,
+        location: event.location ?? null,
+        start_time: typeof event.startDate === 'string'
+          ? event.startDate
+          : event.startDate.toISOString(),
+        end_time: event.endDate
+          ? typeof event.endDate === 'string'
+            ? event.endDate
+            : event.endDate.toISOString()
+          : null,
+        is_all_day: event.allDay,
+        recurrence_rule: event.recurrenceRule
+          ? JSON.stringify(event.recurrenceRule)
+          : null,
+        attendee_count: 1,
+        category: detectCategory(event.title),
+        raw_data: null,
+        created_at: new Date().toISOString(),
+      });
+    }
+  }
+
+  // Persist to Supabase if configured
+  if (isSupabaseConfigured && allEvents.length > 0) {
+    const rows = allEvents.map(({ id: _id, ...rest }) => rest);
+    const { error } = await supabase
+      .from('calendar_events')
+      .upsert(rows, {
+        onConflict: 'user_id,external_id,calendar_connection_id',
+      });
+    if (error) {
+      console.warn('Supabase upsert error (Apple Calendar):', error.message);
+    }
+  }
+
+  return allEvents;
+}
+
 // ---------- Google Calendar sync ----------
 
 interface GoogleCalendarEvent {
