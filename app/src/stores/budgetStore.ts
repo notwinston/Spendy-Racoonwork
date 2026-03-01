@@ -15,6 +15,7 @@ interface BudgetState {
   totalPredicted: number;
   budgets: CategoryBudget[];
   isLoading: boolean;
+  _demoLoadedMonth: string | null;
 
   // Goal state
   goals: SavingsGoal[];
@@ -23,11 +24,11 @@ interface BudgetState {
   goalDelete: (id: string) => void;
   goalReorder: (id: string, direction: 'up' | 'down') => void;
 
-  fetchBudgets: (userId: string) => Promise<void>;
+  fetchBudgets: (userId: string, month?: { year: number; month: number }) => Promise<void>;
   createBudget: (userId: string, category: EventCategory, monthlyLimit: number) => Promise<void>;
   updateBudget: (budgetId: string, monthlyLimit: number) => Promise<void>;
   deleteBudget: (budgetId: string) => Promise<void>;
-  computeFromTransactions: (transactions: Transaction[], predictions?: { category: EventCategory; predicted_amount: number }[]) => void;
+  computeFromTransactions: (transactions: Transaction[], predictions?: { category: EventCategory; predicted_amount: number }[], month?: { year: number; month: number }) => void;
 }
 
 const DEFAULT_BUDGETS: { category: EventCategory; limit: number }[] = [
@@ -41,24 +42,65 @@ const DEFAULT_BUDGETS: { category: EventCategory; limit: number }[] = [
   { category: 'bills', limit: 500 },
 ];
 
-function makeDefaultBudgets(userId: string): CategoryBudget[] {
-  const now = new Date();
-  const periodStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
-  const periodEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
+// Per-month budget limit variations for demo mode (keyed by "YYYY-MM")
+export const DEMO_BUDGET_VARIATIONS: Record<string, Partial<Record<EventCategory, number>>> = {
+  '2025-12': {
+    dining: 350,
+    groceries: 380,
+    entertainment: 250,
+    shopping: 300,
+  },
+  '2026-01': {
+    dining: 280,
+    groceries: 420,
+    entertainment: 180,
+    shopping: 200,
+    transport: 180,
+  },
+  '2026-02': {
+    dining: 320,
+    groceries: 390,
+    entertainment: 220,
+    shopping: 280,
+    transport: 160,
+    health: 120,
+  },
+  '2026-03': {
+    dining: 290,
+    groceries: 410,
+    entertainment: 200,
+    shopping: 230,
+    fitness: 100,
+    bills: 520,
+  },
+};
 
-  return DEFAULT_BUDGETS.map((b) => ({
-    id: `demo-${b.category}`,
-    user_id: userId,
-    category: b.category,
-    monthly_limit: b.limit,
-    period_start: periodStart,
-    period_end: periodEnd,
-    created_at: now.toISOString(),
-    spent: 0,
-    predicted: 0,
-    remaining: b.limit,
-    percentUsed: 0,
-  }));
+function makeDefaultBudgets(userId: string, month?: { year: number; month: number }): CategoryBudget[] {
+  const ref = month ? new Date(month.year, month.month, 1) : new Date();
+  const y = month ? month.year : ref.getFullYear();
+  const m = month ? month.month : ref.getMonth();
+  const periodStart = new Date(y, m, 1).toISOString().split('T')[0];
+  const periodEnd = new Date(y, m + 1, 0).toISOString().split('T')[0];
+
+  const monthKey = `${y}-${String(m + 1).padStart(2, '0')}`;
+  const overrides = DEMO_BUDGET_VARIATIONS[monthKey] ?? {};
+
+  return DEFAULT_BUDGETS.map((b) => {
+    const limit = overrides[b.category] ?? b.limit;
+    return {
+      id: `demo-${b.category}`,
+      user_id: userId,
+      category: b.category,
+      monthly_limit: limit,
+      period_start: periodStart,
+      period_end: periodEnd,
+      created_at: ref.toISOString(),
+      spent: 0,
+      predicted: 0,
+      remaining: limit,
+      percentUsed: 0,
+    };
+  });
 }
 
 export const useBudgetStore = create<BudgetState>((set, get) => ({
@@ -67,6 +109,7 @@ export const useBudgetStore = create<BudgetState>((set, get) => ({
   totalPredicted: 0,
   budgets: [],
   isLoading: false,
+  _demoLoadedMonth: null,
 
   // Goal state
   goals: [],
@@ -103,11 +146,20 @@ export const useBudgetStore = create<BudgetState>((set, get) => ({
     });
   },
 
-  fetchBudgets: async (userId: string) => {
+  fetchBudgets: async (userId: string, month?: { year: number; month: number }) => {
     set({ isLoading: true });
     try {
       if (isDemoMode()) {
-        set({ budgets: makeDefaultBudgets(userId), isLoading: false });
+        const y = month ? month.year : new Date().getFullYear();
+        const m = month ? month.month : new Date().getMonth();
+        const monthKey = `${y}-${m}`;
+        const { _demoLoadedMonth, budgets: existing } = get();
+        // Only reset to defaults if the month changed or no budgets loaded yet
+        if (_demoLoadedMonth === monthKey && existing.length > 0) {
+          set({ isLoading: false });
+          return;
+        }
+        set({ budgets: makeDefaultBudgets(userId, month), isLoading: false, _demoLoadedMonth: monthKey });
         return;
       }
 
@@ -205,14 +257,18 @@ export const useBudgetStore = create<BudgetState>((set, get) => ({
   computeFromTransactions: (
     transactions: Transaction[],
     predictions?: { category: EventCategory; predicted_amount: number }[],
+    month?: { year: number; month: number },
   ) => {
-    const now = new Date();
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const ref = month ? new Date(month.year, month.month, 1) : new Date();
+    const y = month ? month.year : ref.getFullYear();
+    const m = month ? month.month : ref.getMonth();
+    const monthStart = new Date(y, m, 1);
+    const monthEnd = new Date(y, m + 1, 0, 23, 59, 59, 999);
 
-    // Filter to current month
+    // Filter to selected month
     const monthTxns = transactions.filter((t) => {
       const d = new Date(t.date);
-      return d >= monthStart;
+      return d >= monthStart && d <= monthEnd;
     });
 
     // Sum spent per category
@@ -365,12 +421,13 @@ export function calculateSpendingStability(transactions: Transaction[], referenc
 }
 
 /**
- * Budget adherence using the MVP formula:
- * max(0, 1 - |totalSpent - monthlyBudget| / monthlyBudget) * 100
+ * Budget adherence score.
+ * Under budget = 100 (perfect). Over budget = linearly penalised.
  */
 export function calculateBudgetAdherenceMVP(totalSpent: number, monthlyBudget: number): number {
   if (monthlyBudget <= 0) return 0;
-  return Math.max(0, (1 - Math.abs(totalSpent - monthlyBudget) / monthlyBudget)) * 100;
+  if (totalSpent <= monthlyBudget) return 100;
+  return Math.max(0, (1 - (totalSpent - monthlyBudget) / monthlyBudget)) * 100;
 }
 
 export function getHealthGrade(score: number): { grade: string; color: string } {

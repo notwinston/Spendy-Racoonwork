@@ -8,6 +8,7 @@ import { DonutChart } from '../charts';
 import type { DonutSegment } from '../charts';
 import { useTransactionStore, getCategoryMoM } from '../../stores/transactionStore';
 import { useBudgetStore } from '../../stores/budgetStore';
+import { useAuthStore } from '../../stores/authStore';
 import { useInsightsMonthStore, isCurrentMonth, getDisplayLabel } from '../../stores/insightsMonthStore';
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -30,6 +31,7 @@ const CATEGORY_COLORS: Record<string, string> = {
 export function InsightsThisMonth() {
   const { transactions } = useTransactionStore();
   const { totalBudget, budgets } = useBudgetStore();
+  const user = useAuthStore((s) => s.user);
   const selectedMonth = useInsightsMonthStore((s) => s.selectedMonth);
 
   const refDate = useMemo(
@@ -49,8 +51,7 @@ export function InsightsThisMonth() {
       .reduce((sum, t) => sum + Math.abs(t.amount), 0);
   }, [transactions, selectedMonth.year, selectedMonth.month]);
 
-  const mockIncome = 4200;
-  const totalIncome = mockIncome;
+  const totalIncome = user?.monthlyIncome ?? totalBudget * 1.3;
   const totalExpenses = totalSpent > 0 ? totalSpent : 0;
   const net = totalIncome - totalExpenses;
 
@@ -108,17 +109,14 @@ export function InsightsThisMonth() {
     ];
   }, [totalBudget, totalSpent]);
 
-  // Future month empty state
+  // Empty state for non-current months with no spending
   const isCurrent = isCurrentMonth(selectedMonth);
   if (!isCurrent && totalSpent === 0) {
-    const futureCheck = new Date(selectedMonth.year, selectedMonth.month, 1) > new Date();
-    if (futureCheck) {
-      return (
-        <GlassCard>
-          <Text style={styles.emptyText}>No data for {getDisplayLabel(selectedMonth)}</Text>
-        </GlassCard>
-      );
-    }
+    return (
+      <GlassCard>
+        <Text style={styles.emptyText}>No spending data for {getDisplayLabel(selectedMonth)}</Text>
+      </GlassCard>
+    );
   }
 
   return (

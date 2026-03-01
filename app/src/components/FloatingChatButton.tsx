@@ -1,14 +1,89 @@
 import React, { useRef, useEffect } from 'react';
-import { View, TouchableOpacity, StyleSheet, Animated } from 'react-native';
+import {
+  View,
+  TouchableOpacity,
+  StyleSheet,
+  Animated,
+  PanResponder,
+  Dimensions,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../constants';
 import { useChatStore } from '../stores/chatStore';
 import { ChatSheet } from './ChatSheet';
 
+const BUTTON_SIZE = 52;
+const GLOW_SIZE = 64;
+const SCREEN_PADDING = 10;
+const DRAG_THRESHOLD = 5;
+
 export function FloatingChatButton() {
   const { isOpen, setOpen } = useChatStore();
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const glowAnim = useRef(new Animated.Value(0.3)).current;
+
+  const { width: screenW, height: screenH } = Dimensions.get('window');
+
+  const pan = useRef(new Animated.ValueXY({ x: 0, y: 0 })).current;
+  const isDragging = useRef(false);
+  const lastOffset = useRef({ x: 0, y: 0 });
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: (_, gesture) =>
+        Math.abs(gesture.dx) > DRAG_THRESHOLD || Math.abs(gesture.dy) > DRAG_THRESHOLD,
+      onPanResponderGrant: () => {
+        isDragging.current = false;
+        pan.setOffset({ x: lastOffset.current.x, y: lastOffset.current.y });
+        pan.setValue({ x: 0, y: 0 });
+      },
+      onPanResponderMove: (_, gesture) => {
+        if (
+          Math.abs(gesture.dx) > DRAG_THRESHOLD ||
+          Math.abs(gesture.dy) > DRAG_THRESHOLD
+        ) {
+          isDragging.current = true;
+        }
+        // Clamp within screen bounds
+        const baseRight = 20;
+        const baseBottom = 32;
+        const baseX = screenW - baseRight - BUTTON_SIZE;
+        const baseY = screenH - baseBottom - BUTTON_SIZE;
+
+        const newX = lastOffset.current.x + gesture.dx;
+        const newY = lastOffset.current.y + gesture.dy;
+
+        const clampedX = Math.max(-baseX + SCREEN_PADDING, Math.min(SCREEN_PADDING, newX));
+        const clampedY = Math.max(-baseY + SCREEN_PADDING, Math.min(SCREEN_PADDING, newY));
+
+        pan.setValue({
+          x: clampedX - lastOffset.current.x,
+          y: clampedY - lastOffset.current.y,
+        });
+      },
+      onPanResponderRelease: (_, gesture) => {
+        const newX = lastOffset.current.x + gesture.dx;
+        const newY = lastOffset.current.y + gesture.dy;
+
+        const baseRight = 20;
+        const baseBottom = 32;
+        const baseX = screenW - baseRight - BUTTON_SIZE;
+        const baseY = screenH - baseBottom - BUTTON_SIZE;
+
+        const clampedX = Math.max(-baseX + SCREEN_PADDING, Math.min(SCREEN_PADDING, newX));
+        const clampedY = Math.max(-baseY + SCREEN_PADDING, Math.min(SCREEN_PADDING, newY));
+
+        lastOffset.current = { x: clampedX, y: clampedY };
+        pan.setOffset({ x: clampedX, y: clampedY });
+        pan.setValue({ x: 0, y: 0 });
+
+        if (!isDragging.current) {
+          setOpen(true);
+        }
+      },
+    }),
+  ).current;
 
   useEffect(() => {
     const pulse = Animated.loop(
@@ -52,16 +127,24 @@ export function FloatingChatButton() {
   return (
     <>
       {!isOpen && (
-        <Animated.View style={[styles.pulseWrapper, { transform: [{ scale: pulseAnim }] }]}>
+        <Animated.View
+          style={[
+            styles.pulseWrapper,
+            {
+              transform: [
+                { translateX: pan.x },
+                { translateY: pan.y },
+                { scale: pulseAnim },
+              ],
+            },
+          ]}
+          {...panResponder.panHandlers}
+        >
           {/* Breathing glow ring */}
           <Animated.View style={[styles.glowRing, { opacity: glowAnim }]} />
-          <TouchableOpacity
-            style={styles.button}
-            onPress={() => setOpen(true)}
-            activeOpacity={0.8}
-          >
+          <View style={styles.button}>
             <Ionicons name="chatbubble-ellipses" size={22} color={Colors.textPrimary} />
-          </TouchableOpacity>
+          </View>
         </Animated.View>
       )}
       <ChatSheet />

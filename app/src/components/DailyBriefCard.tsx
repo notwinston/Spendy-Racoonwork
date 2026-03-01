@@ -4,7 +4,6 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Typography, Spacing } from '../constants';
 import { GlassCard } from './ui/GlassCard';
-import { HiddenCostBreakdown } from './HiddenCostBreakdown';
 import { usePredictionStore } from '../stores/predictionStore';
 import type { EventCategory } from '../types';
 
@@ -36,7 +35,7 @@ function formatTime(dateString: string): string {
 
 export function DailyBriefCard() {
   const router = useRouter();
-  const { dailyBrief, eventCostBreakdowns, dismissHiddenCost } = usePredictionStore();
+  const { dailyBrief } = usePredictionStore();
 
   if (!dailyBrief || dailyBrief.events.length === 0) return null;
 
@@ -64,67 +63,33 @@ export function DailyBriefCard() {
         {dailyBrief.total_predicted_low.toFixed(0)} - ${dailyBrief.total_predicted_high.toFixed(0)}
       </Text>
 
-      {/* Warning */}
-      {dailyBrief.top_warning && (
-        <GlassCard intensity="subtle" accentEdge="left" accentColor={Colors.warning} style={styles.warningRow}>
-          <View style={styles.warningRowInner}>
-            <Ionicons name="warning" size={16} color={Colors.warning} />
-            <Text style={styles.warningText}>{dailyBrief.top_warning}</Text>
-          </View>
-        </GlassCard>
-      )}
-
-      {/* Savings Tip */}
-      {dailyBrief.savings_opportunity && (
-        <GlassCard intensity="subtle" accentEdge="left" accentColor={Colors.positive} style={styles.tipRow}>
-          <View style={styles.tipRowInner}>
-            <Ionicons name="bulb" size={16} color={Colors.positive} />
-            <Text style={styles.tipText}>{dailyBrief.savings_opportunity}</Text>
-          </View>
-        </GlassCard>
-      )}
-
-      {/* Event List */}
+      {/* Simplified Event List */}
       <View style={styles.divider} />
       {dailyBrief.events.map((breakdown) => {
         const event = breakdown.base_prediction;
         const iconName = CATEGORY_ICONS[event.predicted_category] ?? 'ellipsis-horizontal';
-        const hiddenTotal = breakdown.hidden_costs
-          .filter((c) => !c.is_dismissed)
-          .reduce((s, c) => s + c.predicted_amount, 0);
 
         return (
-          <View key={breakdown.calendar_event_id} style={styles.eventRow}>
-            <View style={styles.eventHeader}>
-              <View style={styles.eventLeft}>
-                <Ionicons
-                  name={iconName as keyof typeof Ionicons.glyphMap}
-                  size={16}
-                  color={Colors.accent}
-                />
-                <Text style={styles.eventTitle} numberOfLines={1}>
-                  {event.explanation ?? event.predicted_category}
-                </Text>
-              </View>
-              <View style={styles.eventRight}>
-                <Text style={styles.eventBase}>
-                  ${event.predicted_amount.toFixed(0)}
-                </Text>
-                {hiddenTotal > 0 && (
-                  <Text style={styles.eventHidden}>
-                    +${hiddenTotal.toFixed(0)}
-                  </Text>
-                )}
-              </View>
-            </View>
-            {eventCostBreakdowns[breakdown.calendar_event_id] && (
-              <HiddenCostBreakdown
-                eventCostBreakdown={eventCostBreakdowns[breakdown.calendar_event_id]}
-                compact={true}
-                onDismissCost={dismissHiddenCost}
+          <TouchableOpacity
+            key={breakdown.calendar_event_id}
+            style={styles.eventRow}
+            onPress={() => router.push('/(tabs)/calendar')}
+            activeOpacity={0.7}
+          >
+            <View style={styles.eventLeft}>
+              <Ionicons
+                name={iconName as keyof typeof Ionicons.glyphMap}
+                size={16}
+                color={Colors.accent}
               />
-            )}
-          </View>
+              <Text style={styles.eventTitle} numberOfLines={1}>
+                {event.explanation ?? event.predicted_category}
+              </Text>
+            </View>
+            <Text style={styles.eventBase}>
+              ${event.predicted_amount.toFixed(0)}
+            </Text>
+          </TouchableOpacity>
         );
       })}
 
@@ -170,46 +135,18 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     marginBottom: Spacing.sm,
   },
-  warningRow: {
-    marginBottom: Spacing.xs,
-  },
-  warningRowInner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-  },
-  warningText: {
-    fontSize: Typography.sizes.sm,
-    color: Colors.warning,
-    flex: 1,
-  },
-  tipRow: {
-    marginBottom: Spacing.xs,
-  },
-  tipRowInner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-  },
-  tipText: {
-    fontSize: Typography.sizes.sm,
-    color: Colors.positive,
-    flex: 1,
-  },
   divider: {
     height: 1,
     backgroundColor: Colors.divider,
     marginVertical: Spacing.sm,
   },
   eventRow: {
-    paddingVertical: Spacing.xs,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.divider,
-  },
-  eventHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    paddingVertical: Spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.divider,
   },
   eventLeft: {
     flexDirection: 'row',
@@ -222,20 +159,10 @@ const styles = StyleSheet.create({
     color: Colors.textPrimary,
     flex: 1,
   },
-  eventRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-  },
   eventBase: {
     fontSize: Typography.sizes.md,
     fontWeight: Typography.weights.semibold,
     color: Colors.textPrimary,
-  },
-  eventHidden: {
-    fontSize: Typography.sizes.sm,
-    color: Colors.warning,
-    fontWeight: Typography.weights.medium,
   },
   linkRow: {
     flexDirection: 'row',

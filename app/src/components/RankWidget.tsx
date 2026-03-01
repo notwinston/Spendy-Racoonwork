@@ -9,6 +9,7 @@ interface RankWidgetProps {
   streak?: number;
   comparisonCategory?: string;
   comparisonPercentage?: number;
+  monthLabel?: string;
 }
 
 export function RankWidget({
@@ -16,6 +17,7 @@ export function RankWidget({
   streak = 14,
   comparisonCategory = 'dining',
   comparisonPercentage = 18,
+  monthLabel,
 }: RankWidgetProps) {
   return (
     <GlassCard style={styles.card}>
@@ -25,7 +27,7 @@ export function RankWidget({
         <Text style={styles.percentileText}>
           You're in the top{' '}
           <Text style={styles.percentileValue}>{percentile}%</Text>
-          {' '}of savers this month
+          {' '}of savers {monthLabel ? `in ${monthLabel}` : 'this month'}
         </Text>
 
         {/* Percentile bar */}

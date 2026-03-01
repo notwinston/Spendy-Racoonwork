@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   TextInput,
   Switch,
   StyleSheet,
+  LayoutChangeEvent,
 } from 'react-native';
 import Animated, {
   FadeIn,
@@ -17,6 +18,7 @@ import Animated, {
   withRepeat,
   withSequence,
   withTiming,
+  withSpring,
 } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
@@ -66,6 +68,35 @@ const NUDGE_CONFIG: { type: NudgeType; icon: keyof typeof Ionicons.glyphMap; lab
 export default function ArenaScreen() {
   const alert = useThemedAlert();
   const [activeTab, setActiveTab] = useState(0);
+
+  // Scrollable tab bar with sliding underline (like Insights)
+  const underlineX = useSharedValue(0);
+  const underlineWidth = useSharedValue(0);
+  const tabLayouts = useRef<Record<number, { x: number; width: number }>>({});
+
+  const handleTabLayout = useCallback((index: number, e: LayoutChangeEvent) => {
+    const { x, width } = e.nativeEvent.layout;
+    tabLayouts.current[index] = { x, width };
+    if (index === activeTab) {
+      underlineX.value = x;
+      underlineWidth.value = width;
+    }
+  }, [activeTab]);
+
+  const handleTabPress = useCallback((index: number) => {
+    setActiveTab(index);
+    const layout = tabLayouts.current[index];
+    if (layout) {
+      underlineX.value = withSpring(layout.x, { damping: 18, stiffness: 120 });
+      underlineWidth.value = withSpring(layout.width, { damping: 18, stiffness: 120 });
+    }
+  }, []);
+
+  const underlineStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: underlineX.value }],
+    width: underlineWidth.value,
+  }));
+
   const [friendCodeInput, setFriendCodeInput] = useState('');
   const [leaderboardScope, setLeaderboardScope] = useState<LeaderboardScope>('global');
   const [selectedBadge, setSelectedBadge] = useState<BadgeInfo | null>(null);
@@ -107,10 +138,12 @@ export default function ArenaScreen() {
   const monthlyIncome = user?.monthlyIncome ?? null;
   const savingsRate = useMemo(() => {
     if (monthlyIncome && monthlyIncome > 0) {
+      // If no spending data yet, show a realistic demo default (Platinum tier)
+      if (totalSpent === 0) return 35;
       const rate = ((monthlyIncome - totalSpent) / monthlyIncome) * 100;
       return Math.round(Math.max(0, rate) * 10) / 10;
     }
-    if (totalBudget <= 0) return 12; // demo fallback
+    if (totalBudget <= 0) return 35; // demo fallback (Platinum tier)
     const saved = Math.max(0, totalBudget - totalSpent);
     return Math.round((saved / totalBudget) * 100 * 10) / 10;
   }, [monthlyIncome, totalBudget, totalSpent]);
@@ -200,18 +233,30 @@ export default function ArenaScreen() {
     <AtmosphericBackground variant="arena">
       <Header title="Financial Friend" />
 
-      <View style={styles.tabBar}>
-        {TABS.map((tab, index) => (
-          <TouchableOpacity
-            key={tab}
-            style={[styles.tab, activeTab === index && styles.tabActive]}
-            onPress={() => setActiveTab(index)}
-          >
-            <Text style={[styles.tabText, activeTab === index && styles.tabTextActive]}>
-              {tab}
-            </Text>
-          </TouchableOpacity>
-        ))}
+      <View style={styles.tabBarWrapper}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.tabBarScroll}
+          contentContainerStyle={styles.tabBarContent}
+        >
+          {TABS.map((tab, index) => {
+            const isActive = activeTab === index;
+            return (
+              <Pressable
+                key={tab}
+                style={[styles.tab, isActive && styles.tabActive]}
+                onPress={() => handleTabPress(index)}
+                onLayout={(e) => handleTabLayout(index, e)}
+              >
+                <Text style={[styles.tabText, isActive && styles.tabTextActive]}>
+                  {tab}
+                </Text>
+              </Pressable>
+            );
+          })}
+          <Animated.View style={[styles.tabUnderline, underlineStyle]} />
+        </ScrollView>
       </View>
 
       <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
@@ -260,7 +305,7 @@ export default function ArenaScreen() {
                   </View>
                 </View>
                 <Button
-                  title={dailyCheckinDone ? 'Done!' : 'Check In'}
+                  title={dailyCheckinDone ? 'Checked In' : 'Check In'}
                   onPress={handleCheckin}
                   disabled={dailyCheckinDone}
                   variant={dailyCheckinDone ? 'secondary' : 'primary'}
@@ -388,27 +433,28 @@ export default function ArenaScreen() {
         {/* Leaderboard Tab */}
         {activeTab === 3 && (
           <>
-            {/* Scope selector */}
-            <View style={styles.scopeSelector}>
-              {(['global', 'friends'] as LeaderboardScope[]).map((scope) => (
-                <TouchableOpacity
-                  key={scope}
-                  style={[
-                    styles.scopePill,
-                    leaderboardScope === scope && styles.scopePillActive,
-                  ]}
-                  onPress={() => setLeaderboardScope(scope)}
-                >
-                  <Text
-                    style={[
-                      styles.scopePillText,
-                      leaderboardScope === scope && styles.scopePillTextActive,
-                    ]}
+            {/* Scope toggle */}
+            <View style={styles.scopeToggle}>
+              {(['global', 'friends'] as LeaderboardScope[]).map((scope) => {
+                const isActive = leaderboardScope === scope;
+                return (
+                  <TouchableOpacity
+                    key={scope}
+                    style={[styles.scopeTab, isActive && styles.scopeTabActive]}
+                    onPress={() => setLeaderboardScope(scope)}
+                    activeOpacity={0.7}
                   >
-                    {scope === 'global' ? 'Global' : 'Friends'}
-                  </Text>
-                </TouchableOpacity>
-              ))}
+                    <Ionicons
+                      name={scope === 'global' ? 'globe-outline' : 'people-outline'}
+                      size={16}
+                      color={isActive ? '#F59E0B' : Colors.textMuted}
+                    />
+                    <Text style={[styles.scopeTabText, isActive && styles.scopeTabTextActive]}>
+                      {scope === 'global' ? 'Global' : 'Friends'}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
             </View>
 
             {/* Podium for top 3 */}
@@ -694,11 +740,14 @@ export default function ArenaScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: 'transparent' },
-  tabBar: { flexDirection: 'row', paddingHorizontal: Spacing.lg, marginBottom: Spacing.md, backgroundColor: Colors.glassBg, borderBottomWidth: 1, borderBottomColor: Colors.glassBorder },
-  tab: { flex: 1, paddingVertical: Spacing.sm, alignItems: 'center', borderBottomWidth: 2, borderBottomColor: 'transparent' },
-  tabActive: { borderBottomColor: Colors.glowGold },
+  tabBarWrapper: { position: 'relative', borderBottomWidth: 1, borderBottomColor: Colors.borderSubtle },
+  tabBarScroll: { flexGrow: 0 },
+  tabBarContent: { paddingHorizontal: Spacing.lg, paddingVertical: Spacing.sm, gap: Spacing.sm },
+  tab: { paddingHorizontal: Spacing.lg, paddingVertical: Spacing.sm, borderRadius: 20, backgroundColor: 'transparent' },
+  tabActive: { backgroundColor: 'rgba(245, 158, 11, 0.15)' },
   tabText: { fontSize: Typography.sizes.sm, color: Colors.textMuted, fontWeight: Typography.weights.medium },
-  tabTextActive: { color: '#F59E0B', fontWeight: Typography.weights.semibold },
+  tabTextActive: { color: '#F59E0B', fontWeight: Typography.weights.bold },
+  tabUnderline: { position: 'absolute', bottom: 0, height: 2, backgroundColor: '#F59E0B', borderRadius: 1 },
   scroll: { flex: 1 },
   scrollContent: { padding: Spacing.lg, paddingBottom: 120, gap: Spacing.md },
   progressCard: { alignItems: 'center' },
@@ -755,11 +804,11 @@ const styles = StyleSheet.create({
   emptyText: { fontSize: Typography.sizes.md, color: Colors.textMuted, textAlign: 'center', paddingVertical: Spacing.lg },
   joinedBanner: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, backgroundColor: Colors.accent, borderRadius: 10, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, marginBottom: Spacing.md },
   joinedBannerText: { fontSize: Typography.sizes.md, fontWeight: Typography.weights.semibold, color: Colors.textPrimary },
-  scopeSelector: { flexDirection: 'row', gap: Spacing.sm, marginBottom: Spacing.md },
-  scopePill: { flex: 1, paddingVertical: Spacing.sm, borderRadius: 20, borderWidth: 1, borderColor: Colors.glassBorder, backgroundColor: Colors.glassBg, alignItems: 'center' },
-  scopePillActive: { borderColor: Colors.glowGold, backgroundColor: 'rgba(255, 215, 0, 0.1)' },
-  scopePillText: { fontSize: Typography.sizes.sm, color: Colors.textMuted, fontWeight: Typography.weights.medium },
-  scopePillTextActive: { color: '#F59E0B' },
+  scopeToggle: { flexDirection: 'row', backgroundColor: Colors.glassBg, borderRadius: 12, borderWidth: 1, borderColor: Colors.glassBorder, padding: 3, alignSelf: 'center', marginBottom: Spacing.md },
+  scopeTab: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: Spacing.sm, paddingHorizontal: Spacing.lg, borderRadius: 10 },
+  scopeTabActive: { backgroundColor: 'rgba(245, 158, 11, 0.15)' },
+  scopeTabText: { fontSize: Typography.sizes.sm, color: Colors.textMuted, fontWeight: Typography.weights.medium },
+  scopeTabTextActive: { color: '#F59E0B', fontWeight: Typography.weights.bold },
   podiumCard: { paddingBottom: Spacing.lg },
   socialTogglesCard: { marginBottom: Spacing.md },
   socialToggleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },

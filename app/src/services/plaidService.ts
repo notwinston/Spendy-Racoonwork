@@ -1,4 +1,4 @@
-import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { supabase, isSupabaseConfigured, isDemoMode } from '../lib/supabase';
 import type {
   Transaction,
   RecurringTransaction,
@@ -64,34 +64,34 @@ export async function connectBank(userId: string): Promise<ConnectBankResult> {
     created_at: new Date().toISOString(),
   };
 
-  if (isSupabaseConfigured) {
-    const { error: connErr } = await supabase
-      .from('plaid_connections')
-      .insert({
-        user_id: connection.user_id,
-        plaid_item_id: connection.plaid_item_id,
-        access_token_encrypted: connection.access_token_encrypted,
-        institution_name: connection.institution_name,
-        institution_id: connection.institution_id,
-        status: connection.status,
-      });
-    if (connErr) console.warn('Supabase plaid_connections insert error:', connErr.message);
+  if (isSupabaseConfigured && !isDemoMode()) {
+    try {
+      await supabase
+        .from('plaid_connections')
+        .insert({
+          user_id: connection.user_id,
+          plaid_item_id: connection.plaid_item_id,
+          access_token_encrypted: connection.access_token_encrypted,
+          institution_name: connection.institution_name,
+          institution_id: connection.institution_id,
+          status: connection.status,
+        });
 
-    const { error: acctErr } = await supabase
-      .from('accounts')
-      .insert({
-        user_id: account.user_id,
-        plaid_connection_id: connection.id,
-        plaid_account_id: account.plaid_account_id,
-        name: account.name,
-        official_name: account.official_name,
-        type: account.type,
-        subtype: account.subtype,
-        current_balance: account.current_balance,
-        available_balance: account.available_balance,
-        currency: account.currency,
-      });
-    if (acctErr) console.warn('Supabase accounts insert error:', acctErr.message);
+      await supabase
+        .from('accounts')
+        .insert({
+          user_id: account.user_id,
+          plaid_connection_id: connection.id,
+          plaid_account_id: account.plaid_account_id,
+          name: account.name,
+          official_name: account.official_name,
+          type: account.type,
+          subtype: account.subtype,
+          current_balance: account.current_balance,
+          available_balance: account.available_balance,
+          currency: account.currency,
+        });
+    } catch { /* tables may not exist yet */ }
   }
 
   return { connection, accounts: [account] };
@@ -134,12 +134,11 @@ export async function loadDemoTransactions(
     created_at: new Date().toISOString(),
   }));
 
-  if (isSupabaseConfigured && transactions.length > 0) {
-    const rows = transactions.map(({ id: _id, ...rest }) => rest);
-    const { error } = await supabase.from('transactions').insert(rows);
-    if (error) {
-      console.warn('Supabase insert error (demo transactions):', error.message);
-    }
+  if (isSupabaseConfigured && !isDemoMode() && transactions.length > 0) {
+    try {
+      const rows = transactions.map(({ id: _id, ...rest }) => rest);
+      await supabase.from('transactions').insert(rows);
+    } catch { /* tables may not exist yet */ }
   }
 
   return { transactions, account, connection };

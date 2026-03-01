@@ -149,17 +149,19 @@ export default function CalendarScreen() {
     }
   }, [user?.id, events.length, loadCalendarDemo]);
 
-  // Generate predictions for future events when events are loaded
+  // Generate predictions for future events when events are loaded or new events are synced
+  const [lastPredictedCount, setLastPredictedCount] = useState(0);
   useEffect(() => {
-    if (events.length > 0 && predictions.length === 0 && !isPredicting) {
+    if (events.length > 0 && events.length !== lastPredictedCount && !isPredicting) {
       const futureEvents = events.filter(
         (e) => new Date(e.start_time) >= new Date()
       );
       if (futureEvents.length > 0) {
         generatePredictions(futureEvents, user?.id);
+        setLastPredictedCount(events.length);
       }
     }
-  }, [events.length, predictions.length, isPredicting, generatePredictions, user?.id, events]);
+  }, [events.length, lastPredictedCount, isPredicting, generatePredictions, user?.id, events]);
 
   // Analyze hidden costs when predictions are available
   useEffect(() => {

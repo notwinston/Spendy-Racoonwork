@@ -17,7 +17,7 @@ export function Header({ title }: HeaderProps) {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>{title ?? 'FutureSpend'}</Text>
+      <Text style={styles.title} numberOfLines={1}>{title ?? 'FutureSpend'}</Text>
       <View style={styles.rightSection}>
         <NotificationBell count={unreadCount} onPress={() => router.push('/settings')} />
         <TouchableOpacity
@@ -44,11 +44,13 @@ const styles = StyleSheet.create({
   },
   title: {
     ...Typography.brand.screenTitle,
+    flex: 1,
   },
   rightSection: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
+    flexShrink: 0,
   },
   avatarButton: {
     padding: Spacing.xs,

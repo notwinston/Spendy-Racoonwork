@@ -88,6 +88,27 @@ let demoUserBadges: UserBadge[] = [
     earned_at: now,
     is_notified: true,
   },
+  {
+    id: 'ub-3',
+    user_id: 'demo-user',
+    badge_id: 'badge-7',
+    earned_at: now,
+    is_notified: true,
+  },
+  {
+    id: 'ub-4',
+    user_id: 'demo-user',
+    badge_id: 'badge-21',
+    earned_at: now,
+    is_notified: true,
+  },
+  {
+    id: 'ub-5',
+    user_id: 'demo-user',
+    badge_id: 'badge-23',
+    earned_at: now,
+    is_notified: true,
+  },
 ];
 
 let demoChallenges: Challenge[] = buildDemoChallenges();
@@ -129,10 +150,10 @@ let demoXpTransactions: XpTransaction[] = [
 ];
 
 let demoProfile: Pick<Profile, 'xp' | 'level' | 'streak_count' | 'longest_streak' | 'financial_health_score'> = {
-  xp: 160,
-  level: 2,
-  streak_count: 5,
-  longest_streak: 5,
+  xp: 4200,
+  level: 8,
+  streak_count: 18,
+  longest_streak: 24,
   financial_health_score: 72,
 };
 
@@ -264,59 +285,68 @@ export async function performCheckin(userId: string): Promise<CheckinResult> {
     };
   }
 
-  // --- Live Supabase mode ---
-  const todayStr = new Date().toISOString().slice(0, 10);
+  // --- Live Supabase mode (falls back to demo on failure) ---
+  try {
+    const todayStr = new Date().toISOString().slice(0, 10);
 
-  // Check if already checked in today
-  const { data: existingXp } = await supabase
-    .from('xp_transactions')
-    .select('id')
-    .eq('user_id', userId)
-    .eq('source', 'checkin')
-    .gte('created_at', `${todayStr}T00:00:00Z`)
-    .lte('created_at', `${todayStr}T23:59:59Z`)
-    .limit(1);
+    // Check if already checked in today
+    const { data: existingXp } = await supabase
+      .from('xp_transactions')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('source', 'checkin')
+      .gte('created_at', `${todayStr}T00:00:00Z`)
+      .lte('created_at', `${todayStr}T23:59:59Z`)
+      .limit(1);
 
-  if (existingXp && existingXp.length > 0) {
-    const { data: prof } = await supabase
-      .from('profiles')
-      .select('streak_count')
-      .eq('id', userId)
+    if (existingXp && existingXp.length > 0) {
+      const { data: prof } = await supabase
+        .from('profiles')
+        .select('streak_count')
+        .eq('id', userId)
+        .single();
+      return {
+        xp_earned: 0,
+        streak_count: prof?.streak_count ?? 0,
+        badges_earned: [],
+      };
+    }
+
+    // Update streak
+    const { data: activeStreak } = await supabase
+      .from('streak_history')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('streak_type', 'daily_checkin')
+      .eq('is_active', true)
+      .order('created_at', { ascending: false })
+      .limit(1)
       .single();
-    return {
-      xp_earned: 0,
-      streak_count: prof?.streak_count ?? 0,
-      badges_earned: [],
-    };
-  }
 
-  // Update streak
-  const { data: activeStreak } = await supabase
-    .from('streak_history')
-    .select('*')
-    .eq('user_id', userId)
-    .eq('streak_type', 'daily_checkin')
-    .eq('is_active', true)
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .single();
-
-  if (activeStreak) {
-    // Extend if the last recorded date was yesterday or today
-    const lastDate = activeStreak.end_date ?? activeStreak.start_date;
-    const yesterday = shiftDate(todayStr, -1);
-    if (lastDate === todayStr || lastDate === yesterday) {
-      const newLength = activeStreak.length + 1;
-      await supabase
-        .from('streak_history')
-        .update({ length: newLength, end_date: todayStr })
-        .eq('id', activeStreak.id);
+    if (activeStreak) {
+      const lastDate = activeStreak.end_date ?? activeStreak.start_date;
+      const yesterday = shiftDate(todayStr, -1);
+      if (lastDate === todayStr || lastDate === yesterday) {
+        const newLength = activeStreak.length + 1;
+        await supabase
+          .from('streak_history')
+          .update({ length: newLength, end_date: todayStr })
+          .eq('id', activeStreak.id);
+      } else {
+        await supabase
+          .from('streak_history')
+          .update({ is_active: false, end_date: lastDate })
+          .eq('id', activeStreak.id);
+        await supabase.from('streak_history').insert({
+          user_id: userId,
+          streak_type: 'daily_checkin',
+          start_date: todayStr,
+          end_date: todayStr,
+          length: 1,
+          is_active: true,
+        });
+      }
     } else {
-      // Streak broken - deactivate old, start new
-      await supabase
-        .from('streak_history')
-        .update({ is_active: false, end_date: lastDate })
-        .eq('id', activeStreak.id);
       await supabase.from('streak_history').insert({
         user_id: userId,
         streak_type: 'daily_checkin',
@@ -326,47 +356,57 @@ export async function performCheckin(userId: string): Promise<CheckinResult> {
         is_active: true,
       });
     }
-  } else {
-    await supabase.from('streak_history').insert({
-      user_id: userId,
-      streak_type: 'daily_checkin',
-      start_date: todayStr,
-      end_date: todayStr,
-      length: 1,
-      is_active: true,
-    });
-  }
 
-  // Increment streak_count on profile
-  const { data: currentProfile } = await supabase
-    .from('profiles')
-    .select('streak_count, longest_streak')
-    .eq('id', userId)
-    .single();
+    // Increment streak_count on profile
+    const { data: currentProfile } = await supabase
+      .from('profiles')
+      .select('streak_count, longest_streak')
+      .eq('id', userId)
+      .single();
 
-  const newStreakCount = (currentProfile?.streak_count ?? 0) + 1;
-  const newLongest = Math.max(newStreakCount, currentProfile?.longest_streak ?? 0);
+    const newStreakCount = (currentProfile?.streak_count ?? 0) + 1;
+    const newLongest = Math.max(newStreakCount, currentProfile?.longest_streak ?? 0);
 
-  await supabase
-    .from('profiles')
-    .update({
+    await supabase
+      .from('profiles')
+      .update({
+        streak_count: newStreakCount,
+        longest_streak: newLongest,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', userId);
+
+    // Award XP
+    await awardXP(userId, XP_CHECKIN, 'checkin', undefined, 'Daily check-in');
+
+    // Evaluate badges
+    const badgesEarned = await evaluateBadges(userId);
+
+    return {
+      xp_earned: XP_CHECKIN,
       streak_count: newStreakCount,
-      longest_streak: newLongest,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', userId);
+      badges_earned: badgesEarned,
+    };
+  } catch {
+    // Supabase tables may not exist — fall back to demo check-in
+    if (demoCheckinToday) {
+      return { xp_earned: 0, streak_count: demoProfile.streak_count, badges_earned: [] };
+    }
 
-  // Award XP
-  await awardXP(userId, XP_CHECKIN, 'checkin', undefined, 'Daily check-in');
+    demoCheckinToday = true;
+    demoProfile.streak_count += 1;
+    if (demoProfile.streak_count > demoProfile.longest_streak) {
+      demoProfile.longest_streak = demoProfile.streak_count;
+    }
+    demoProfile.xp += XP_CHECKIN;
+    demoProfile.level = calculateLevel(demoProfile.xp);
 
-  // Evaluate badges
-  const badgesEarned = await evaluateBadges(userId);
-
-  return {
-    xp_earned: XP_CHECKIN,
-    streak_count: newStreakCount,
-    badges_earned: badgesEarned,
-  };
+    return {
+      xp_earned: XP_CHECKIN,
+      streak_count: demoProfile.streak_count,
+      badges_earned: [],
+    };
+  }
 }
 
 // ============================================================
@@ -644,14 +684,18 @@ export async function getChallengeTemplates(): Promise<Challenge[]> {
     return demoChallenges.filter((c) => c.is_template);
   }
 
-  const { data, error } = await supabase
-    .from('challenges')
-    .select('*')
-    .eq('is_template', true)
-    .order('created_at', { ascending: true });
+  try {
+    const { data, error } = await supabase
+      .from('challenges')
+      .select('*')
+      .eq('is_template', true)
+      .order('created_at', { ascending: true });
 
-  if (error) throw new Error(`getChallengeTemplates failed: ${error.message}`);
-  return (data ?? []) as Challenge[];
+    if (error || !data || data.length === 0) return demoChallenges.filter((c) => c.is_template);
+    return data as Challenge[];
+  } catch {
+    return demoChallenges.filter((c) => c.is_template);
+  }
 }
 
 /**
@@ -664,7 +708,8 @@ export async function createChallengeFromTemplate(
 ): Promise<Challenge> {
   const startDate = startsAt ?? new Date().toISOString();
 
-  if (isDemoMode()) {
+  // Helper: create locally from demo templates
+  const createLocal = (): Challenge => {
     const template = demoChallenges.find((c) => c.id === templateId);
     if (!template) throw new Error('Template not found');
 
@@ -683,39 +728,44 @@ export async function createChallengeFromTemplate(
     };
     demoChallenges.push(instance);
     return instance;
+  };
+
+  if (isDemoMode()) return createLocal();
+
+  try {
+    const { data: template, error: tErr } = await supabase
+      .from('challenges')
+      .select('*')
+      .eq('id', templateId)
+      .single();
+    if (tErr || !template) return createLocal();
+
+    const endDate = new Date(
+      new Date(startDate).getTime() + template.duration_days * 86400000,
+    ).toISOString();
+
+    const { data: instance, error: iErr } = await supabase
+      .from('challenges')
+      .insert({
+        creator_id: userId,
+        title: template.title,
+        description: template.description,
+        challenge_type: template.challenge_type,
+        duration_days: template.duration_days,
+        goal: template.goal,
+        reward_xp: template.reward_xp,
+        is_template: false,
+        starts_at: startDate,
+        ends_at: endDate,
+      })
+      .select()
+      .single();
+
+    if (iErr || !instance) return createLocal();
+    return instance as Challenge;
+  } catch {
+    return createLocal();
   }
-
-  // Fetch template
-  const { data: template, error: tErr } = await supabase
-    .from('challenges')
-    .select('*')
-    .eq('id', templateId)
-    .single();
-  if (tErr || !template) throw new Error('Template not found');
-
-  const endDate = new Date(
-    new Date(startDate).getTime() + template.duration_days * 86400000,
-  ).toISOString();
-
-  const { data: instance, error: iErr } = await supabase
-    .from('challenges')
-    .insert({
-      creator_id: userId,
-      title: template.title,
-      description: template.description,
-      challenge_type: template.challenge_type,
-      duration_days: template.duration_days,
-      goal: template.goal,
-      reward_xp: template.reward_xp,
-      is_template: false,
-      starts_at: startDate,
-      ends_at: endDate,
-    })
-    .select()
-    .single();
-
-  if (iErr) throw new Error(`createChallengeFromTemplate failed: ${iErr.message}`);
-  return instance as Challenge;
 }
 
 /**
@@ -837,26 +887,31 @@ export async function completeChallenge(
 export async function getActiveChallenges(
   userId: string,
 ): Promise<(ChallengeParticipant & { challenge?: Challenge })[]> {
-  if (isDemoMode()) {
-    return demoParticipants
+  const demoFallback = () =>
+    demoParticipants
       .filter((p) => p.user_id === userId && p.status === 'active')
       .map((p) => ({
         ...p,
         challenge: demoChallenges.find((c) => c.id === p.challenge_id),
       }));
+
+  if (isDemoMode()) return demoFallback();
+
+  try {
+    const { data, error } = await supabase
+      .from('challenge_participants')
+      .select('*, challenges(*)')
+      .eq('user_id', userId)
+      .eq('status', 'active');
+
+    if (error || !data) return demoFallback();
+    return data.map((row: Record<string, unknown>) => ({
+      ...(row as unknown as ChallengeParticipant),
+      challenge: row.challenges as unknown as Challenge | undefined,
+    }));
+  } catch {
+    return demoFallback();
   }
-
-  const { data, error } = await supabase
-    .from('challenge_participants')
-    .select('*, challenges(*)')
-    .eq('user_id', userId)
-    .eq('status', 'active');
-
-  if (error) throw new Error(`getActiveChallenges failed: ${error.message}`);
-  return (data ?? []).map((row: Record<string, unknown>) => ({
-    ...(row as unknown as ChallengeParticipant),
-    challenge: row.challenges as unknown as Challenge | undefined,
-  }));
 }
 
 /**
@@ -924,76 +979,89 @@ export async function getLeaderboard(options?: {
     return filtered;
   }
 
-  if (challengeId) {
-    // Challenge-specific: ranked by XP among participants
+  // Build demo leaderboard for fallback
+  const demoEntries: LeaderboardEntry[] = [
+    { user_id: 'demo-user', display_name: 'You', avatar_url: null, xp: demoProfile.xp, level: demoProfile.level, rank: 1 },
+    { user_id: 'demo-friend-1', display_name: 'Alex', avatar_url: null, xp: 120, level: 2, rank: 2 },
+    { user_id: 'demo-friend-2', display_name: 'Jordan', avatar_url: null, xp: 80, level: 1, rank: 3 },
+    { user_id: 'demo-friend-3', display_name: 'Riley', avatar_url: null, xp: 200, level: 3, rank: 4 },
+    { user_id: 'demo-friend-4', display_name: 'Morgan', avatar_url: null, xp: 50, level: 1, rank: 5 },
+  ];
+  const demoLeaderboard = () => {
+    const sorted = [...demoEntries].sort((a, b) => b.xp - a.xp);
+    sorted.forEach((e, i) => (e.rank = i + 1));
+    return sorted;
+  };
+
+  try {
+    if (challengeId) {
+      const { data, error } = await supabase
+        .from('challenge_participants')
+        .select('user_id, profiles(display_name, avatar_url, xp, level)')
+        .eq('challenge_id', challengeId)
+        .order('joined_at', { ascending: true });
+
+      if (error || !data || data.length === 0) return demoLeaderboard();
+
+      const entries: LeaderboardEntry[] = data.map(
+        (row: Record<string, unknown>, index: number) => {
+          const profile = row.profiles as Record<string, unknown> | null;
+          return {
+            user_id: row.user_id as string,
+            display_name: (profile?.display_name as string) ?? 'Unknown',
+            avatar_url: (profile?.avatar_url as string | null) ?? null,
+            xp: (profile?.xp as number) ?? 0,
+            level: (profile?.level as number) ?? 1,
+            rank: index + 1,
+          };
+        },
+      );
+
+      entries.sort((a, b) => b.xp - a.xp);
+      entries.forEach((e, i) => (e.rank = i + 1));
+      return entries;
+    }
+
+    if (scope === 'friends' && friendIds && friendIds.length > 0) {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, display_name, avatar_url, xp, level')
+        .in('id', friendIds)
+        .order('xp', { ascending: false });
+
+      if (error || !data || data.length === 0) return demoLeaderboard();
+
+      const entries: LeaderboardEntry[] = data.map((row: Record<string, unknown>, index: number) => ({
+        user_id: row.id as string,
+        display_name: (row.display_name as string) ?? 'Unknown',
+        avatar_url: (row.avatar_url as string | null) ?? null,
+        xp: (row.xp as number) ?? 0,
+        level: (row.level as number) ?? 1,
+        rank: index + 1,
+      }));
+
+      entries.sort((a, b) => b.xp - a.xp);
+      entries.forEach((e, i) => (e.rank = i + 1));
+      return entries;
+    }
+
+    // Global leaderboard
     const { data, error } = await supabase
-      .from('challenge_participants')
-      .select('user_id, profiles(display_name, avatar_url, xp, level)')
-      .eq('challenge_id', challengeId)
-      .order('joined_at', { ascending: true });
+      .rpc('get_global_leaderboard', { result_limit: 50 });
 
-    if (error) throw new Error(`getLeaderboard failed: ${error.message}`);
+    if (error || !data || data.length === 0) return demoLeaderboard();
 
-    const entries: LeaderboardEntry[] = (data ?? []).map(
-      (row: Record<string, unknown>, index: number) => {
-        const profile = row.profiles as Record<string, unknown> | null;
-        return {
-          user_id: row.user_id as string,
-          display_name: (profile?.display_name as string) ?? 'Unknown',
-          avatar_url: (profile?.avatar_url as string | null) ?? null,
-          xp: (profile?.xp as number) ?? 0,
-          level: (profile?.level as number) ?? 1,
-          rank: index + 1,
-        };
-      },
-    );
-
-    entries.sort((a, b) => b.xp - a.xp);
-    entries.forEach((e, i) => (e.rank = i + 1));
-    return entries;
-  }
-
-  // Friends-scoped leaderboard
-  if (scope === 'friends' && friendIds && friendIds.length > 0) {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('id, display_name, avatar_url, xp, level')
-      .in('id', friendIds)
-      .order('xp', { ascending: false });
-
-    if (error) throw new Error(`getLeaderboard failed: ${error.message}`);
-
-    const entries: LeaderboardEntry[] = (data ?? []).map((row: Record<string, unknown>, index: number) => ({
-      user_id: row.id as string,
+    return data.map((row: Record<string, unknown>, index: number) => ({
+      user_id: row.user_id as string,
       display_name: (row.display_name as string) ?? 'Unknown',
       avatar_url: (row.avatar_url as string | null) ?? null,
       xp: (row.xp as number) ?? 0,
       level: (row.level as number) ?? 1,
       rank: index + 1,
     }));
-
-    entries.sort((a, b) => b.xp - a.xp);
-    entries.forEach((e, i) => (e.rank = i + 1));
-    return entries;
+  } catch {
+    return demoLeaderboard();
   }
-
-  // Global leaderboard
-  const { data, error } = await supabase
-    .from('profiles')
-    .select('id, display_name, avatar_url, xp, level')
-    .order('xp', { ascending: false })
-    .limit(50);
-
-  if (error) throw new Error(`getLeaderboard failed: ${error.message}`);
-
-  return (data ?? []).map((row: Record<string, unknown>, index: number) => ({
-    user_id: row.id as string,
-    display_name: (row.display_name as string) ?? 'Unknown',
-    avatar_url: (row.avatar_url as string | null) ?? null,
-    xp: (row.xp as number) ?? 0,
-    level: (row.level as number) ?? 1,
-    rank: index + 1,
-  }));
 }
 
 // ============================================================
@@ -1006,13 +1074,17 @@ export async function getLeaderboard(options?: {
 export async function fetchAllBadges(): Promise<Badge[]> {
   if (isDemoMode()) return demoBadges;
 
-  const { data, error } = await supabase
-    .from('badges')
-    .select('*')
-    .order('tier', { ascending: true });
+  try {
+    const { data, error } = await supabase
+      .from('badges')
+      .select('*')
+      .order('tier', { ascending: true });
 
-  if (error) throw new Error(`fetchAllBadges failed: ${error.message}`);
-  return (data ?? []) as Badge[];
+    if (error || !data || data.length === 0) return demoBadges;
+    return data as Badge[];
+  } catch {
+    return demoBadges;
+  }
 }
 
 /**
@@ -1023,14 +1095,18 @@ export async function fetchUserBadges(userId: string): Promise<UserBadge[]> {
     return demoUserBadges.filter((ub) => ub.user_id === userId);
   }
 
-  const { data, error } = await supabase
-    .from('user_badges')
-    .select('*')
-    .eq('user_id', userId)
-    .order('earned_at', { ascending: false });
+  try {
+    const { data, error } = await supabase
+      .from('user_badges')
+      .select('*')
+      .eq('user_id', userId)
+      .order('earned_at', { ascending: false });
 
-  if (error) throw new Error(`fetchUserBadges failed: ${error.message}`);
-  return (data ?? []) as UserBadge[];
+    if (error || !data) return demoUserBadges.filter((ub) => ub.user_id === userId);
+    return data as UserBadge[];
+  } catch {
+    return demoUserBadges.filter((ub) => ub.user_id === userId);
+  }
 }
 
 /**
@@ -1041,14 +1117,18 @@ export async function fetchGamificationProfile(
 ): Promise<Pick<Profile, 'xp' | 'level' | 'streak_count' | 'longest_streak' | 'financial_health_score'>> {
   if (isDemoMode()) return { ...demoProfile };
 
-  const { data, error } = await supabase
-    .from('profiles')
-    .select('xp, level, streak_count, longest_streak, financial_health_score')
-    .eq('id', userId)
-    .single();
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('xp, level, streak_count, longest_streak, financial_health_score')
+      .eq('id', userId)
+      .single();
 
-  if (error) throw new Error(`fetchGamificationProfile failed: ${error.message}`);
-  return data as Pick<Profile, 'xp' | 'level' | 'streak_count' | 'longest_streak' | 'financial_health_score'>;
+    if (error || !data) return { ...demoProfile };
+    return data as Pick<Profile, 'xp' | 'level' | 'streak_count' | 'longest_streak' | 'financial_health_score'>;
+  } catch {
+    return { ...demoProfile };
+  }
 }
 
 /**
@@ -1062,15 +1142,27 @@ export async function fetchXpHistory(userId: string, limit = 50): Promise<XpTran
       .slice(0, limit);
   }
 
-  const { data, error } = await supabase
-    .from('xp_transactions')
-    .select('*')
-    .eq('user_id', userId)
-    .order('created_at', { ascending: false })
-    .limit(limit);
+  try {
+    const { data, error } = await supabase
+      .from('xp_transactions')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(limit);
 
-  if (error) throw new Error(`fetchXpHistory failed: ${error.message}`);
-  return (data ?? []) as XpTransaction[];
+    if (error || !data) {
+      return demoXpTransactions
+        .filter((t) => t.user_id === userId)
+        .sort((a, b) => b.created_at.localeCompare(a.created_at))
+        .slice(0, limit);
+    }
+    return data as XpTransaction[];
+  } catch {
+    return demoXpTransactions
+      .filter((t) => t.user_id === userId)
+      .sort((a, b) => b.created_at.localeCompare(a.created_at))
+      .slice(0, limit);
+  }
 }
 
 // ============================================================
@@ -1087,10 +1179,10 @@ export function getDemoCheckinStatus() {
 
 export function resetDemoState() {
   demoProfile = {
-    xp: 160,
-    level: 2,
-    streak_count: 5,
-    longest_streak: 5,
+    xp: 4200,
+    level: 8,
+    streak_count: 18,
+    longest_streak: 24,
     financial_health_score: 72,
   };
   demoCheckinToday = false;
@@ -1106,6 +1198,27 @@ export function resetDemoState() {
       id: 'ub-2',
       user_id: 'demo-user',
       badge_id: 'badge-11',
+      earned_at: now,
+      is_notified: true,
+    },
+    {
+      id: 'ub-3',
+      user_id: 'demo-user',
+      badge_id: 'badge-7',
+      earned_at: now,
+      is_notified: true,
+    },
+    {
+      id: 'ub-4',
+      user_id: 'demo-user',
+      badge_id: 'badge-21',
+      earned_at: now,
+      is_notified: true,
+    },
+    {
+      id: 'ub-5',
+      user_id: 'demo-user',
+      badge_id: 'badge-23',
       earned_at: now,
       is_notified: true,
     },

@@ -161,7 +161,7 @@ export default function TabsLayout() {
       />
       <Tabs.Screen
         name="arena"
-        options={{ title: 'Arena' }}
+        options={{ title: 'Friend' }}
       />
       <Tabs.Screen
         name="insights"

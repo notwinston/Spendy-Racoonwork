@@ -521,10 +521,41 @@ export async function createFriendChallenge(
     return challenge;
   }
 
-  // Create challenge instance
-  const { data: challenge, error: cErr } = await supabase
-    .from('challenges')
-    .insert({
+  // Try Supabase, fall back to demo-style local creation
+  try {
+    const { data: challenge, error: cErr } = await supabase
+      .from('challenges')
+      .insert({
+        creator_id: userId,
+        title: template.title,
+        description: template.description,
+        challenge_type: 'friend',
+        duration_days: template.duration,
+        goal: {},
+        reward_xp: template.reward_xp,
+        is_template: false,
+        starts_at: startsAt,
+        ends_at: endsAt,
+      })
+      .select()
+      .single();
+
+    if (cErr || !challenge) throw cErr;
+
+    const challengeData = challenge as Challenge;
+
+    await supabase
+      .from('challenge_participants')
+      .insert([
+        { challenge_id: challengeData.id, user_id: userId, status: 'active', progress: {} },
+        { challenge_id: challengeData.id, user_id: friendId, status: 'active', progress: {} },
+      ]);
+
+    return challengeData;
+  } catch {
+    // Fallback: create locally like demo mode
+    const challenge: Challenge = {
+      id: `fc-${Date.now()}`,
       creator_id: userId,
       title: template.title,
       description: template.description,
@@ -535,25 +566,25 @@ export async function createFriendChallenge(
       is_template: false,
       starts_at: startsAt,
       ends_at: endsAt,
-    })
-    .select()
-    .single();
+      created_at: startsAt,
+    };
 
-  if (cErr) throw new Error(`createFriendChallenge failed: ${cErr.message}`);
+    getDemoChallenges().push(challenge);
 
-  const challengeData = challenge as Challenge;
+    const participantBase: Omit<ChallengeParticipant, 'id' | 'user_id'> = {
+      challenge_id: challenge.id,
+      progress: { days_completed: 0 },
+      status: 'active',
+      joined_at: startsAt,
+      completed_at: null,
+    };
+    getDemoParticipants().push(
+      { ...participantBase, id: `cp-fc-${Date.now()}-1`, user_id: userId },
+      { ...participantBase, id: `cp-fc-${Date.now()}-2`, user_id: friendId },
+    );
 
-  // Add both participants
-  const { error: pErr } = await supabase
-    .from('challenge_participants')
-    .insert([
-      { challenge_id: challengeData.id, user_id: userId, status: 'active', progress: {} },
-      { challenge_id: challengeData.id, user_id: friendId, status: 'active', progress: {} },
-    ]);
-
-  if (pErr) throw new Error(`createFriendChallenge participants failed: ${pErr.message}`);
-
-  return challengeData;
+    return challenge;
+  }
 }
 
 // ============================================================

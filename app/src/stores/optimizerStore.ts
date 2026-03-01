@@ -263,16 +263,16 @@ function makeDemoProfile(): FinancialProfile {
   const nextFriday = addDays(now, daysToFriday);
 
   return {
-    incomeAmount: 3200,
-    incomeFrequency: 'biweekly',
+    incomeAmount: 4200,
+    incomeFrequency: 'monthly' as IncomeFrequency,
     nextPayDate: nextFriday.toISOString().split('T')[0],
     emergencyFundTarget: 10000,
     safetyBufferPercent: 10,
     fixedBills: [
-      { name: 'Rent', amount: 1450, dayOfMonth: 1, category: 'bills' },
+      { name: 'Rent', amount: 1200, dayOfMonth: 1, category: 'bills' },
       { name: 'Internet', amount: 65, dayOfMonth: 15, category: 'bills' },
       { name: 'Phone', amount: 45, dayOfMonth: 20, category: 'bills' },
-      { name: 'Insurance', amount: 180, dayOfMonth: 28, category: 'bills' },
+      { name: 'Insurance', amount: 130, dayOfMonth: 28, category: 'bills' },
     ],
   };
 }

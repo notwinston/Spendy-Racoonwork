@@ -111,6 +111,7 @@ export default function LoginScreen() {
         email: persona.email,
         displayName: persona.name,
         friendCode: persona.persona === 'sarah' ? 'SARAH2026' : 'MARC2026',
+        monthlyIncome: 4200,
         xp: persona.xp,
         level: persona.level,
         streakCount: persona.streak,

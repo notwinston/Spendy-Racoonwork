@@ -56,6 +56,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           email,
           displayName,
           friendCode: 'DEMO1234',
+          monthlyIncome: 4200,
           xp: 0,
           level: 1,
           streakCount: 0,
@@ -131,9 +132,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           email,
           displayName: email.split('@')[0],
           friendCode: 'DEMO1234',
-          xp: 150,
-          level: 2,
-          streakCount: 3,
+          monthlyIncome: 4200,
+          xp: 4200,
+          level: 8,
+          streakCount: 18,
         };
         set({ user: demoUser, isLoading: false, isOnboarded: true });
         return true;

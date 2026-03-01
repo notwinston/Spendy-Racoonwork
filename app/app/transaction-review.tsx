@@ -158,6 +158,15 @@ export default function TransactionReviewScreen() {
     });
   }, [unreviewedTransactions, selectedCategory, localUpdates]);
 
+  const eventDateMap = useMemo(() => {
+    const map = new Map<string, (typeof events)[number]>();
+    for (const e of events) {
+      const key = new Date(e.start_time).toDateString();
+      if (!map.has(key)) map.set(key, e);
+    }
+    return map;
+  }, [events]);
+
   const getTransaction = useCallback(
     (txn: Transaction): Transaction => {
       const updates = localUpdates.get(txn.id);
@@ -383,9 +392,7 @@ export default function TransactionReviewScreen() {
               {/* Event Link */}
               {(() => {
                 const txnDate = new Date(txn.date).toDateString();
-                const linkedEvent = events.find(
-                  (e) => new Date(e.start_time).toDateString() === txnDate
-                );
+                const linkedEvent = eventDateMap.get(txnDate);
                 if (!linkedEvent) return null;
                 return (
                   <View style={styles.eventLinkRow}>

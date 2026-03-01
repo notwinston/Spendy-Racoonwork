@@ -8,6 +8,7 @@ import { MonthComparison } from '../MonthComparison';
 import type { TrendDataPoint } from '../charts';
 import { useTransactionStore, getMonthlyTotals, getCategoryMoM } from '../../stores/transactionStore';
 import { useBudgetStore } from '../../stores/budgetStore';
+import { useAuthStore } from '../../stores/authStore';
 import { useInsightsMonthStore, getDisplayLabel } from '../../stores/insightsMonthStore';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
@@ -35,6 +36,7 @@ type BreakdownView = 'net' | 'breakdown';
 export function InsightsTrends() {
   const { transactions } = useTransactionStore();
   const { totalBudget } = useBudgetStore();
+  const user = useAuthStore((s) => s.user);
   const selectedMonth = useInsightsMonthStore((s) => s.selectedMonth);
 
   const [timePeriod, setTimePeriod] = useState<TimePeriod>('monthly');
@@ -90,7 +92,7 @@ export function InsightsTrends() {
   }, [trendData]);
 
   // ---------- Widget 2: Net Income / Spending Breakdown Toggle ----------
-  const mockIncome = 4200;
+  const income = user?.monthlyIncome ?? totalBudget * 1.3;
 
   const netIncomeData = useMemo(() => {
     const months = 6;
@@ -109,7 +111,7 @@ export function InsightsTrends() {
 
       result.push({
         label: monthNames[monthDate.getMonth()],
-        value: Math.round((mockIncome - spending) * 100) / 100,
+        value: Math.round((income - spending) * 100) / 100,
       });
     }
     return result;

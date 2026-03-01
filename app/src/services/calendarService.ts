@@ -385,13 +385,10 @@ export async function loadDemoCalendarData(
   }));
 
   if (isSupabaseConfigured) {
-    const rows = events.map(({ id: _id, ...rest }) => rest);
-    const { error } = await supabase
-      .from('calendar_events')
-      .insert(rows);
-    if (error) {
-      console.warn('Supabase insert error (demo calendar):', error.message);
-    }
+    try {
+      const rows = events.map(({ id: _id, ...rest }) => rest);
+      await supabase.from('calendar_events').insert(rows);
+    } catch { /* tables may not exist yet */ }
   }
 
   return events;

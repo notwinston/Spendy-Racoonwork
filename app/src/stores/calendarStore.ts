@@ -127,8 +127,15 @@ export const useCalendarStore = create<CalendarState>((set, get) => ({
   loadDemoData: async (userId: string, persona?: 'sarah' | 'marcus') => {
     set({ isLoading: true });
     try {
-      const events = await loadDemoCalendarData(userId, persona);
-      set({ events });
+      const newEvents = await loadDemoCalendarData(userId, persona);
+      // Merge with existing events, avoiding duplicates by title + start_time
+      const existing = get().events;
+      const existingKeys = new Set(existing.map((e) => `${e.title}|${e.start_time}`));
+      const merged = [
+        ...existing,
+        ...newEvents.filter((e) => !existingKeys.has(`${e.title}|${e.start_time}`)),
+      ];
+      set({ events: merged });
     } catch (err) {
       console.warn('loadDemoData error:', err);
     } finally {

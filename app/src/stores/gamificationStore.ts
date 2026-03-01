@@ -159,36 +159,31 @@ export const useGamificationStore = create<GamificationState>((set, get) => ({
   },
 
   performCheckin: async (userId: string) => {
-    set({ isLoading: true, error: null });
+    set({ error: null });
     try {
       const result = await svcPerformCheckin(userId);
-      // Refresh profile from latest data
-      const data = await fetchGamificationProfile(userId);
+      const prev = get().profile;
       set({
         profile: {
-          xp: data.xp,
-          level: data.level,
-          streakCount: data.streak_count,
-          longestStreak: data.longest_streak,
-          healthScore: data.financial_health_score,
+          ...prev,
+          xp: prev.xp + result.xp_earned,
+          level: calculateLevel(prev.xp + result.xp_earned),
+          streakCount: result.streak_count,
+          longestStreak: Math.max(prev.longestStreak, result.streak_count),
         },
         dailyCheckinDone: true,
-        isLoading: false,
       });
 
-      // If any new badges, refresh them
+      // Refresh badges in background if new ones earned
       if (result.badges_earned.length > 0) {
-        const allBadges = await fetchAllBadges();
-        const userBadges = await fetchUserBadges(userId);
-        set({ badges: allBadges, earnedBadges: userBadges });
+        Promise.all([fetchAllBadges(), fetchUserBadges(userId)])
+          .then(([allBadges, userBadges]) => set({ badges: allBadges, earnedBadges: userBadges }))
+          .catch(() => {});
       }
 
       return result;
     } catch (err) {
-      set({
-        error: err instanceof Error ? err.message : 'Check-in failed',
-        isLoading: false,
-      });
+      set({ error: err instanceof Error ? err.message : 'Check-in failed' });
       return { xp_earned: 0, streak_count: get().profile.streakCount, badges_earned: [] };
     }
   },
@@ -201,11 +196,12 @@ export const useGamificationStore = create<GamificationState>((set, get) => ({
         fetchUserBadges(userId),
       ]);
       set({ badges: allBadges, earnedBadges: userBadges, isLoading: false });
-    } catch (err) {
-      set({
-        error: err instanceof Error ? err.message : 'Failed to fetch badges',
-        isLoading: false,
-      });
+    } catch {
+      // Fallback: service functions already return demo data on failure,
+      // but if something else goes wrong, ensure we still have badges
+      const allBadges = await fetchAllBadges().catch(() => [] as Badge[]);
+      const userBadges = await fetchUserBadges(userId).catch(() => [] as UserBadge[]);
+      set({ badges: allBadges, earnedBadges: userBadges, isLoading: false });
     }
   },
 
@@ -360,7 +356,7 @@ export const RANK_TIERS = [
   { name: 'Silver', minRate: 5, maxRate: 15, color: '#94A3B8', badge: '\u{1F948}', label: 'On Track' },
   { name: 'Gold', minRate: 15, maxRate: 25, color: '#F59E0B', badge: '\u{1F947}', label: 'Saver' },
   { name: 'Platinum', minRate: 25, maxRate: 40, color: '#3B82F6', badge: '\u{1F48E}', label: 'Super Saver' },
-  { name: 'Diamond', minRate: 40, maxRate: 100, color: '#8B5CF6', badge: '\u{1F537}', label: 'Financial Elite' },
+  { name: 'Diamond', minRate: 40, maxRate: 101, color: '#8B5CF6', badge: '\u{1F537}', label: 'Financial Elite' },
 ] as const;
 
 export function calculateRankTier(savingsRate: number): typeof RANK_TIERS[number] {

@@ -87,8 +87,14 @@ export default function CalendarConnectCard({ userId }: CalendarConnectCardProps
     }
   };
 
-  const handleResync = () => {
-    handleConnect();
+  const handleResync = async () => {
+    setStatus('loading');
+    try {
+      await loadDemoData(userId, 'marcus');
+      setStatus('connected');
+    } catch {
+      setStatus('connected');
+    }
   };
 
   // --- Connected state ---

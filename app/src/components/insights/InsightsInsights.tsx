@@ -219,7 +219,7 @@ export function InsightsInsights() {
 
       {/* Spending Personality */}
       <Text style={styles.sectionTitle}>Spending Personality</Text>
-      <View style={styles.personalityCard}>
+      <GlassCard style={styles.personalityCard}>
         {personality && (
           <View style={styles.personalityRow}>
             <View style={styles.personalityIconBadge}>
@@ -239,7 +239,7 @@ export function InsightsInsights() {
             </View>
           </View>
         )}
-      </View>
+      </GlassCard>
 
       {/* Smart Budget Suggestions */}
       {budgetSuggestions.length > 0 && (
@@ -366,11 +366,6 @@ const styles = StyleSheet.create({
     textAlign: 'right',
   },
   personalityCard: {
-    backgroundColor: Colors.accentBright + '15',
-    borderWidth: 1,
-    borderColor: Colors.accentBright + '30',
-    borderRadius: Spacing.radiusMd ?? 12,
-    padding: Spacing.lg,
     marginBottom: Spacing.md,
   },
   personalityRow: {

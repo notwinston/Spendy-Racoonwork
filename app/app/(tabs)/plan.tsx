@@ -205,8 +205,10 @@ export default function PlanScreen() {
   useEffect(() => {
     if (hasFetchedPredictions.current) return;
     if (events.length > 0 && predictions.length === 0 && !isPredicting) {
+      const now = new Date();
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
       const futureEvents = events.filter(
-        (e) => new Date(e.start_time) >= new Date()
+        (e) => new Date(e.start_time) >= monthStart
       );
       if (futureEvents.length > 0) {
         hasFetchedPredictions.current = true;
@@ -236,8 +238,9 @@ export default function PlanScreen() {
   // Upcoming predictions (future events with predictions, sorted by date)
   const upcomingPredictions = useMemo(() => {
     const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
     const futureEvents = events
-      .filter((e) => new Date(e.start_time) >= now)
+      .filter((e) => new Date(e.start_time) >= monthStart)
       .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime());
 
     return futureEvents

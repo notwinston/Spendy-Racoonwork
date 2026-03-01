@@ -280,8 +280,8 @@ const styles = StyleSheet.create({
   // Raccoon display
   raccoonCard: { alignItems: 'center', paddingVertical: Spacing['2xl'] },
   tapHint: { fontSize: Typography.sizes.xs, color: Colors.textMuted, marginBottom: Spacing.sm },
-  raccoonContainer: { width: 200, height: 200, justifyContent: 'center', alignItems: 'center' },
-  raccoonImage: { width: 200, height: 200 },
+  raccoonContainer: { width: 260, height: 260, justifyContent: 'center', alignItems: 'center' },
+  raccoonImage: { width: 260, height: 260 },
   raccoonPlaceholder: {
     width: 160,
     height: 160,

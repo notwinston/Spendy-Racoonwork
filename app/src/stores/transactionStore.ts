@@ -13,7 +13,7 @@ import {
   syncTransactions,
 } from '../services/plaidService';
 import { createTransactionFromReceipt } from '../services/receiptService';
-import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { supabase, isSupabaseConfigured, isDemoMode } from '../lib/supabase';
 
 interface TransactionState {
   transactions: Transaction[];
@@ -111,14 +111,11 @@ export const useTransactionStore = create<TransactionState>((set, get) => ({
       set({ recurringTransactions: recurring });
 
       // Persist recurring to Supabase if configured
-      if (isSupabaseConfigured && recurring.length > 0) {
-        const rows = recurring.map(({ id: _id, ...rest }) => rest);
-        const { error } = await supabase
-          .from('recurring_transactions')
-          .insert(rows);
-        if (error) {
-          console.warn('Supabase recurring insert error:', error.message);
-        }
+      if (isSupabaseConfigured && !isDemoMode() && recurring.length > 0) {
+        try {
+          const rows = recurring.map(({ id: _id, ...rest }) => rest);
+          await supabase.from('recurring_transactions').insert(rows);
+        } catch { /* tables may not exist yet */ }
       }
     } catch (err) {
       console.warn('loadDemoData error:', err);

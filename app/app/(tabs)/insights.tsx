@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo, useRef, useCallback } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { View, Text, ScrollView, StyleSheet, Pressable, LayoutChangeEvent } from 'react-native';
 import Animated, {
   useSharedValue,
@@ -11,7 +11,6 @@ import { Header } from '../../src/components/ui/Header';
 import { FloatingChatButton } from '../../src/components/FloatingChatButton';
 import { useAuthStore } from '../../src/stores/authStore';
 import { useTransactionStore } from '../../src/stores/transactionStore';
-import { useInsightsMonthStore, isCurrentMonth } from '../../src/stores/insightsMonthStore';
 import { MonthSelector } from '../../src/components/insights/MonthSelector';
 
 import { InsightsOverview } from '../../src/components/insights/InsightsOverview';
@@ -23,17 +22,11 @@ import { InsightsInsights } from '../../src/components/insights/InsightsInsights
 const TAB_KEYS = ['overview', 'thisMonth', 'trends', 'savings', 'insights'] as const;
 type TabKey = (typeof TAB_KEYS)[number];
 
-const MONTH_SHORT = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
-];
 
 export default function InsightsScreen() {
   const user = useAuthStore((s) => s.user);
   const { transactions, loadDemoData: loadTxns } = useTransactionStore();
   const userId = user?.id ?? 'demo-user';
-  const selectedMonth = useInsightsMonthStore((s) => s.selectedMonth);
-
   const [activeTab, setActiveTab] = useState<TabKey>('overview');
 
   // Reanimated sliding underline
@@ -70,16 +63,13 @@ export default function InsightsScreen() {
     }
   }, [userId]);
 
-  const tabLabels: Record<TabKey, string> = useMemo(() => {
-    const isCurrent = isCurrentMonth(selectedMonth);
-    return {
-      overview: 'Overview',
-      thisMonth: isCurrent ? 'This Month' : MONTH_SHORT[selectedMonth.month],
-      trends: 'Trends',
-      savings: 'Savings',
-      insights: 'Insights',
-    };
-  }, [selectedMonth.year, selectedMonth.month]);
+  const tabLabels: Record<TabKey, string> = {
+    overview: 'Overview',
+    thisMonth: 'Month',
+    trends: 'Trends',
+    savings: 'Savings',
+    insights: 'Insights',
+  };
 
   const renderTabContent = () => {
     switch (activeTab) {

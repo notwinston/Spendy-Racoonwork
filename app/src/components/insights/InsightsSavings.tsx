@@ -4,6 +4,7 @@ import { Colors, Typography, Spacing } from '../../constants';
 import { GlassCard } from '../ui/GlassCard';
 import { useTransactionStore } from '../../stores/transactionStore';
 import { useBudgetStore } from '../../stores/budgetStore';
+import { useAuthStore } from '../../stores/authStore';
 import { getProjectionScenarios } from '../../utils/financialCalcs';
 import { useInsightsMonthStore, isCurrentMonth, getDisplayLabel } from '../../stores/insightsMonthStore';
 
@@ -30,6 +31,7 @@ function SimpleSlider({
       onLayout={(e) => setTrackWidth(e.nativeEvent.layout.width)}
       onStartShouldSetResponder={() => true}
       onMoveShouldSetResponder={() => true}
+      onResponderTerminationRequest={() => false}
       onResponderGrant={(e) => {
         const { locationX } = e.nativeEvent;
         updateValue(locationX);
@@ -39,8 +41,8 @@ function SimpleSlider({
         updateValue(locationX);
       }}
     >
-      <View style={[sliderStyles.fill, { width: `${pct}%` }]} />
-      <View style={[sliderStyles.thumb, { left: `${pct}%` }]} />
+      <View pointerEvents="none" style={[sliderStyles.fill, { width: `${pct}%` }]} />
+      <View pointerEvents="none" style={[sliderStyles.thumb, { left: `${pct}%` }]} />
     </View>
   );
 
@@ -84,6 +86,7 @@ const sliderStyles = StyleSheet.create({
 export function InsightsSavings() {
   const { transactions } = useTransactionStore();
   const { totalBudget } = useBudgetStore();
+  const user = useAuthStore((s) => s.user);
   const selectedMonth = useInsightsMonthStore((s) => s.selectedMonth);
 
   const isCurrent = isCurrentMonth(selectedMonth);
@@ -100,7 +103,7 @@ export function InsightsSavings() {
       .reduce((sum, t) => sum + Math.abs(t.amount), 0);
   }, [transactions, selectedMonth.year, selectedMonth.month]);
 
-  const mockIncome = 4200;
+  const income = user?.monthlyIncome ?? 4200;
   const monthlySavings = Math.max(0, totalBudget - totalSpent);
   const currentSavings = monthlySavings;
 
@@ -118,9 +121,9 @@ export function InsightsSavings() {
 
   // ---------- Savings Rate ----------
   const savingsRate = useMemo(() => {
-    if (mockIncome <= 0) return 0;
-    return ((mockIncome - totalSpent) / mockIncome) * 100;
-  }, [totalSpent]);
+    if (income <= 0) return 0;
+    return ((income - totalSpent) / income) * 100;
+  }, [income, totalSpent]);
 
   // ---------- Projection Table ----------
   const projectionRows = useMemo(() => {

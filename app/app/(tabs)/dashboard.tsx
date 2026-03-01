@@ -22,6 +22,7 @@ import { FloatingChatButton } from '../../src/components/FloatingChatButton';
 import { SpendingTrajectoryChart } from '../../src/components/SpendingTrajectoryChart';
 import { RankWidget } from '../../src/components/RankWidget';
 import WrappedWidget from '../../src/components/wrapped/WrappedWidget';
+import { DashboardMonthSelector } from '../../src/components/DashboardMonthSelector';
 import { ProgressRing } from '@/components/ui/ProgressRing';
 import { MetricCard } from '@/components/ui/MetricCard';
 import { HealthScoreRing } from '@/components/charts';
@@ -44,6 +45,11 @@ import {
 } from '../../src/stores/budgetStore';
 import { calculateSavingsRate } from '../../src/utils/financialCalcs';
 import { useSocialStore } from '../../src/stores/socialStore';
+import {
+  useDashboardMonthStore,
+  isDashboardCurrentMonth,
+  getDashboardDisplayLabel,
+} from '../../src/stores/dashboardMonthStore';
 
 const CATEGORY_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
   dining: 'restaurant',
@@ -78,11 +84,16 @@ export default function DashboardScreen() {
     computeFromTransactions,
   } = useBudgetStore();
 
+  // Month navigation
+  const selectedMonth = useDashboardMonthStore((s) => s.selectedMonth);
+  const isCurrentMonth = isDashboardCurrentMonth(selectedMonth);
+  const monthLabel = getDashboardDisplayLabel(selectedMonth);
+
   const userId = user?.id ?? 'demo-user';
 
   useEffect(() => {
-    fetchBudgets(userId);
-  }, [userId]);
+    fetchBudgets(userId, selectedMonth);
+  }, [userId, selectedMonth]);
 
   useEffect(() => {
     if (transactions.length === 0) {
@@ -105,9 +116,10 @@ export default function DashboardScreen() {
           category: p.predicted_category,
           predicted_amount: p.predicted_amount,
         })),
+        selectedMonth,
       );
     }
-  }, [budgets.length, transactions.length, predictions.length]);
+  }, [budgets.length, transactions.length, predictions.length, selectedMonth]);
 
   // Generate daily brief when predictions and hidden costs are available
   useEffect(() => {
@@ -196,9 +208,12 @@ export default function DashboardScreen() {
     AsyncStorage.setItem('categorySortPref', pref);
   };
 
+  // Month-aware date computations
   const now = new Date();
-  const dayOfMonth = now.getDate();
-  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  const daysInMonth = new Date(selectedMonth.year, selectedMonth.month + 1, 0).getDate();
+  const dayOfMonth = isCurrentMonth
+    ? now.getDate()
+    : daysInMonth; // Past months: full month elapsed
 
   const remaining = totalBudget - totalSpent;
   const remainingDisplay = Math.max(0, remaining);
@@ -210,16 +225,20 @@ export default function DashboardScreen() {
     return sorted.slice(0, 6);
   }, [budgets, categorySortPref]);
 
-  // New metric computations
-  const spendingVelocity = useMemo(
-    () => calculateSpendingVelocity(transactions),
-    [transactions],
-  );
+  // Spending velocity: computed inline for past months, from store for current
+  const spendingVelocity = useMemo(() => {
+    if (isCurrentMonth) {
+      return calculateSpendingVelocity(transactions);
+    }
+    // Past month: total spent / days in that month
+    return daysInMonth > 0 ? totalSpent / daysInMonth : 0;
+  }, [transactions, isCurrentMonth, totalSpent, daysInMonth]);
 
-  const velocityTrend = useMemo(
-    () => calculateVelocityTrend(transactions),
-    [transactions],
-  );
+  // Velocity trend: 0 for past months
+  const velocityTrend = useMemo(() => {
+    if (!isCurrentMonth) return 0;
+    return calculateVelocityTrend(transactions);
+  }, [transactions, isCurrentMonth]);
 
   const monthlyIncome = user?.monthlyIncome ?? null;
   const savingsRate = useMemo(() => {
@@ -227,53 +246,62 @@ export default function DashboardScreen() {
     return calculateSavingsRate(monthlyIncome, totalSpent);
   }, [monthlyIncome, totalSpent]);
 
-  const cciScore = useMemo(
-    () => calculateCCI(predictions),
-    [predictions],
-  );
+  // CCI: 0 for past months
+  const cciScore = useMemo(() => {
+    if (!isCurrentMonth) return 0;
+    return calculateCCI(predictions);
+  }, [predictions, isCurrentMonth]);
 
   const budgetAdherenceMVP = useMemo(
     () => calculateBudgetAdherenceMVP(totalSpent, totalBudget),
     [totalSpent, totalBudget],
   );
 
-  const spendingStability = useMemo(
-    () => calculateSpendingStability(transactions),
-    [transactions],
-  );
+  // Spending stability: pass referenceDate for past months
+  const spendingStability = useMemo(() => {
+    if (!isCurrentMonth) {
+      const referenceDate = new Date(selectedMonth.year, selectedMonth.month + 1, 0);
+      return calculateSpendingStability(transactions, referenceDate);
+    }
+    return calculateSpendingStability(transactions);
+  }, [transactions, isCurrentMonth, selectedMonth]);
+
+  // Use neutral CCI default (50) when no prediction data exists to avoid
+  // unfairly penalising the health score
+  const cciForHealth = predictions.length === 0 ? 50 : cciScore * 100;
 
   const healthScoreV2 = useMemo(
     () => calculateHealthScoreV2(
       budgetAdherenceMVP,
       Math.max(0, (savingsRate ?? 0) * 100),
       spendingStability,
-      cciScore * 100,
+      cciForHealth,
       user?.streakCount ?? 0,
     ),
-    [budgetAdherenceMVP, savingsRate, spendingStability, cciScore, user?.streakCount],
+    [budgetAdherenceMVP, savingsRate, spendingStability, cciForHealth, user?.streakCount],
   );
 
-  const daysRemaining = daysInMonth - dayOfMonth;
+  const daysRemaining = isCurrentMonth ? daysInMonth - dayOfMonth : 0;
 
   return (
     <AtmosphericBackground variant="dashboard">
       <Header title="Dashboard" />
       <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
-        {/* Daily Brief */}
-        <Animated.View entering={FadeIn.delay(0)}>
-          <DailyBriefCard />
-        </Animated.View>
+        {/* Month Selector */}
+        <DashboardMonthSelector />
 
-        {/* Monthly Wrapped Flashback Widget */}
-        <Animated.View entering={FadeIn.delay(80)}>
-          <WrappedWidget />
-        </Animated.View>
+        {/* Monthly Wrapped Flashback Widget - current month only */}
+        {isCurrentMonth && (
+          <Animated.View entering={FadeIn.delay(0)}>
+            <WrappedWidget />
+          </Animated.View>
+        )}
 
         {/* Hero Budget Card */}
-        <Animated.View entering={FadeIn.delay(160)}>
+        <Animated.View entering={FadeIn.delay(80)}>
           <GlassCard accentEdge="top" accentColor={Colors.accentBright} style={styles.heroCard}>
             <View style={styles.heroBudgetHeader}>
-              <View>
+              <View style={styles.heroBudgetLeft}>
                 <Text style={styles.heroLabel}>Monthly Budget</Text>
                 <View style={styles.heroAmountRow}>
                   <Text style={styles.heroDollarSign}>$</Text>
@@ -283,28 +311,43 @@ export default function DashboardScreen() {
                     suffix=""
                     style={styles.heroDisplayNumber}
                   />
-                  <Text style={styles.heroLeftText}> left</Text>
+                  <Text style={styles.heroLeftText}>{isCurrentMonth ? ' left' : ' remaining'}</Text>
                 </View>
                 <Text style={styles.heroSub}>
                   of <Text style={styles.monoInline}>${totalBudget.toLocaleString(undefined, { maximumFractionDigits: 0 })}</Text> budget
                 </Text>
               </View>
               <View style={styles.daysRemainingBadge}>
-                <Text style={styles.daysRemainingNumber}>{daysRemaining}</Text>
-                <Text style={styles.daysRemainingLabel}>days left</Text>
+                {isCurrentMonth ? (
+                  <>
+                    <Text style={styles.daysRemainingNumber}>{daysRemaining}</Text>
+                    <Text style={styles.daysRemainingLabel}>days left</Text>
+                  </>
+                ) : (
+                  <Text style={styles.daysRemainingLabel}>Month complete</Text>
+                )}
               </View>
             </View>
 
             {/* Spending Trajectory Chart */}
             <SpendingTrajectoryChart
               spent={totalSpent}
-              predicted={totalPredicted > 0 ? totalSpent + totalPredicted : totalSpent * (daysInMonth / Math.max(1, dayOfMonth))}
+              predicted={isCurrentMonth
+                ? (totalPredicted > 0 ? totalSpent + totalPredicted : totalSpent * (daysInMonth / Math.max(1, dayOfMonth)))
+                : totalSpent}
               budget={totalBudget}
               daysElapsed={dayOfMonth}
               totalDays={daysInMonth}
             />
           </GlassCard>
         </Animated.View>
+
+        {/* Daily Brief - current month only */}
+        {isCurrentMonth && (
+          <Animated.View entering={FadeIn.delay(160)}>
+            <DailyBriefCard />
+          </Animated.View>
+        )}
 
         {/* Section Divider: Stats */}
         <View style={styles.sectionDividerContainer}>
@@ -478,7 +521,7 @@ export default function DashboardScreen() {
 
         {/* Rank Widget */}
         <Animated.View entering={FadeIn.delay(300)}>
-          <RankWidget />
+          <RankWidget monthLabel={isCurrentMonth ? undefined : monthLabel} />
         </Animated.View>
       </ScrollView>
       <FloatingChatButton />
@@ -502,6 +545,10 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'flex-start',
     width: '100%',
+  },
+  heroBudgetLeft: {
+    flex: 1,
+    marginRight: Spacing.sm,
   },
   heroLabel: {
     fontFamily: 'DMSans_500Medium',
@@ -547,6 +594,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.xs,
     alignItems: 'center',
     marginTop: Spacing.cardOverlap,
+    flexShrink: 0,
   },
   daysRemainingNumber: {
     fontFamily: 'DMMono_500Medium',
