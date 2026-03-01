@@ -15,6 +15,7 @@ import type {
   NudgeType,
   NotificationPriority,
   FriendWithProfile,
+  Challenge,
 } from '../types';
 
 // ============================================================
@@ -424,6 +425,85 @@ export async function removeFriend(userId: string, friendId: string): Promise<vo
     .eq('friend_id', fid);
 
   if (error) throw new Error(`removeFriend failed: ${error.message}`);
+}
+
+// ============================================================
+// Friend Challenges
+// ============================================================
+
+const FRIEND_CHALLENGE_TEMPLATES = [
+  { id: 'fct-1', title: 'No Eating Out Week', description: 'Avoid restaurants and takeout for a full week', duration: 7, reward_xp: 100 },
+  { id: 'fct-2', title: 'Save $50 This Week', description: 'Cut spending and save at least $50 this week', duration: 7, reward_xp: 150 },
+  { id: 'fct-3', title: 'Budget Streak 7 Days', description: 'Stay under budget every day for a week', duration: 7, reward_xp: 200 },
+];
+
+export { FRIEND_CHALLENGE_TEMPLATES };
+
+/**
+ * Create a friend challenge from a template. Both users are participants.
+ */
+export async function createFriendChallenge(
+  userId: string,
+  friendId: string,
+  templateId: string,
+): Promise<Challenge> {
+  const template = FRIEND_CHALLENGE_TEMPLATES.find((t) => t.id === templateId);
+  if (!template) throw new Error('Challenge template not found');
+
+  const startsAt = new Date().toISOString();
+  const endsAt = new Date(Date.now() + template.duration * 24 * 60 * 60 * 1000).toISOString();
+
+  if (isDemoMode()) {
+    const challenge: Challenge = {
+      id: `fc-${Date.now()}`,
+      creator_id: userId,
+      title: template.title,
+      description: template.description,
+      challenge_type: 'friend',
+      duration_days: template.duration,
+      goal: {},
+      reward_xp: template.reward_xp,
+      is_template: false,
+      starts_at: startsAt,
+      ends_at: endsAt,
+      created_at: startsAt,
+    };
+    return challenge;
+  }
+
+  // Create challenge instance
+  const { data: challenge, error: cErr } = await supabase
+    .from('challenges')
+    .insert({
+      creator_id: userId,
+      title: template.title,
+      description: template.description,
+      challenge_type: 'friend',
+      duration_days: template.duration,
+      goal: {},
+      reward_xp: template.reward_xp,
+      is_template: false,
+      starts_at: startsAt,
+      ends_at: endsAt,
+    })
+    .select()
+    .single();
+
+  if (cErr) throw new Error(`createFriendChallenge failed: ${cErr.message}`);
+
+  const challengeData = challenge as Challenge;
+
+  // Add both participants
+  const { error: pErr } = await supabase
+    .from('challenge_participants')
+    .insert([
+      { challenge_id: challengeData.id, user_id: userId, status: 'active', progress: {} },
+      { challenge_id: challengeData.id, user_id: friendId, status: 'active', progress: {} },
+    ]);
+
+  if (pErr) throw new Error(`createFriendChallenge participants failed: ${pErr.message}`);
+
+  return challengeData;
 }
 
 // ============================================================
