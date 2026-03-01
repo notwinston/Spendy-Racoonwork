@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -11,6 +11,8 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Typography, Spacing } from '../constants';
 import { Card } from './ui/Card';
+import EventCostDropdown from './EventCostDropdown';
+import { usePredictionStore } from '../stores/predictionStore';
 import type { CalendarEvent, SpendingPrediction, EventCategory } from '../types';
 
 const CATEGORY_COLORS: Record<EventCategory, string> = {
@@ -66,6 +68,9 @@ export function DayDetailSheet({
   visible,
   onClose,
 }: DayDetailSheetProps) {
+  const [expandedEventId, setExpandedEventId] = useState<string | null>(null);
+  const { eventCostBreakdowns, dismissHiddenCost, confirmEstimate, confirmedEstimates } = usePredictionStore();
+
   const predictionMap = new Map<string, SpendingPrediction>();
   for (const p of predictions) {
     predictionMap.set(p.calendar_event_id, p);
@@ -121,48 +126,75 @@ export function DayDetailSheet({
               events.map((event) => {
                 const prediction = predictionMap.get(event.id);
                 const dotColor = CATEGORY_COLORS[event.category] ?? Colors.textMuted;
+                const hasBreakdown = !!eventCostBreakdowns[event.id];
 
                 return (
-                  <Card key={event.id} style={styles.eventCard}>
-                    <View style={styles.eventRow}>
-                      <View style={[styles.categoryDot, { backgroundColor: dotColor }]} />
-                      <View style={styles.eventInfo}>
-                        <Text style={styles.eventTitle}>{event.title}</Text>
-                        <Text style={styles.eventTime}>
-                          {formatTime(event.start_time)}
-                          {event.end_time ? ` - ${formatTime(event.end_time)}` : ''}
-                        </Text>
-                        {event.location && (
-                          <Text style={styles.eventLocation}>{event.location}</Text>
-                        )}
-                      </View>
-                      {prediction && (
-                        <Text style={styles.eventAmount}>
-                          ~${prediction.predicted_amount.toFixed(0)}
-                        </Text>
-                      )}
-                    </View>
-
-                    {/* Prediction Card */}
-                    {prediction && (
-                      <View style={styles.predictionCard}>
-                        <View style={styles.predictionRow}>
-                          <Ionicons name="analytics-outline" size={14} color={Colors.accent} />
-                          <Text style={styles.predictionLabel}>
-                            Predicted: ${prediction.predicted_amount.toFixed(2)}
+                  <TouchableOpacity
+                    key={event.id}
+                    activeOpacity={0.7}
+                    onPress={() => setExpandedEventId(prev => prev === event.id ? null : event.id)}
+                  >
+                    <Card style={styles.eventCard}>
+                      <View style={styles.eventRow}>
+                        <View style={[styles.categoryDot, { backgroundColor: dotColor }]} />
+                        <View style={styles.eventInfo}>
+                          <Text style={styles.eventTitle}>{event.title}</Text>
+                          <Text style={styles.eventTime}>
+                            {formatTime(event.start_time)}
+                            {event.end_time ? ` - ${formatTime(event.end_time)}` : ''}
                           </Text>
+                          {event.location && (
+                            <Text style={styles.eventLocation}>{event.location}</Text>
+                          )}
                         </View>
-                        <Text style={styles.predictionRange}>
-                          Range: ${prediction.prediction_low.toFixed(0)} - ${prediction.prediction_high.toFixed(0)}
-                        </Text>
-                        {prediction.explanation && (
-                          <Text style={styles.predictionExplanation}>
-                            {prediction.explanation}
+                        {prediction && (
+                          <Text style={styles.eventAmount}>
+                            ~${prediction.predicted_amount.toFixed(0)}
                           </Text>
                         )}
+                        {hasBreakdown && (
+                          <Ionicons
+                            name={expandedEventId === event.id ? 'chevron-up' : 'chevron-down'}
+                            size={18}
+                            color={Colors.textMuted}
+                            style={{ marginLeft: Spacing.xs }}
+                          />
+                        )}
                       </View>
-                    )}
-                  </Card>
+
+                      {/* Prediction Card */}
+                      {prediction && (
+                        <View style={styles.predictionCard}>
+                          <View style={styles.predictionRow}>
+                            <Ionicons name="analytics-outline" size={14} color={Colors.accent} />
+                            <Text style={styles.predictionLabel}>
+                              Predicted: ${prediction.predicted_amount.toFixed(2)}
+                            </Text>
+                          </View>
+                          <Text style={styles.predictionRange}>
+                            Range: ${prediction.prediction_low.toFixed(0)} - ${prediction.prediction_high.toFixed(0)}
+                          </Text>
+                          {prediction.explanation && (
+                            <Text style={styles.predictionExplanation}>
+                              {prediction.explanation}
+                            </Text>
+                          )}
+                        </View>
+                      )}
+
+                      {/* Cost Breakdown Dropdown */}
+                      {expandedEventId === event.id && eventCostBreakdowns[event.id] && (
+                        <EventCostDropdown
+                          breakdown={eventCostBreakdowns[event.id]}
+                          isExpanded={true}
+                          onToggle={() => setExpandedEventId(null)}
+                          onConfirm={() => confirmEstimate(event.id)}
+                          onDismissCost={dismissHiddenCost}
+                          isConfirmed={!!confirmedEstimates[event.id]}
+                        />
+                      )}
+                    </Card>
+                  </TouchableOpacity>
                 );
               })
             )}
