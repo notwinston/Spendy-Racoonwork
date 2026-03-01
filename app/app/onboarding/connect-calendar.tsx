@@ -11,11 +11,30 @@ import { useAuthStore } from '../../src/stores/authStore';
 
 export default function ConnectCalendarScreen() {
   const router = useRouter();
-  const { loadDemoData, isLoading, events } = useCalendarStore();
+  const { loadDemoData, connectAppleCalendar, isLoading, events } =
+    useCalendarStore();
   const user = useAuthStore((s) => s.user);
   const [isConnected, setIsConnected] = useState(false);
 
   const userId = user?.id ?? 'demo-user';
+
+  const handleAppleCalendar = async () => {
+    try {
+      await connectAppleCalendar(userId);
+      setIsConnected(true);
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : 'Unknown error';
+      if (message.includes('permission denied')) {
+        Alert.alert(
+          'Permission Required',
+          'Please allow calendar access in Settings to connect your Apple Calendar.',
+        );
+      } else {
+        Alert.alert('Error', `Failed to connect Apple Calendar: ${message}`);
+      }
+    }
+  };
 
   const handleGoogleCalendar = () => {
     Alert.alert(
@@ -109,7 +128,16 @@ export default function ConnectCalendarScreen() {
         <View style={styles.options}>
           <Card style={styles.optionCard}>
             <Button
+              title="Connect Apple Calendar"
+              onPress={handleAppleCalendar}
+              loading={isLoading}
+            />
+          </Card>
+
+          <Card style={styles.optionCard}>
+            <Button
               title="Connect Google Calendar"
+              variant="secondary"
               onPress={handleGoogleCalendar}
               loading={isLoading}
             />

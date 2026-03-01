@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import {
   View,
   Text,
@@ -6,6 +6,8 @@ import {
   StyleSheet,
   TouchableOpacity,
   Switch,
+  ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -18,10 +20,18 @@ import { useCalendarStore } from '../../src/stores/calendarStore';
 import { usePredictionStore } from '../../src/stores/predictionStore';
 import { useTransactionStore } from '../../src/stores/transactionStore';
 import { useAuthStore } from '../../src/stores/authStore';
+import {
+  captureReceipt,
+  pickReceiptFromGallery,
+  parseReceiptWithGemini,
+  parseReceiptMock,
+} from '../../src/services/receiptService';
+import { resolveProvider } from '../../src/services/llm/adapter';
 import type {
   CalendarEvent,
   SpendingPrediction,
   EventCategory,
+  ParsedReceipt,
   RecurringTransaction,
   TransactionFrequency,
 } from '../../src/types';
@@ -93,6 +103,56 @@ export default function PlanScreen() {
   const [roundUpEnabled, setRoundUpEnabled] = useState(false);
   const [saveDifferenceEnabled, setSaveDifferenceEnabled] = useState(false);
   const [monthlySavingsGoal] = useState(200);
+
+  // Receipt scanning state
+  const [isScanning, setIsScanning] = useState(false);
+  const [parsedReceipt, setParsedReceipt] = useState<ParsedReceipt | null>(null);
+  const [isSavingReceipt, setIsSavingReceipt] = useState(false);
+
+  const handleScanReceipt = useCallback(async (fromGallery: boolean) => {
+    setIsScanning(true);
+    setParsedReceipt(null);
+    try {
+      const base64 = fromGallery
+        ? await pickReceiptFromGallery()
+        : await captureReceipt();
+
+      const provider = resolveProvider();
+      let receipt: ParsedReceipt;
+      if (provider === 'gemini') {
+        receipt = await parseReceiptWithGemini(base64);
+      } else {
+        receipt = parseReceiptMock();
+      }
+      setParsedReceipt(receipt);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      if (message !== 'Cancelled') {
+        Alert.alert('Scan Error', message);
+      }
+    } finally {
+      setIsScanning(false);
+    }
+  }, []);
+
+  const handleSaveReceipt = useCallback(async () => {
+    if (!parsedReceipt || !user?.id) return;
+    setIsSavingReceipt(true);
+    try {
+      const accountId = useTransactionStore.getState().accounts[0]?.id ?? 'manual';
+      await useTransactionStore.getState().createFromReceipt(
+        user.id,
+        accountId,
+        parsedReceipt,
+      );
+      setParsedReceipt(null);
+      Alert.alert('Saved', 'Transaction created from receipt.');
+    } catch {
+      Alert.alert('Error', 'Failed to save receipt transaction.');
+    } finally {
+      setIsSavingReceipt(false);
+    }
+  }, [parsedReceipt, user?.id]);
 
   // Load demo data if needed
   useEffect(() => {
@@ -273,6 +333,92 @@ export default function PlanScreen() {
             );
           })
         )}
+
+        {/* --- Scan a Receipt --- */}
+        <Text style={styles.sectionTitle}>Scan a Receipt</Text>
+        <Card>
+          {isScanning ? (
+            <View style={styles.emptyState}>
+              <ActivityIndicator size="large" color={Colors.accent} />
+              <Text style={styles.emptyStateText}>Analyzing receipt...</Text>
+            </View>
+          ) : parsedReceipt ? (
+            <View style={styles.receiptResult}>
+              <View style={styles.receiptHeader}>
+                <Ionicons name="receipt-outline" size={24} color={Colors.accent} />
+                <Text style={styles.receiptMerchant}>
+                  {parsedReceipt.merchant_name}
+                </Text>
+              </View>
+              <View style={styles.receiptDetails}>
+                <View style={styles.receiptRow}>
+                  <Text style={styles.receiptLabel}>Date</Text>
+                  <Text style={styles.receiptValue}>{parsedReceipt.date}</Text>
+                </View>
+                <View style={styles.receiptRow}>
+                  <Text style={styles.receiptLabel}>Total</Text>
+                  <Text style={styles.receiptTotal}>
+                    {formatCurrency(parsedReceipt.total)}
+                  </Text>
+                </View>
+                {parsedReceipt.tax != null && (
+                  <View style={styles.receiptRow}>
+                    <Text style={styles.receiptLabel}>Tax</Text>
+                    <Text style={styles.receiptValue}>
+                      {formatCurrency(parsedReceipt.tax)}
+                    </Text>
+                  </View>
+                )}
+                <View style={styles.receiptRow}>
+                  <Text style={styles.receiptLabel}>Category</Text>
+                  <Text style={styles.receiptValue}>{parsedReceipt.category}</Text>
+                </View>
+                {parsedReceipt.items.length > 0 && (
+                  <View style={styles.receiptItems}>
+                    <Text style={styles.receiptLabel}>Items</Text>
+                    {parsedReceipt.items.map((item, i) => (
+                      <Text key={i} style={styles.receiptItemText}>
+                        {item.quantity}x {item.name} — {formatCurrency(item.price)}
+                      </Text>
+                    ))}
+                  </View>
+                )}
+              </View>
+              <TouchableOpacity
+                style={styles.saveReceiptButton}
+                onPress={handleSaveReceipt}
+                disabled={isSavingReceipt}
+              >
+                {isSavingReceipt ? (
+                  <ActivityIndicator size="small" color={Colors.textPrimary} />
+                ) : (
+                  <>
+                    <Ionicons name="checkmark-circle" size={20} color={Colors.textPrimary} />
+                    <Text style={styles.saveReceiptText}>Save Transaction</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View style={styles.receiptButtons}>
+              <TouchableOpacity
+                style={styles.receiptButton}
+                onPress={() => handleScanReceipt(false)}
+              >
+                <Ionicons name="camera" size={28} color={Colors.accent} />
+                <Text style={styles.receiptButtonText}>Camera</Text>
+              </TouchableOpacity>
+              <View style={styles.receiptButtonDivider} />
+              <TouchableOpacity
+                style={styles.receiptButton}
+                onPress={() => handleScanReceipt(true)}
+              >
+                <Ionicons name="images" size={28} color={Colors.accent} />
+                <Text style={styles.receiptButtonText}>Gallery</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </Card>
 
         {/* --- Savings Rules --- */}
         <Text style={styles.sectionTitle}>Savings Rules</Text>
@@ -653,6 +799,87 @@ const styles = StyleSheet.create({
   reviewBadgeText: {
     fontSize: Typography.sizes.xs,
     fontWeight: Typography.weights.bold,
+    color: Colors.textPrimary,
+  },
+  // Receipt Scanning
+  receiptButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  receiptButton: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: Spacing.lg,
+    gap: Spacing.sm,
+  },
+  receiptButtonDivider: {
+    width: 1,
+    height: 48,
+    backgroundColor: Colors.divider,
+  },
+  receiptButtonText: {
+    fontSize: Typography.sizes.md,
+    fontWeight: Typography.weights.medium,
+    color: Colors.textPrimary,
+  },
+  receiptResult: {
+    gap: Spacing.md,
+  },
+  receiptHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+  },
+  receiptMerchant: {
+    fontSize: Typography.sizes.xl,
+    fontWeight: Typography.weights.bold,
+    color: Colors.textPrimary,
+    flex: 1,
+  },
+  receiptDetails: {
+    gap: Spacing.sm,
+  },
+  receiptRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  receiptLabel: {
+    fontSize: Typography.sizes.sm,
+    color: Colors.textMuted,
+  },
+  receiptValue: {
+    fontSize: Typography.sizes.md,
+    color: Colors.textSecondary,
+    textTransform: 'capitalize',
+  },
+  receiptTotal: {
+    fontSize: Typography.sizes.lg,
+    fontWeight: Typography.weights.bold,
+    color: Colors.accent,
+  },
+  receiptItems: {
+    gap: Spacing.xs,
+    marginTop: Spacing.xs,
+  },
+  receiptItemText: {
+    fontSize: Typography.sizes.sm,
+    color: Colors.textSecondary,
+    paddingLeft: Spacing.sm,
+  },
+  saveReceiptButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.sm,
+    backgroundColor: Colors.accent,
+    borderRadius: 12,
+    paddingVertical: Spacing.md,
+    marginTop: Spacing.sm,
+  },
+  saveReceiptText: {
+    fontSize: Typography.sizes.md,
+    fontWeight: Typography.weights.semibold,
     color: Colors.textPrimary,
   },
 });
