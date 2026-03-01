@@ -17,6 +17,7 @@ import type {
   FriendWithProfile,
   CalendarEvent,
   EventCostBreakdown,
+  Challenge,
 } from '../types';
 import {
   sendFriendRequest as svcSendFriendRequest,
@@ -36,6 +37,7 @@ import {
   getNotifications as svcGetNotifications,
   markNotificationRead as svcMarkNotificationRead,
   getUnreadNotificationCount as svcGetUnreadNotificationCount,
+  createFriendChallenge as svcCreateFriendChallenge,
 } from '../services/socialService';
 import { getLeaderboard as svcGetLeaderboard } from '../services/gamificationService';
 
@@ -52,6 +54,7 @@ interface SocialState {
   nudges: SocialNudge[];
   notifications: Notification[];
   unreadNotificationCount: number;
+  nudgeSentTimestamps: Record<string, number>;
 
   // Leaderboard
   leaderboard: LeaderboardEntry[];
@@ -106,6 +109,9 @@ interface SocialState {
 
   // Actions - Leaderboard
   fetchLeaderboard: (options?: { challengeId?: string; scope?: 'global' | 'friends'; friendIds?: string[] }) => Promise<void>;
+
+  // Actions - Friend Challenges
+  createFriendChallenge: (userId: string, friendId: string, templateId: string) => Promise<Challenge>;
 }
 
 export const useSocialStore = create<SocialState>((set, get) => ({
@@ -116,6 +122,7 @@ export const useSocialStore = create<SocialState>((set, get) => ({
   nudges: [],
   notifications: [],
   unreadNotificationCount: 0,
+  nudgeSentTimestamps: {},
   leaderboard: [],
   isLoading: false,
   error: null,
@@ -284,6 +291,12 @@ export const useSocialStore = create<SocialState>((set, get) => ({
     set({ error: null });
     try {
       await svcSendNudge(senderId, recipientId, nudgeType, content);
+      set((state) => ({
+        nudgeSentTimestamps: {
+          ...state.nudgeSentTimestamps,
+          [`${recipientId}:${nudgeType}`]: Date.now(),
+        },
+      }));
     } catch (err) {
       set({
         error: err instanceof Error ? err.message : 'Failed to send nudge',
@@ -432,6 +445,21 @@ export const useSocialStore = create<SocialState>((set, get) => ({
         error: err instanceof Error ? err.message : 'Failed to fetch leaderboard',
         isLoading: false,
       });
+    }
+  },
+
+  // ---- Friend Challenges ----
+
+  createFriendChallenge: async (userId: string, friendId: string, templateId: string) => {
+    set({ error: null });
+    try {
+      const challenge = await svcCreateFriendChallenge(userId, friendId, templateId);
+      return challenge;
+    } catch (err) {
+      set({
+        error: err instanceof Error ? err.message : 'Failed to create friend challenge',
+      });
+      throw err;
     }
   },
 }));
