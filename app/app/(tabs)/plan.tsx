@@ -122,6 +122,9 @@ export default function PlanScreen() {
   // GoalEditor modal state
   const [goalEditorVisible, setGoalEditorVisible] = useState(false);
 
+  // See All toggle for upcoming predictions
+  const [showAllPredictions, setShowAllPredictions] = useState(false);
+
   // Navigation debounce for transaction review
   const [navLock, setNavLock] = useState(false);
 
@@ -252,6 +255,8 @@ export default function PlanScreen() {
     );
   }, [upcomingPredictions]);
 
+  const displayedPredictions = showAllPredictions ? upcomingPredictions : upcomingPredictions.slice(0, 5);
+
   // Unreviewed transactions count
   const unreviewedCount = useMemo(() => {
     return transactions.filter((t) => !t.reviewed).length;
@@ -265,8 +270,8 @@ export default function PlanScreen() {
         {/* --- Upcoming Predictions --- */}
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Upcoming Predictions</Text>
-          <TouchableOpacity activeOpacity={0.7}>
-            <Text style={styles.seeAllLink}>See All</Text>
+          <TouchableOpacity activeOpacity={0.7} onPress={() => setShowAllPredictions(prev => !prev)}>
+            <Text style={styles.seeAllLink}>{showAllPredictions ? 'Show Less' : 'See All'}</Text>
           </TouchableOpacity>
         </View>
         {upcomingPredictions.length > 0 && (
@@ -295,7 +300,7 @@ export default function PlanScreen() {
             </View>
           </Card>
         ) : (
-          upcomingPredictions.map(({ event, prediction }, index) => {
+          displayedPredictions.map(({ event, prediction }, index) => {
             if (!prediction) return null;
             const iconName = CATEGORY_ICONS[prediction.predicted_category] ?? 'ellipsis-horizontal';
             const accentColor = CATEGORY_COLORS[prediction.predicted_category] ?? Colors.accentBright;
