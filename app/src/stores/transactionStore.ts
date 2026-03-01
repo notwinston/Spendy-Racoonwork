@@ -258,6 +258,10 @@ export function getCategoryMoM(transactions: Transaction[], referenceDate?: Date
   const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
   const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
 
+  const today = new Date();
+  const isCurrentMonth = now.getFullYear() === today.getFullYear() && now.getMonth() === today.getMonth();
+  const thisMonthEnd = isCurrentMonth ? today : new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+
   const thisMonthMap: Record<string, number> = {};
   const lastMonthMap: Record<string, number> = {};
 
@@ -265,7 +269,7 @@ export function getCategoryMoM(transactions: Transaction[], referenceDate?: Date
     const d = new Date(t.date);
     const amount = Math.abs(t.amount);
 
-    if (d >= thisMonthStart && d <= now) {
+    if (d >= thisMonthStart && d <= thisMonthEnd) {
       thisMonthMap[t.category] = (thisMonthMap[t.category] || 0) + amount;
     } else if (d >= lastMonthStart && d <= lastMonthEnd) {
       lastMonthMap[t.category] = (lastMonthMap[t.category] || 0) + amount;
