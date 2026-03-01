@@ -60,7 +60,7 @@ export function FloatingChatButton() {
             onPress={() => setOpen(true)}
             activeOpacity={0.8}
           >
-            <Ionicons name="chatbubble-ellipses" size={24} color={Colors.textPrimary} />
+            <Ionicons name="chatbubble-ellipses" size={22} color={Colors.textPrimary} />
           </TouchableOpacity>
         </Animated.View>
       )}
@@ -72,7 +72,7 @@ export function FloatingChatButton() {
 const styles = StyleSheet.create({
   pulseWrapper: {
     position: 'absolute',
-    bottom: 90,
+    bottom: 32,
     right: 20,
     zIndex: 999,
     alignItems: 'center',
@@ -80,15 +80,15 @@ const styles = StyleSheet.create({
   },
   glowRing: {
     position: 'absolute',
-    width: 72,
-    height: 72,
-    borderRadius: 36,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     backgroundColor: Colors.accentBright,
   },
   button: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
     backgroundColor: Colors.accent,
     justifyContent: 'center',
     alignItems: 'center',
