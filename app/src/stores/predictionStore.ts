@@ -9,6 +9,7 @@ import type {
   DailyBrief,
   Budget,
   Transaction,
+  ConfirmedEstimate,
 } from '../types';
 import {
   predictSpending,
@@ -109,6 +110,12 @@ interface PredictionState {
   /** Track accuracy of predictions against actual transactions (morning-after pattern). */
   trackAccuracy: (transactions: Transaction[]) => void;
 
+  /** Confirmed estimates keyed by calendar_event_id. */
+  confirmedEstimates: Record<string, ConfirmedEstimate>;
+
+  /** Confirm/acknowledge an event's cost estimate. */
+  confirmEstimate: (calendarEventId: string) => void;
+
   /** Clear all predictions and reset state. */
   clear: () => void;
 }
@@ -126,6 +133,7 @@ export const usePredictionStore = create<PredictionState>((set, get) => ({
   dailyBrief: null,
   isAnalyzingHiddenCosts: false,
   lastAccuracyCheck: null,
+  confirmedEstimates: {},
 
   fetchPredictions: (predictions) => {
     set({ predictions, isLoading: false, error: null });
@@ -320,6 +328,45 @@ export const usePredictionStore = create<PredictionState>((set, get) => ({
     });
   },
 
+  confirmEstimate: (calendarEventId) => {
+    const breakdown = get().eventCostBreakdowns[calendarEventId];
+    if (!breakdown) return;
+
+    const estimate: ConfirmedEstimate = {
+      id: 'ce_' + Date.now(),
+      calendar_event_id: calendarEventId,
+      user_id: useAuthStore.getState().user?.id ?? 'demo',
+      total_estimated: breakdown.total_with_risk,
+      hidden_cost_ids: breakdown.hidden_costs
+        .filter((c) => !c.is_dismissed)
+        .map((c) => c.id),
+      confirmed_at: new Date().toISOString(),
+    };
+
+    set({
+      confirmedEstimates: {
+        ...get().confirmedEstimates,
+        [calendarEventId]: estimate,
+      },
+    });
+
+    if (!isDemoMode()) {
+      supabase
+        .from('confirmed_estimates')
+        .upsert({
+          id: estimate.id,
+          calendar_event_id: estimate.calendar_event_id,
+          user_id: estimate.user_id,
+          total_estimated: estimate.total_estimated,
+          hidden_cost_ids: estimate.hidden_cost_ids,
+          confirmed_at: estimate.confirmed_at,
+        })
+        .then(({ error }) => {
+          if (error) console.warn('[PredictionStore] Confirm estimate persist failed:', error);
+        });
+    }
+  },
+
   clear: () => {
     set({
       predictions: [],
@@ -332,6 +379,7 @@ export const usePredictionStore = create<PredictionState>((set, get) => ({
       dailyBrief: null,
       isAnalyzingHiddenCosts: false,
       lastAccuracyCheck: null,
+      confirmedEstimates: {},
     });
   },
 }));

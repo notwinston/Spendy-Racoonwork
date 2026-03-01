@@ -462,6 +462,15 @@ export interface EventCostBreakdown {
   historical_avg: number | null;
 }
 
+export interface ConfirmedEstimate {
+  id: string;
+  calendar_event_id: string;
+  user_id: string;
+  total_estimated: number;
+  hidden_cost_ids: string[];
+  confirmed_at: string;
+}
+
 export interface DailyBrief {
   date: string;
   events: EventCostBreakdown[];
