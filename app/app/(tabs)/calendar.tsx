@@ -14,6 +14,7 @@ import { Colors, Typography, Spacing } from '../../src/constants';
 import { Header } from '../../src/components/ui/Header';
 import { Card } from '../../src/components/ui/Card';
 import { HiddenCostBreakdown } from '../../src/components/HiddenCostBreakdown';
+import EventCostDropdown from '../../src/components/EventCostDropdown';
 import { FloatingChatButton } from '../../src/components/FloatingChatButton';
 import { DayDetailSheet } from '../../src/components/DayDetailSheet';
 import { useCalendarStore } from '../../src/stores/calendarStore';
@@ -120,6 +121,7 @@ export default function CalendarScreen() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
   const [showDayDetail, setShowDayDetail] = useState(false);
+  const [expandedEventId, setExpandedEventId] = useState<string | null>(null);
 
   const user = useAuthStore((s) => s.user);
   const { events, isLoading: calendarLoading, loadDemoData: loadCalendarDemo } = useCalendarStore();
@@ -132,6 +134,8 @@ export default function CalendarScreen() {
     analyzeHiddenCosts,
     dismissHiddenCost,
     isAnalyzingHiddenCosts,
+    confirmEstimate,
+    confirmedEstimates,
   } = usePredictionStore();
   const { transactions } = useTransactionStore();
 
@@ -377,20 +381,23 @@ export default function CalendarScreen() {
           const isToday = isSameDay(date, today);
 
           return (
-            <TouchableOpacity
+            <View
               key={date.toISOString()}
               style={[styles.weekDayContainer, isToday && styles.weekDayToday]}
-              onPress={() => handleDayPress(date)}
-              activeOpacity={0.7}
             >
-              <View style={styles.weekDayHeader}>
-                <Text style={[styles.weekDayName, isToday && styles.weekDayNameToday]}>
-                  {DAY_NAMES[date.getDay()]}
-                </Text>
-                <Text style={[styles.weekDayNumber, isToday && styles.weekDayNumberToday]}>
-                  {date.getDate()}
-                </Text>
-              </View>
+              <TouchableOpacity
+                onPress={() => handleDayPress(date)}
+                activeOpacity={0.7}
+              >
+                <View style={styles.weekDayHeader}>
+                  <Text style={[styles.weekDayName, isToday && styles.weekDayNameToday]}>
+                    {DAY_NAMES[date.getDay()]}
+                  </Text>
+                  <Text style={[styles.weekDayNumber, isToday && styles.weekDayNumberToday]}>
+                    {date.getDate()}
+                  </Text>
+                </View>
+              </TouchableOpacity>
               <View style={styles.weekDayEvents}>
                 {dayEvents.length === 0 ? (
                   <Text style={styles.noEventsText}>No events</Text>
@@ -398,32 +405,49 @@ export default function CalendarScreen() {
                   dayEvents.slice(0, 3).map((event) => {
                     const prediction = predictionMap.get(event.id);
                     return (
-                      <View key={event.id} style={styles.weekEventItem}>
-                        <View style={styles.weekEventTime}>
-                          <Text style={styles.weekEventTimeText}>
-                            {formatTime(event.start_time)}
-                          </Text>
-                        </View>
-                        <View style={styles.weekEventContent}>
-                          <Text style={styles.weekEventTitle} numberOfLines={1}>
-                            {event.title}
-                          </Text>
-                          {prediction && (
-                            <Text style={styles.weekEventPrediction}>
-                              ~${prediction.predicted_amount.toFixed(0)}
-                            </Text>
-                          )}
-                          {eventCostBreakdowns[event.id] &&
-                            eventCostBreakdowns[event.id].hidden_costs.filter(c => !c.is_dismissed).length > 0 && (
-                            <Text style={styles.weekEventHiddenCost}>
-                              +${eventCostBreakdowns[event.id].hidden_costs
-                                .filter(c => !c.is_dismissed)
-                                .reduce((s, c) => s + c.predicted_amount, 0)
-                                .toFixed(0)} hidden
-                            </Text>
-                          )}
-                        </View>
-                      </View>
+                      <React.Fragment key={event.id}>
+                        <TouchableOpacity
+                          activeOpacity={0.7}
+                          onPress={() => setExpandedEventId(prev => prev === event.id ? null : event.id)}
+                        >
+                          <View style={styles.weekEventItem}>
+                            <View style={styles.weekEventTime}>
+                              <Text style={styles.weekEventTimeText}>
+                                {formatTime(event.start_time)}
+                              </Text>
+                            </View>
+                            <View style={styles.weekEventContent}>
+                              <Text style={styles.weekEventTitle} numberOfLines={1}>
+                                {event.title}
+                              </Text>
+                              {prediction && (
+                                <Text style={styles.weekEventPrediction}>
+                                  ~${prediction.predicted_amount.toFixed(0)}
+                                </Text>
+                              )}
+                              {eventCostBreakdowns[event.id] &&
+                                eventCostBreakdowns[event.id].hidden_costs.filter(c => !c.is_dismissed).length > 0 && (
+                                <Text style={styles.weekEventHiddenCost}>
+                                  +${eventCostBreakdowns[event.id].hidden_costs
+                                    .filter(c => !c.is_dismissed)
+                                    .reduce((s, c) => s + c.predicted_amount, 0)
+                                    .toFixed(0)} hidden
+                                </Text>
+                              )}
+                            </View>
+                          </View>
+                        </TouchableOpacity>
+                        {expandedEventId === event.id && eventCostBreakdowns[event.id] && (
+                          <EventCostDropdown
+                            breakdown={eventCostBreakdowns[event.id]}
+                            isExpanded={true}
+                            onToggle={() => setExpandedEventId(null)}
+                            onConfirm={() => confirmEstimate(event.id)}
+                            onDismissCost={dismissHiddenCost}
+                            isConfirmed={!!confirmedEstimates[event.id]}
+                          />
+                        )}
+                      </React.Fragment>
                     );
                   })
                 )}
@@ -433,7 +457,7 @@ export default function CalendarScreen() {
                   </Text>
                 )}
               </View>
-            </TouchableOpacity>
+            </View>
           );
         })}
       </View>
