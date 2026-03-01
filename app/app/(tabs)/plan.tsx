@@ -1,40 +1,415 @@
-import React from 'react';
-import { Text, ScrollView, StyleSheet } from 'react-native';
+import React, { useEffect, useState, useMemo } from 'react';
+import {
+  View,
+  Text,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  Switch,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { Colors, Typography, Spacing } from '../../src/constants';
 import { Header } from '../../src/components/ui/Header';
 import { Card } from '../../src/components/ui/Card';
 import { FloatingChatButton } from '../../src/components/FloatingChatButton';
+import { useCalendarStore } from '../../src/stores/calendarStore';
+import { usePredictionStore } from '../../src/stores/predictionStore';
+import { useTransactionStore } from '../../src/stores/transactionStore';
+import { useAuthStore } from '../../src/stores/authStore';
+import type {
+  CalendarEvent,
+  SpendingPrediction,
+  EventCategory,
+  RecurringTransaction,
+  TransactionFrequency,
+} from '../../src/types';
+
+const CATEGORY_ICONS: Record<EventCategory, string> = {
+  dining: 'restaurant',
+  groceries: 'cart',
+  transport: 'car',
+  entertainment: 'film',
+  shopping: 'bag',
+  travel: 'airplane',
+  health: 'medkit',
+  education: 'school',
+  fitness: 'barbell',
+  social: 'people',
+  professional: 'briefcase',
+  bills: 'receipt',
+  personal: 'person',
+  other: 'ellipsis-horizontal',
+};
+
+const FREQUENCY_LABELS: Record<TransactionFrequency, string> = {
+  weekly: 'Weekly',
+  biweekly: 'Bi-weekly',
+  monthly: 'Monthly',
+  quarterly: 'Quarterly',
+  yearly: 'Yearly',
+};
+
+function getConfidenceColor(label: string): string {
+  switch (label) {
+    case 'high':
+      return Colors.positive;
+    case 'medium':
+      return Colors.warning;
+    case 'low':
+      return Colors.danger;
+    default:
+      return Colors.textMuted;
+  }
+}
+
+function formatDate(dateString: string): string {
+  const date = new Date(dateString);
+  const months = [
+    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+  ];
+  return `${months[date.getMonth()]} ${date.getDate()}`;
+}
+
+function formatCurrency(amount: number): string {
+  return `$${amount.toFixed(2)}`;
+}
 
 export default function PlanScreen() {
+  const router = useRouter();
+  const user = useAuthStore((s) => s.user);
+
+  const { events, loadDemoData: loadCalendarDemo } = useCalendarStore();
+  const { predictions, generatePredictions, isPredicting } = usePredictionStore();
+  const {
+    transactions,
+    recurringTransactions,
+    loadDemoData: loadTransactionDemo,
+  } = useTransactionStore();
+
+  // Savings rules local state
+  const [roundUpEnabled, setRoundUpEnabled] = useState(false);
+  const [saveDifferenceEnabled, setSaveDifferenceEnabled] = useState(false);
+  const [monthlySavingsGoal] = useState(200);
+
+  // Load demo data if needed
+  useEffect(() => {
+    if (events.length === 0 && user?.id) {
+      loadCalendarDemo(user.id);
+    }
+  }, [user?.id, events.length, loadCalendarDemo]);
+
+  useEffect(() => {
+    if (transactions.length === 0 && user?.id) {
+      loadTransactionDemo(user.id);
+    }
+  }, [user?.id, transactions.length, loadTransactionDemo]);
+
+  // Generate predictions for future events
+  useEffect(() => {
+    if (events.length > 0 && predictions.length === 0 && !isPredicting) {
+      const futureEvents = events.filter(
+        (e) => new Date(e.start_time) >= new Date()
+      );
+      if (futureEvents.length > 0) {
+        generatePredictions(futureEvents, user?.id);
+      }
+    }
+  }, [events.length, predictions.length, isPredicting, generatePredictions, user?.id, events]);
+
+  // Create prediction map
+  const predictionMap = useMemo(() => {
+    const map = new Map<string, SpendingPrediction>();
+    for (const p of predictions) {
+      map.set(p.calendar_event_id, p);
+    }
+    return map;
+  }, [predictions]);
+
+  // Create events map
+  const eventsMap = useMemo(() => {
+    const map = new Map<string, CalendarEvent>();
+    for (const e of events) {
+      map.set(e.id, e);
+    }
+    return map;
+  }, [events]);
+
+  // Upcoming predictions (future events with predictions, sorted by date)
+  const upcomingPredictions = useMemo(() => {
+    const now = new Date();
+    const futureEvents = events
+      .filter((e) => new Date(e.start_time) >= now)
+      .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime());
+
+    return futureEvents
+      .map((event) => ({
+        event,
+        prediction: predictionMap.get(event.id),
+      }))
+      .filter((item) => item.prediction !== undefined)
+      .slice(0, 10);
+  }, [events, predictionMap]);
+
+  // Total predicted upcoming spending
+  const totalPredictedSpending = useMemo(() => {
+    return upcomingPredictions.reduce(
+      (sum, item) => sum + (item.prediction?.predicted_amount ?? 0),
+      0
+    );
+  }, [upcomingPredictions]);
+
+  // Unreviewed transactions count
+  const unreviewedCount = useMemo(() => {
+    return transactions.filter((t) => !t.reviewed).length;
+  }, [transactions]);
+
+  // Active recurring transactions
+  const activeRecurring = useMemo(() => {
+    return recurringTransactions.filter((r) => r.is_active);
+  }, [recurringTransactions]);
+
+  // Total monthly recurring
+  const totalMonthlyRecurring = useMemo(() => {
+    return activeRecurring.reduce((sum, r) => {
+      switch (r.frequency) {
+        case 'weekly':
+          return sum + r.avg_amount * 4.33;
+        case 'biweekly':
+          return sum + r.avg_amount * 2.17;
+        case 'monthly':
+          return sum + r.avg_amount;
+        case 'quarterly':
+          return sum + r.avg_amount / 3;
+        case 'yearly':
+          return sum + r.avg_amount / 12;
+        default:
+          return sum + r.avg_amount;
+      }
+    }, 0);
+  }, [activeRecurring]);
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <Header title="Plan" />
       <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
+        {/* --- Upcoming Predictions --- */}
         <Text style={styles.sectionTitle}>Upcoming Predictions</Text>
+        {upcomingPredictions.length > 0 && (
+          <Card style={styles.summaryCard}>
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryLabel}>Predicted Upcoming Spend</Text>
+              <Text style={styles.summaryAmount}>
+                {formatCurrency(totalPredictedSpending)}
+              </Text>
+            </View>
+            <Text style={styles.summarySubtext}>
+              Based on {upcomingPredictions.length} upcoming events
+            </Text>
+          </Card>
+        )}
+
+        {upcomingPredictions.length === 0 ? (
+          <Card>
+            <View style={styles.emptyState}>
+              <Ionicons name="analytics-outline" size={36} color={Colors.textMuted} />
+              <Text style={styles.emptyStateText}>
+                {isPredicting
+                  ? 'Generating predictions...'
+                  : 'No upcoming predictions available'}
+              </Text>
+            </View>
+          </Card>
+        ) : (
+          upcomingPredictions.map(({ event, prediction }) => {
+            if (!prediction) return null;
+            const iconName = CATEGORY_ICONS[prediction.predicted_category] ?? 'ellipsis-horizontal';
+            return (
+              <Card key={event.id} style={styles.predictionCard}>
+                <View style={styles.predictionRow}>
+                  <View style={styles.predictionIconWrap}>
+                    <Ionicons
+                      name={iconName as keyof typeof Ionicons.glyphMap}
+                      size={20}
+                      color={Colors.accent}
+                    />
+                  </View>
+                  <View style={styles.predictionInfo}>
+                    <Text style={styles.predictionTitle} numberOfLines={1}>
+                      {event.title}
+                    </Text>
+                    <Text style={styles.predictionDate}>
+                      {formatDate(event.start_time)}
+                    </Text>
+                  </View>
+                  <View style={styles.predictionRight}>
+                    <Text style={styles.predictionAmount}>
+                      {formatCurrency(prediction.predicted_amount)}
+                    </Text>
+                    <View style={styles.confidenceBarContainer}>
+                      <View
+                        style={[
+                          styles.confidenceBarFill,
+                          {
+                            width: `${Math.round(prediction.confidence_score * 100)}%`,
+                            backgroundColor: getConfidenceColor(prediction.confidence_label),
+                          },
+                        ]}
+                      />
+                    </View>
+                    <Text
+                      style={[
+                        styles.confidenceLabel,
+                        { color: getConfidenceColor(prediction.confidence_label) },
+                      ]}
+                    >
+                      {prediction.confidence_label}
+                    </Text>
+                  </View>
+                </View>
+              </Card>
+            );
+          })
+        )}
+
+        {/* --- Savings Rules --- */}
+        <Text style={styles.sectionTitle}>Savings Rules</Text>
         <Card>
-          <Text style={styles.placeholder}>Predicted spending events placeholder</Text>
+          <View style={styles.savingsGoalRow}>
+            <Ionicons name="wallet-outline" size={20} color={Colors.accent} />
+            <Text style={styles.savingsGoalLabel}>Monthly Savings Goal</Text>
+            <Text style={styles.savingsGoalAmount}>{formatCurrency(monthlySavingsGoal)}</Text>
+          </View>
+
+          <View style={styles.divider} />
+
+          <View style={styles.toggleRow}>
+            <View style={styles.toggleInfo}>
+              <Ionicons name="arrow-up-circle-outline" size={20} color={Colors.textSecondary} />
+              <View style={styles.toggleTextContainer}>
+                <Text style={styles.toggleLabel}>Round up transactions</Text>
+                <Text style={styles.toggleDescription}>
+                  Round each transaction to the nearest dollar and save the difference
+                </Text>
+              </View>
+            </View>
+            <Switch
+              value={roundUpEnabled}
+              onValueChange={setRoundUpEnabled}
+              trackColor={{ false: Colors.cardBorder, true: Colors.accent + '66' }}
+              thumbColor={roundUpEnabled ? Colors.accent : Colors.textMuted}
+            />
+          </View>
+
+          <View style={styles.divider} />
+
+          <View style={styles.toggleRow}>
+            <View style={styles.toggleInfo}>
+              <Ionicons name="trending-down-outline" size={20} color={Colors.textSecondary} />
+              <View style={styles.toggleTextContainer}>
+                <Text style={styles.toggleLabel}>Save the difference</Text>
+                <Text style={styles.toggleDescription}>
+                  When you spend less than predicted, save the difference automatically
+                </Text>
+              </View>
+            </View>
+            <Switch
+              value={saveDifferenceEnabled}
+              onValueChange={setSaveDifferenceEnabled}
+              trackColor={{ false: Colors.cardBorder, true: Colors.accent + '66' }}
+              thumbColor={saveDifferenceEnabled ? Colors.accent : Colors.textMuted}
+            />
+          </View>
         </Card>
 
-        <Text style={styles.sectionTitle}>Budget Tools</Text>
-        <Card>
-          <Text style={styles.placeholder}>Budget adjustment tools placeholder</Text>
-        </Card>
-
-        <Text style={styles.sectionTitle}>Save the Difference</Text>
-        <Card>
-          <Text style={styles.placeholder}>Savings rules config placeholder</Text>
-        </Card>
-
+        {/* --- Recurring Expenses --- */}
         <Text style={styles.sectionTitle}>Recurring Expenses</Text>
-        <Card>
-          <Text style={styles.placeholder}>Recurring charges list placeholder</Text>
-        </Card>
+        {activeRecurring.length > 0 && (
+          <Card style={styles.summaryCard}>
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryLabel}>Est. Monthly Recurring</Text>
+              <Text style={[styles.summaryAmount, { color: Colors.warning }]}>
+                {formatCurrency(totalMonthlyRecurring)}
+              </Text>
+            </View>
+            <Text style={styles.summarySubtext}>
+              {activeRecurring.length} active recurring{' '}
+              {activeRecurring.length === 1 ? 'expense' : 'expenses'}
+            </Text>
+          </Card>
+        )}
 
+        {activeRecurring.length === 0 ? (
+          <Card>
+            <View style={styles.emptyState}>
+              <Ionicons name="repeat-outline" size={36} color={Colors.textMuted} />
+              <Text style={styles.emptyStateText}>No recurring expenses detected</Text>
+            </View>
+          </Card>
+        ) : (
+          activeRecurring.map((recurring) => (
+            <Card key={recurring.id} style={styles.recurringCard}>
+              <View style={styles.recurringRow}>
+                <View style={styles.recurringIconWrap}>
+                  <Ionicons
+                    name={
+                      (CATEGORY_ICONS[recurring.category] ?? 'ellipsis-horizontal') as keyof typeof Ionicons.glyphMap
+                    }
+                    size={18}
+                    color={Colors.accent}
+                  />
+                </View>
+                <View style={styles.recurringInfo}>
+                  <Text style={styles.recurringMerchant} numberOfLines={1}>
+                    {recurring.merchant_name}
+                  </Text>
+                  <Text style={styles.recurringFrequency}>
+                    {FREQUENCY_LABELS[recurring.frequency]}
+                    {recurring.next_expected_date
+                      ? ` \u00B7 Next: ${formatDate(recurring.next_expected_date)}`
+                      : ''}
+                  </Text>
+                </View>
+                <Text style={styles.recurringAmount}>
+                  {formatCurrency(recurring.avg_amount)}
+                </Text>
+              </View>
+            </Card>
+          ))
+        )}
+
+        {/* --- Transaction Review Queue --- */}
         <Text style={styles.sectionTitle}>Transaction Review</Text>
-        <Card>
-          <Text style={styles.placeholder}>Unreviewed transactions queue placeholder</Text>
-        </Card>
+        <TouchableOpacity
+          activeOpacity={0.7}
+          onPress={() => router.push('/transaction-review')}
+        >
+          <Card style={styles.reviewCard}>
+            <View style={styles.reviewRow}>
+              <View style={styles.reviewLeft}>
+                <View style={styles.reviewIconWrap}>
+                  <Ionicons name="checkmark-circle-outline" size={24} color={Colors.accent} />
+                </View>
+                <View>
+                  <Text style={styles.reviewTitle}>Review Transactions</Text>
+                  <Text style={styles.reviewSubtext}>
+                    {unreviewedCount > 0
+                      ? `${unreviewedCount} transaction${unreviewedCount === 1 ? '' : 's'} to review`
+                      : 'All transactions reviewed'}
+                  </Text>
+                </View>
+              </View>
+              {unreviewedCount > 0 && (
+                <View style={styles.reviewBadge}>
+                  <Text style={styles.reviewBadgeText}>{unreviewedCount}</Text>
+                </View>
+              )}
+              <Ionicons name="chevron-forward" size={20} color={Colors.textMuted} />
+            </View>
+          </Card>
+        </TouchableOpacity>
       </ScrollView>
       <FloatingChatButton />
     </SafeAreaView>
@@ -60,10 +435,224 @@ const styles = StyleSheet.create({
     marginTop: Spacing.lg,
     marginBottom: Spacing.md,
   },
-  placeholder: {
+  // Summary Card
+  summaryCard: {
+    marginBottom: Spacing.md,
+  },
+  summaryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  summaryLabel: {
+    fontSize: Typography.sizes.md,
+    color: Colors.textSecondary,
+  },
+  summaryAmount: {
+    fontSize: Typography.sizes['2xl'],
+    fontWeight: Typography.weights.bold,
+    color: Colors.accent,
+  },
+  summarySubtext: {
     fontSize: Typography.sizes.sm,
     color: Colors.textMuted,
+    marginTop: Spacing.xs,
+  },
+  // Empty State
+  emptyState: {
+    alignItems: 'center',
+    paddingVertical: Spacing.xl,
+    gap: Spacing.md,
+  },
+  emptyStateText: {
+    fontSize: Typography.sizes.md,
+    color: Colors.textMuted,
     textAlign: 'center',
-    fontStyle: 'italic',
+  },
+  // Prediction Cards
+  predictionCard: {
+    marginBottom: Spacing.sm,
+  },
+  predictionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+  },
+  predictionIconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: Colors.accent + '1A',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  predictionInfo: {
+    flex: 1,
+  },
+  predictionTitle: {
+    fontSize: Typography.sizes.md,
+    fontWeight: Typography.weights.medium,
+    color: Colors.textPrimary,
+  },
+  predictionDate: {
+    fontSize: Typography.sizes.sm,
+    color: Colors.textMuted,
+    marginTop: 2,
+  },
+  predictionRight: {
+    alignItems: 'flex-end',
+  },
+  predictionAmount: {
+    fontSize: Typography.sizes.lg,
+    fontWeight: Typography.weights.bold,
+    color: Colors.textPrimary,
+  },
+  confidenceBarContainer: {
+    width: 60,
+    height: 4,
+    backgroundColor: Colors.cardBorder,
+    borderRadius: 2,
+    marginTop: 4,
+    overflow: 'hidden',
+  },
+  confidenceBarFill: {
+    height: '100%',
+    borderRadius: 2,
+  },
+  confidenceLabel: {
+    fontSize: Typography.sizes.xs,
+    fontWeight: Typography.weights.medium,
+    marginTop: 2,
+    textTransform: 'capitalize',
+  },
+  // Savings Rules
+  savingsGoalRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+  },
+  savingsGoalLabel: {
+    flex: 1,
+    fontSize: Typography.sizes.md,
+    fontWeight: Typography.weights.medium,
+    color: Colors.textPrimary,
+  },
+  savingsGoalAmount: {
+    fontSize: Typography.sizes.xl,
+    fontWeight: Typography.weights.bold,
+    color: Colors.accent,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: Colors.divider,
+    marginVertical: Spacing.md,
+  },
+  toggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  toggleInfo: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: Spacing.md,
+    flex: 1,
+    marginRight: Spacing.md,
+  },
+  toggleTextContainer: {
+    flex: 1,
+  },
+  toggleLabel: {
+    fontSize: Typography.sizes.md,
+    fontWeight: Typography.weights.medium,
+    color: Colors.textPrimary,
+  },
+  toggleDescription: {
+    fontSize: Typography.sizes.sm,
+    color: Colors.textMuted,
+    marginTop: 2,
+  },
+  // Recurring Expenses
+  recurringCard: {
+    marginBottom: Spacing.sm,
+  },
+  recurringRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+  },
+  recurringIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: Colors.card,
+    borderWidth: 1,
+    borderColor: Colors.cardBorder,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  recurringInfo: {
+    flex: 1,
+  },
+  recurringMerchant: {
+    fontSize: Typography.sizes.md,
+    fontWeight: Typography.weights.medium,
+    color: Colors.textPrimary,
+  },
+  recurringFrequency: {
+    fontSize: Typography.sizes.sm,
+    color: Colors.textMuted,
+    marginTop: 2,
+  },
+  recurringAmount: {
+    fontSize: Typography.sizes.lg,
+    fontWeight: Typography.weights.semibold,
+    color: Colors.textPrimary,
+  },
+  // Transaction Review
+  reviewCard: {
+    marginBottom: Spacing.sm,
+  },
+  reviewRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+  },
+  reviewLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+    flex: 1,
+  },
+  reviewIconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: Colors.accent + '1A',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  reviewTitle: {
+    fontSize: Typography.sizes.lg,
+    fontWeight: Typography.weights.semibold,
+    color: Colors.textPrimary,
+  },
+  reviewSubtext: {
+    fontSize: Typography.sizes.sm,
+    color: Colors.textMuted,
+    marginTop: 2,
+  },
+  reviewBadge: {
+    backgroundColor: Colors.danger,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  reviewBadgeText: {
+    fontSize: Typography.sizes.xs,
+    fontWeight: Typography.weights.bold,
+    color: Colors.textPrimary,
   },
 });
