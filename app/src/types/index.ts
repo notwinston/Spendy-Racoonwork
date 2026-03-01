@@ -429,3 +429,57 @@ export interface LLMPredictionItem {
 export interface LLMPredictionResponse {
   predictions: LLMPredictionItem[];
 }
+
+// -- Hidden Cost Types --
+
+export type HiddenCostTier = 'likely' | 'possible' | 'unlikely_costly';
+
+export interface HiddenCost {
+  id: string;
+  prediction_id: string;
+  calendar_event_id: string;
+  label: string;
+  description: string;
+  predicted_amount: number;
+  amount_low: number;
+  amount_high: number;
+  tier: HiddenCostTier;
+  confidence_score: number;
+  category: EventCategory;
+  signal_source: 'historical' | 'metadata' | 'social' | 'seasonal';
+  is_dismissed: boolean;
+}
+
+export interface EventCostBreakdown {
+  calendar_event_id: string;
+  base_prediction: SpendingPrediction;
+  hidden_costs: HiddenCost[];
+  total_likely: number;
+  total_possible: number;
+  total_with_risk: number;
+  historical_avg: number | null;
+}
+
+export interface DailyBrief {
+  date: string;
+  events: EventCostBreakdown[];
+  total_predicted_low: number;
+  total_predicted_high: number;
+  top_warning: string | null;
+  savings_opportunity: string | null;
+}
+
+export interface LLMHiddenCostItem {
+  label: string;
+  description: string;
+  predicted_amount: number;
+  amount_low: number;
+  amount_high: number;
+  confidence: number;
+  category: string;
+  signal_source: string;
+}
+
+export interface LLMHiddenCostResponse {
+  hidden_costs: LLMHiddenCostItem[];
+}
