@@ -17,11 +17,13 @@ import {
 } from '@expo-google-fonts/dm-sans';
 import { Colors } from '../src/constants';
 import { useAuthStore } from '../src/stores/authStore';
+import { useNotificationStore } from '../src/stores/notificationStore';
 
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   const { isLoading, initialize } = useAuthStore();
+  const { preferences, scheduleMorningBrief } = useNotificationStore();
 
   const [fontsLoaded, fontError] = useFonts({
     Syne_700Bold,
@@ -38,6 +40,13 @@ export default function RootLayout() {
     initialize();
   }, []);
 
+  // Schedule morning brief notification after auth finishes loading
+  useEffect(() => {
+    if (!isLoading && preferences.hiddenCostAlerts) {
+      scheduleMorningBrief().catch(console.warn);
+    }
+  }, [isLoading]);
+
   useEffect(() => {
     if (fontsLoaded || fontError) {
       SplashScreen.hideAsync();
@@ -48,18 +57,14 @@ export default function RootLayout() {
     return null;
   }
 
-  if (isLoading) {
-    return (
-      <View style={styles.loading}>
-        <StatusBar style="light" />
-        <ActivityIndicator size="large" color={Colors.accent} />
-      </View>
-    );
-  }
-
   return (
     <>
       <StatusBar style="light" />
+      {isLoading && (
+        <View style={styles.loading}>
+          <ActivityIndicator size="large" color={Colors.accent} />
+        </View>
+      )}
       <Stack
         screenOptions={{
           headerShown: false,
@@ -115,9 +120,10 @@ export default function RootLayout() {
 
 const styles = StyleSheet.create({
   loading: {
-    flex: 1,
+    ...StyleSheet.absoluteFillObject,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: Colors.background,
+    zIndex: 999,
   },
 });

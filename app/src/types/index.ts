@@ -75,6 +75,7 @@ export interface Profile {
   display_name: string;
   avatar_url: string | null;
   friend_code: string;
+  monthly_income: number | null;
   xp: number;
   level: number;
   streak_count: number;

@@ -5,6 +5,10 @@
  * Supports both live Supabase mode and offline demo mode.
  */
 import { supabase, isDemoMode } from '../lib/supabase';
+import { usePredictionStore } from '../stores/predictionStore';
+import { useBudgetStore } from '../stores/budgetStore';
+import { useTransactionStore } from '../stores/transactionStore';
+import { calculateCCI } from '../stores/predictionStore';
 import type {
   Badge,
   UserBadge,
@@ -426,6 +430,14 @@ interface UserStats {
   challenges_completed: number;
   friends_count: number;
   xp: number;
+  hidden_cost_views: number;
+  hidden_cost_accurate: number;
+  cci_score: number;
+  hidden_cost_acknowledged_days: number;
+  health_score_weekly: number[];
+  budget_under_months: number;
+  zero_spend_days: number;
+  savings_total: number;
 }
 
 function getDemoStats(_userId: string): UserStats {
@@ -439,6 +451,14 @@ function getDemoStats(_userId: string): UserStats {
     challenges_completed: completed,
     friends_count: 2,
     xp: demoProfile.xp,
+    hidden_cost_views: 0,
+    hidden_cost_accurate: 0,
+    cci_score: 0,
+    hidden_cost_acknowledged_days: 0,
+    health_score_weekly: [],
+    budget_under_months: 0,
+    zero_spend_days: 0,
+    savings_total: 0,
   };
 }
 
@@ -461,6 +481,55 @@ async function fetchUserStats(userId: string): Promise<UserStats> {
     .eq('status', 'accepted')
     .or(`user_id.eq.${userId},friend_id.eq.${userId}`);
 
+  // Compute live stats from store state
+  const predictionState = usePredictionStore.getState();
+  const budgetState = useBudgetStore.getState();
+  const transactionState = useTransactionStore.getState();
+
+  const predictions = predictionState.predictions;
+  const hiddenCosts = predictionState.hiddenCosts;
+  const transactions = transactionState.transactions;
+
+  // Hidden cost views: count of non-dismissed hidden costs
+  const hiddenCostViews = hiddenCosts.filter((c) => !c.is_dismissed).length;
+
+  // Hidden cost accuracy: hidden costs with was_accurate === true
+  const hiddenCostAccurate = (hiddenCosts as Array<{ was_accurate?: boolean }>).filter(
+    (c) => c.was_accurate === true,
+  ).length;
+
+  // CCI score (0-100 scale)
+  const cciScore = Math.round(calculateCCI(predictions) * 100);
+
+  // Hidden cost acknowledged days: count unique days with dismissed costs
+  const acknowledgedDays = new Set(
+    hiddenCosts
+      .filter((c) => c.is_dismissed)
+      .map((c) => {
+        const pred = predictions.find((p) => p.id === c.prediction_id);
+        return pred ? pred.created_at.slice(0, 10) : null;
+      })
+      .filter(Boolean),
+  ).size;
+
+  // Zero spend days: days with no transactions in current month
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const transactionDays = new Set(
+    transactions
+      .filter((t) => new Date(t.date) >= monthStart)
+      .map((t) => t.date.slice(0, 10)),
+  );
+  const dayOfMonth = now.getDate();
+  const zeroSpendDays = Math.max(0, dayOfMonth - transactionDays.size);
+
+  // Savings total: budget - spent (if positive)
+  const savingsTotal = Math.max(0, budgetState.totalBudget - budgetState.totalSpent);
+
+  // Budget under months: count months in transaction history where spending < budget
+  // Simplified: check if current month is under budget
+  const budgetUnderMonths = budgetState.totalSpent <= budgetState.totalBudget ? 1 : 0;
+
   return {
     streak_count: profile?.streak_count ?? 0,
     longest_streak: profile?.longest_streak ?? 0,
@@ -468,6 +537,14 @@ async function fetchUserStats(userId: string): Promise<UserStats> {
     challenges_completed: challengesCompleted ?? 0,
     friends_count: friendsCount ?? 0,
     xp: profile?.xp ?? 0,
+    hidden_cost_views: hiddenCostViews,
+    hidden_cost_accurate: hiddenCostAccurate,
+    cci_score: cciScore,
+    hidden_cost_acknowledged_days: acknowledgedDays,
+    health_score_weekly: [],
+    budget_under_months: budgetUnderMonths,
+    zero_spend_days: zeroSpendDays,
+    savings_total: savingsTotal,
   };
 }
 
@@ -491,8 +568,8 @@ function evaluateCondition(
       return false;
     }
     case 'savings_total': {
-      // Would require transaction aggregation; skip for MVP
-      return false;
+      const amount = (condition.amount as number) ?? 0;
+      return stats.savings_total >= amount;
     }
     case 'challenges_completed': {
       const count = (condition.count as number) ?? 0;
@@ -509,37 +586,35 @@ function evaluateCondition(
       return false;
     }
     case 'zero_spend_day': {
-      return false;
+      const count = (condition.count as number) ?? 0;
+      return stats.zero_spend_days >= count;
     }
     case 'any_streak': {
       const length = (condition.length as number) ?? 0;
       return stats.longest_streak >= length;
     }
     case 'hidden_cost_views': {
-      // TODO: hidden_cost_views not yet tracked on UserStats
       const count = (condition.count as number) ?? 0;
-      return ((stats as any).hidden_cost_views ?? 0) >= count;
+      return stats.hidden_cost_views >= count;
     }
     case 'hidden_cost_accuracy': {
-      // TODO: hidden_cost_accurate not yet tracked on UserStats
       const count = (condition.count as number) ?? 0;
-      return ((stats as any).hidden_cost_accurate ?? 0) >= count;
+      return stats.hidden_cost_accurate >= count;
     }
     case 'budget_under_month': {
-      // TODO: needs transaction history to evaluate
-      return false;
+      const months = (condition.months as number) ?? 0;
+      return stats.budget_under_months >= months;
     }
     case 'hidden_cost_acknowledged': {
-      // TODO: needs daily acknowledgment tracking
-      return false;
+      const days = (condition.days as number) ?? 0;
+      return stats.hidden_cost_acknowledged_days >= days;
     }
     case 'cci_achievement': {
-      // TODO: cci_score not yet tracked on UserStats
       const score = (condition.score as number) ?? 0;
-      return ((stats as any).cci_score ?? 0) >= score;
+      return stats.cci_score >= score;
     }
     case 'health_score_streak': {
-      // TODO: needs weekly health score history
+      // Requires weekly health score history tracking (not yet accumulated)
       return false;
     }
     default:

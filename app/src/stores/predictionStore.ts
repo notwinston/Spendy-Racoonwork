@@ -18,6 +18,9 @@ import {
   generateDailyBrief as buildDailyBrief,
   matchPredictionsToActuals,
 } from '../services/predictionService';
+import { useTransactionStore } from './transactionStore';
+import { supabase, isDemoMode } from '../lib/supabase';
+import { useAuthStore } from './authStore';
 
 // ---- Store types ----
 
@@ -189,14 +192,24 @@ export const usePredictionStore = create<PredictionState>((set, get) => ({
       }),
     }));
 
-    // In a real implementation we would also persist the feedback to Supabase:
-    // supabase.from('prediction_feedback').insert({ ... })
-    console.log('[PredictionStore] Feedback submitted:', {
-      predictionId,
-      feedbackType,
-      correctedCategory,
-      correctedAmount,
-    });
+    // Persist feedback to Supabase (fire-and-forget)
+    if (!isDemoMode()) {
+      const userId = useAuthStore.getState().user?.id;
+      if (userId) {
+        supabase
+          .from('prediction_feedback')
+          .insert({
+            prediction_id: predictionId,
+            user_id: userId,
+            feedback_type: feedbackType,
+            corrected_category: correctedCategory ?? null,
+            corrected_amount: correctedAmount ?? null,
+          })
+          .then(({ error }) => {
+            if (error) console.warn('[PredictionStore] Feedback persist failed:', error);
+          });
+      }
+    }
   },
 
   analyzeHiddenCosts: async (events, transactions, userId) => {
@@ -205,7 +218,8 @@ export const usePredictionStore = create<PredictionState>((set, get) => ({
     try {
       const newHiddenCosts = await predictHiddenCosts(events, transactions, userId);
       const updatedCosts = [...get().hiddenCosts, ...newHiddenCosts];
-      const breakdowns = buildEventCostBreakdowns(get().predictions, updatedCosts);
+      const txns = useTransactionStore.getState().transactions;
+      const breakdowns = buildEventCostBreakdowns(get().predictions, updatedCosts, txns);
 
       set({
         hiddenCosts: updatedCosts,
@@ -223,7 +237,8 @@ export const usePredictionStore = create<PredictionState>((set, get) => ({
     const updatedCosts = get().hiddenCosts.map(c =>
       c.id === costId ? { ...c, is_dismissed: true } : c,
     );
-    const breakdowns = buildEventCostBreakdowns(get().predictions, updatedCosts);
+    const txns = useTransactionStore.getState().transactions;
+    const breakdowns = buildEventCostBreakdowns(get().predictions, updatedCosts, txns);
 
     set({
       hiddenCosts: updatedCosts,

@@ -64,7 +64,7 @@ export function InsightsOverview() {
   const savingsRate = useMemo(() => {
     if (totalBudget <= 0) return 50;
     const saved = Math.max(0, totalBudget - totalSpent);
-    return Math.min(100, (saved / totalBudget) * 500);
+    return Math.min(100, (saved / totalBudget) * 100);
   }, [totalBudget, totalSpent]);
 
   const healthScore = useMemo(
@@ -101,8 +101,8 @@ export function InsightsOverview() {
   }, [healthScore, transactions.length]);
 
   // ---------- Month Summary KPIs ----------
-  const mockIncome = 4200;
-  const totalIncome = mockIncome;
+  const userIncome = user?.monthlyIncome ?? null;
+  const totalIncome = userIncome ?? totalBudget * 1.3;
   const totalExpenses = totalSpent > 0 ? totalSpent : 0;
   const net = totalIncome - totalExpenses;
 
@@ -181,7 +181,9 @@ export function InsightsOverview() {
       {/* Month Summary KPIs */}
       <View style={styles.kpiRow}>
         <View style={styles.kpiChip}>
-          <Text style={styles.kpiLabel}>Total Income</Text>
+          <Text style={styles.kpiLabel}>
+            {userIncome ? 'Total Income' : 'Est. Income'}
+          </Text>
           <Text style={[styles.kpiAmount, { color: Colors.positive }]}>
             ${totalIncome.toLocaleString()}
           </Text>

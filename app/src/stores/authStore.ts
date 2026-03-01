@@ -8,6 +8,7 @@ export interface UserProfile {
   displayName: string;
   avatarUrl?: string;
   friendCode?: string;
+  monthlyIncome?: number;
   xp: number;
   level: number;
   streakCount: number;
@@ -166,6 +167,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           displayName: profile?.display_name || email.split('@')[0],
           avatarUrl: profile?.avatar_url,
           friendCode: profile?.friend_code,
+          monthlyIncome: profile?.monthly_income ?? undefined,
           xp: profile?.xp || 0,
           level: profile?.level || 1,
           streakCount: profile?.streak_count || 0,
@@ -226,6 +228,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           displayName: profile?.display_name || '',
           avatarUrl: profile?.avatar_url,
           friendCode: profile?.friend_code,
+          monthlyIncome: profile?.monthly_income ?? undefined,
           xp: profile?.xp || 0,
           level: profile?.level || 1,
           streakCount: profile?.streak_count || 0,

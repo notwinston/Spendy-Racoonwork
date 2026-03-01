@@ -38,6 +38,7 @@ import {
   calculateSpendingStability,
 } from '../../src/stores/budgetStore';
 import { calculateSavingsRate } from '../../src/utils/financialCalcs';
+import { useSocialStore } from '../../src/stores/socialStore';
 
 const CATEGORY_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
   dining: 'restaurant',
@@ -60,8 +61,9 @@ export default function DashboardScreen() {
   const router = useRouter();
   const user = useAuthStore((s) => s.user);
   const { transactions, loadDemoData: loadTxns } = useTransactionStore();
-  const { predictions, hiddenCosts, generateDailyBrief } = usePredictionStore();
+  const { predictions, hiddenCosts, generateDailyBrief, trackAccuracy, eventCostBreakdowns } = usePredictionStore();
   const { events } = useCalendarStore();
+  const { sendPreEventHiddenCostAlert } = useSocialStore();
   const {
     budgets,
     totalBudget,
@@ -83,6 +85,13 @@ export default function DashboardScreen() {
     }
   }, [userId]);
 
+  // Track prediction accuracy against actual transactions (morning-after pattern)
+  useEffect(() => {
+    if (transactions.length > 0) {
+      trackAccuracy(transactions);
+    }
+  }, [transactions.length]);
+
   useEffect(() => {
     if (budgets.length > 0 && transactions.length > 0) {
       computeFromTransactions(
@@ -101,6 +110,72 @@ export default function DashboardScreen() {
       generateDailyBrief({ events, budgets });
     }
   }, [predictions.length, hiddenCosts.length, events.length, budgets.length, generateDailyBrief]);
+
+  // Schedule pre-event hidden cost alerts via expo-notifications
+  useEffect(() => {
+    let cancelled = false;
+
+    async function schedulePreEventAlerts() {
+      try {
+        const Notifications = await import('expo-notifications');
+        const now = new Date();
+        const TWO_HOURS = 2 * 60 * 60 * 1000;
+
+        // Cancel previous pre-event notifications
+        const scheduled = await Notifications.getAllScheduledNotificationsAsync();
+        for (const notif of scheduled) {
+          if (notif.identifier.startsWith('pre-event-')) {
+            await Notifications.cancelScheduledNotificationAsync(notif.identifier);
+          }
+        }
+
+        if (cancelled) return;
+
+        for (const event of events) {
+          const breakdown = eventCostBreakdowns[event.id];
+          if (!breakdown) continue;
+
+          // Only schedule for events with likely hidden costs
+          const likelyCosts = breakdown.hidden_costs.filter(
+            (c) => !c.is_dismissed && c.tier === 'likely',
+          );
+          if (likelyCosts.length === 0) continue;
+
+          const eventStart = new Date(event.start_time);
+          if (eventStart.getTime() <= now.getTime()) continue;
+
+          const triggerTime = new Date(eventStart.getTime() - TWO_HOURS);
+          if (triggerTime.getTime() <= now.getTime()) continue;
+
+          const totalHidden = likelyCosts.reduce((s, c) => s + c.predicted_amount, 0);
+          const topLabels = likelyCosts.slice(0, 2).map((c) => c.label).join(' & ');
+
+          await Notifications.scheduleNotificationAsync({
+            content: {
+              title: `${event.title} — budget $${breakdown.total_likely.toFixed(0)}, not $${breakdown.base_prediction.predicted_amount.toFixed(0)}`,
+              body: `Likely hidden costs: ${topLabels} (+$${totalHidden.toFixed(0)})`,
+              data: { eventId: event.id, screen: 'dashboard' },
+            },
+            trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: triggerTime },
+            identifier: `pre-event-${event.id}`,
+          });
+
+          // Fire the social alert when the notification triggers
+          sendPreEventHiddenCostAlert(userId, event, breakdown).catch(console.warn);
+        }
+      } catch {
+        // expo-notifications not available (e.g. Expo Go)
+      }
+    }
+
+    if (events.length > 0 && Object.keys(eventCostBreakdowns).length > 0) {
+      schedulePreEventAlerts();
+    }
+
+    return () => {
+      cancelled = true;
+    };
+  }, [events.length, Object.keys(eventCostBreakdowns).length]);
 
   // Category sort preference
   const [categorySortPref, setCategorySortPref] = useState<'amount' | 'az'>('amount');
@@ -141,11 +216,11 @@ export default function DashboardScreen() {
     [transactions],
   );
 
+  const monthlyIncome = user?.monthlyIncome ?? null;
   const savingsRate = useMemo(() => {
-    // TODO: use real income from user profile when available
-    const estimatedMonthlyIncome = totalBudget * 1.3;
-    return calculateSavingsRate(estimatedMonthlyIncome, totalSpent);
-  }, [totalBudget, totalSpent]);
+    if (!monthlyIncome || monthlyIncome <= 0) return null;
+    return calculateSavingsRate(monthlyIncome, totalSpent);
+  }, [monthlyIncome, totalSpent]);
 
   const cciScore = useMemo(
     () => calculateCCI(predictions),
@@ -165,7 +240,7 @@ export default function DashboardScreen() {
   const healthScoreV2 = useMemo(
     () => calculateHealthScoreV2(
       budgetAdherenceMVP,
-      Math.max(0, savingsRate * 100),
+      Math.max(0, (savingsRate ?? 0) * 100),
       spendingStability,
       cciScore * 100,
       user?.streakCount ?? 0,
@@ -335,9 +410,9 @@ export default function DashboardScreen() {
           <View style={styles.metricCardWrapper}>
             <MetricCard
               label="Savings Rate"
-              value={`${(savingsRate * 100).toFixed(0)}%`}
-              trend={savingsRate >= 0.2 ? 'up' : savingsRate >= 0.1 ? 'flat' : 'down'}
-              trendValue={savingsRate >= 0.2 ? 'Good' : savingsRate >= 0.1 ? 'Fair' : 'Low'}
+              value={savingsRate != null ? `${(savingsRate * 100).toFixed(0)}%` : '—'}
+              trend={savingsRate != null ? (savingsRate >= 0.2 ? 'up' : savingsRate >= 0.1 ? 'flat' : 'down') : 'flat'}
+              trendValue={savingsRate != null ? (savingsRate >= 0.2 ? 'Good' : savingsRate >= 0.1 ? 'Fair' : 'Low') : 'Set income'}
             />
           </View>
           <View style={styles.metricCardWrapper}>

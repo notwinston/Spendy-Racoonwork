@@ -471,9 +471,23 @@ export async function predictHiddenCosts(
   return allResults;
 }
 
+function getHistoricalAvg(
+  prediction: SpendingPrediction,
+  transactions: Transaction[],
+): number | null {
+  const category = prediction.predicted_category;
+  const categoryTxns = transactions.filter(
+    (t) => t.category === category && Math.abs(t.amount) > 0,
+  );
+  if (categoryTxns.length < 3) return null;
+  const sum = categoryTxns.reduce((s, t) => s + Math.abs(t.amount), 0);
+  return Math.round((sum / categoryTxns.length) * 100) / 100;
+}
+
 export function buildEventCostBreakdowns(
   predictions: SpendingPrediction[],
   hiddenCosts: HiddenCost[],
+  transactions: Transaction[] = [],
 ): Record<string, EventCostBreakdown> {
   const predictionMap = new Map<string, SpendingPrediction>();
   for (const p of predictions) {
@@ -510,7 +524,7 @@ export function buildEventCostBreakdowns(
       total_possible: baseAmount + likelyCosts.reduce((sum, c) => sum + c.predicted_amount, 0) +
         possibleCosts.reduce((sum, c) => sum + c.predicted_amount, 0),
       total_with_risk: baseAmount + allActiveCosts.reduce((sum, c) => sum + c.predicted_amount, 0),
-      historical_avg: null,
+      historical_avg: getHistoricalAvg(prediction, transactions),
     };
   }
 

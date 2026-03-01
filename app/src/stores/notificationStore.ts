@@ -5,8 +5,6 @@
  * In demo mode, pre-populates with sample notifications.
  */
 import { create } from 'zustand';
-import * as Notifications from 'expo-notifications';
-import { SchedulableTriggerInputTypes } from 'expo-notifications';
 import type { Notification, NotificationPriority } from '../types';
 
 export interface NotificationPreferences {
@@ -237,31 +235,41 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
   clearAll: () => set({ notifications: [] }),
 
   scheduleMorningBrief: async () => {
-    const { status } = await Notifications.requestPermissionsAsync();
-    if (status !== 'granted') return;
+    try {
+      const Notifications = await import('expo-notifications');
+      const { status } = await Notifications.requestPermissionsAsync();
+      if (status !== 'granted') return;
 
-    // Cancel any existing morning brief schedule
-    await Notifications.cancelScheduledNotificationAsync('morning-brief').catch(() => {});
+      // Cancel any existing morning brief schedule
+      await Notifications.cancelScheduledNotificationAsync('morning-brief').catch(() => {});
 
-    // Only schedule if preference is enabled
-    if (!get().preferences.hiddenCostAlerts) return;
+      // Only schedule if preference is enabled
+      if (!get().preferences.hiddenCostAlerts) return;
 
-    await Notifications.scheduleNotificationAsync({
-      content: {
-        title: "Today's Spending Forecast",
-        body: "Check your daily brief for today's events and hidden costs.",
-        data: { screen: 'dashboard' },
-      },
-      trigger: {
-        type: SchedulableTriggerInputTypes.DAILY,
-        hour: 8,
-        minute: 0,
-      },
-      identifier: 'morning-brief',
-    });
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title: "Today's Spending Forecast",
+          body: "Check your daily brief for today's events and hidden costs.",
+          data: { screen: 'dashboard' },
+        },
+        trigger: {
+          type: Notifications.SchedulableTriggerInputTypes.DAILY,
+          hour: 8,
+          minute: 0,
+        },
+        identifier: 'morning-brief',
+      });
+    } catch {
+      // expo-notifications not available (e.g. Expo Go)
+    }
   },
 
   cancelMorningBrief: async () => {
-    await Notifications.cancelScheduledNotificationAsync('morning-brief').catch(() => {});
+    try {
+      const Notifications = await import('expo-notifications');
+      await Notifications.cancelScheduledNotificationAsync('morning-brief').catch(() => {});
+    } catch {
+      // expo-notifications not available (e.g. Expo Go)
+    }
   },
 }));

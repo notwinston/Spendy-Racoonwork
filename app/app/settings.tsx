@@ -14,6 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
+import { supabase, isDemoMode } from '../src/lib/supabase';
 import { Colors, Typography, Spacing } from '../src/constants';
 import { Card } from '../src/components/ui/Card';
 import { Button } from '../src/components/ui/Button';
@@ -154,6 +155,10 @@ export default function SettingsScreen() {
   const [weeklySummary, setWeeklySummary] = useState(true);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [incomeInput, setIncomeInput] = useState(
+    user?.monthlyIncome ? user.monthlyIncome.toString() : '',
+  );
+  const [isSavingIncome, setIsSavingIncome] = useState(false);
 
   const calendarConnected = calendarConnections.length > 0;
   const bankConnected = plaidConnections.length > 0;
@@ -177,6 +182,26 @@ export default function SettingsScreen() {
       setTimeout(() => setCopiedCode(false), 2000);
     }
   }, [user?.friendCode]);
+
+  const handleSaveIncome = useCallback(async () => {
+    const parsed = parseFloat(incomeInput.replace(/[^0-9.]/g, ''));
+    if (isNaN(parsed) || parsed <= 0) return;
+
+    setIsSavingIncome(true);
+    try {
+      if (user) {
+        setUser({ ...user, monthlyIncome: parsed });
+      }
+      if (!isDemoMode() && user) {
+        await supabase
+          .from('profiles')
+          .update({ monthly_income: parsed, updated_at: new Date().toISOString() })
+          .eq('id', user.id);
+      }
+    } finally {
+      setIsSavingIncome(false);
+    }
+  }, [incomeInput, user, setUser]);
 
   const handleCalendarPress = () => {
     if (calendarConnected) {
@@ -301,6 +326,38 @@ export default function SettingsScreen() {
             </TouchableOpacity>
           ) : null}
         </View>
+
+        {/* Financial Information */}
+        <Text style={styles.sectionTitle}>Financial Information</Text>
+        <Card>
+          <View style={styles.row}>
+            <Ionicons name="cash-outline" size={20} color={Colors.accent} />
+            <Text style={styles.rowLabel}>Monthly Income</Text>
+          </View>
+          <View style={styles.incomeInputRow}>
+            <Text style={styles.incomeDollarSign}>$</Text>
+            <TextInput
+              style={styles.incomeInput}
+              value={incomeInput}
+              onChangeText={setIncomeInput}
+              placeholder="e.g. 5000"
+              placeholderTextColor={Colors.textMuted}
+              keyboardType="numeric"
+              returnKeyType="done"
+              onBlur={handleSaveIncome}
+              onSubmitEditing={handleSaveIncome}
+            />
+            {isSavingIncome && (
+              <Text style={styles.incomeSaving}>Saving...</Text>
+            )}
+            {!isSavingIncome && user?.monthlyIncome && (
+              <Ionicons name="checkmark-circle" size={18} color={Colors.positive} />
+            )}
+          </View>
+          <Text style={styles.incomeHint}>
+            Used to calculate your savings rate on the dashboard.
+          </Text>
+        </Card>
 
         {/* Connected Accounts */}
         <Text style={styles.sectionTitle}>Connected Accounts</Text>
@@ -621,6 +678,38 @@ const styles = StyleSheet.create({
   },
   visibilityOptionTextSelected: {
     color: Colors.accent,
+  },
+  // Income input
+  incomeInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: Spacing.sm,
+    gap: Spacing.xs,
+  },
+  incomeDollarSign: {
+    fontSize: Typography.sizes.xl,
+    fontWeight: Typography.weights.semibold,
+    color: Colors.textPrimary,
+  },
+  incomeInput: {
+    flex: 1,
+    fontSize: Typography.sizes.xl,
+    fontWeight: Typography.weights.semibold,
+    color: Colors.textPrimary,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+    paddingVertical: Spacing.xs,
+    fontFamily: 'DMMono_500Medium',
+  },
+  incomeSaving: {
+    fontSize: Typography.sizes.sm,
+    color: Colors.textMuted,
+  },
+  incomeHint: {
+    fontSize: Typography.sizes.xs,
+    color: Colors.textMuted,
+    paddingBottom: Spacing.sm,
+    marginTop: Spacing.xs,
   },
   // Sign out
   signOutButton: {

@@ -563,61 +563,61 @@ Should features be released in phases?
 
 | # | Question | Decision | Date | Notes |
 |---|----------|----------|------|-------|
-| 1.1 | Budget sources | | | |
-| 1.2 | Calculation method | | | |
-| 1.3 | Time horizon | | | |
-| 1.4 | Category breakdown | | | |
-| 1.5 | Update frequency | | | |
-| 1.6 | User input requirements | | | |
-| 1.7 | Onboarding flow | | | |
-| 2.1 | Debt data model | | | |
-| 2.2 | Prioritization strategies | | | |
-| 2.3 | Payment recommendations | | | |
-| 2.4 | What-if scenarios | | | |
-| 2.5 | Debt entry method | | | |
-| 2.6 | Debt alerts | | | |
-| 3.1 | Card data model | | | |
-| 3.2 | Recommendation trigger | | | |
-| 3.3 | Recommendation scope | | | |
-| 3.4 | Card entry method | | | |
-| 3.5 | Multi-card strategy | | | |
-| 4.1 | Subscription detection | | | |
-| 4.2 | Overlap detection rules | | | |
-| 4.3 | Unused detection | | | |
-| 4.4 | Subscription advice depth | | | |
-| 4.5 | Subscription categories | | | |
-| 4.6 | Annual subscription tracking | | | |
-| 5.1 | Detection criteria | | | |
-| 5.2 | Time window | | | |
-| 5.3 | Alert severity | | | |
-| 5.4 | User actions on alert | | | |
-| 5.5 | False positive handling | | | |
-| 6.1 | Projection method | | | |
-| 6.2 | Alert thresholds | | | |
-| 6.3 | Alert timing | | | |
-| 6.4 | Alert content | | | |
-| 6.5 | Account scope | | | |
-| 6.6 | Income consideration | | | |
-| 7.1 | Pattern types | | | |
-| 7.2 | Detection sensitivity | | | |
-| 7.3 | Minimum data requirement | | | |
-| 7.4 | Alert timing | | | |
-| 7.5 | Alert tone | | | |
-| 7.6 | Cooldown period | | | |
-| 7.7 | Privacy sensitivity | | | |
-| 8.1 | Placement | | | |
-| 8.2 | Card types | | | |
-| 8.3 | Priority & ordering | | | |
-| 8.4 | Insight density | | | |
-| 8.5 | Actionability | | | |
-| 8.6 | Detail views | | | |
-| 8.7 | Notification integration | | | |
-| 8.8 | Feature toggles | | | |
-| 8.9 | Empty states | | | |
-| 9.1 | New data models | | | |
-| 9.2 | Data persistence | | | |
-| 9.3 | AI/LLM usage | | | |
-| 9.4 | Gemini API budget | | | |
-| 10.1 | Feature priority | | | |
-| 10.2 | MVP scope | | | |
-| 10.3 | Phased rollout | | | |
+| 1.1 | Budget sources | All: savings goals, emergency fund, upcoming bills, calendar predictions, income/paycheck schedule | 2026-03-01 | |
+| 1.2 | Calculation method | Full formula: remaining_budget - predicted_expenses - bills - savings_contributions - safety_buffer | 2026-03-01 | |
+| 1.3 | Time horizon | Multiple horizons: today, this week, and until next paycheck shown simultaneously | 2026-03-01 | |
+| 1.4 | Category breakdown | Total + category flags (show total spendable + flag categories near their limit) | 2026-03-01 | |
+| 1.5 | Update frequency | After each transaction | 2026-03-01 | |
+| 1.6 | User input requirements | Onboarding wizard | 2026-03-01 | Dedicated setup flow when Financial Optimizer is first enabled |
+| 1.7 | Onboarding flow | Onboarding wizard | 2026-03-01 | Same as 1.6 |
+| 2.1 | Debt data model | All: core fields + payoff deadline + tax deductible flag + credit limit | 2026-03-01 | |
+| 2.2 | Prioritization strategies | Compare all: side-by-side comparison of avalanche, snowball, deadline-aware | 2026-03-01 | |
+| 2.3 | Payment recommendations | Full payoff timeline + specific extra payment amounts | 2026-03-01 | Both depth levels |
+| 2.4 | What-if scenarios | Extra monthly payment + reorder priorities | 2026-03-01 | |
+| 2.5 | Debt entry method | Manual entry only | 2026-03-01 | |
+| 2.6 | Debt alerts | Due date reminders, promo rate expiration, quick win opportunities | 2026-03-01 | No interest milestones |
+| 3.1 | Card data model | Core + rewards + annual fee + limits | 2026-03-01 | No rotating bonuses or sign-up tracking in data model |
+| 3.2 | Recommendation trigger | Persistent reference card in Insights section | 2026-03-01 | |
+| 3.3 | Recommendation scope | Full optimization: category + rotating + sign-up + annual fee ROI | 2026-03-01 | |
+| 3.4 | Card entry method | Database + manual (pick from known cards or manually add custom) | 2026-03-01 | |
+| 3.5 | Multi-card strategy | Both: utilization optimization + statement date optimization | 2026-03-01 | |
+| 4.1 | Subscription detection | Manual tagging | 2026-03-01 | User tags transactions as subscriptions |
+| 4.2 | Overlap detection rules | Category-based (flag multiple subscriptions in same category) | 2026-03-01 | |
+| 4.3 | Unused detection | User self-reports usage level | 2026-03-01 | |
+| 4.4 | Subscription advice depth | List + overlap flags | 2026-03-01 | |
+| 4.5 | Subscription categories | Not explicitly selected | 2026-03-01 | Use all categories from elicitation doc |
+| 4.6 | Annual subscription tracking | All: amortize to monthly + renewal date alerts + free trial tracking | 2026-03-01 | |
+| 5.1 | Detection criteria | New merchant + large amount, rapid small transactions | 2026-03-01 | Not same-merchant duplicates |
+| 5.2 | Time window | Configurable by user | 2026-03-01 | |
+| 5.3 | Alert severity | Tiered: 'Likely duplicate' / 'Possible duplicate' / 'Unusual activity' | 2026-03-01 | |
+| 5.4 | User actions on alert | Confirm legitimate + flag as fraud | 2026-03-01 | No whitelist or snooze |
+| 5.5 | False positive handling | Static rules (no learning) | 2026-03-01 | |
+| 6.1 | Projection method | Pattern-based (bills, paydays, recurring, calendar predictions) | 2026-03-01 | |
+| 6.2 | Alert thresholds | User-defined minimum + insufficient for bills + days until zero | 2026-03-01 | |
+| 6.3 | Alert timing | As soon as projected (immediate when projection dips below threshold) | 2026-03-01 | |
+| 6.4 | Alert content | Warning + cause + action (actionable advice included) | 2026-03-01 | |
+| 6.5 | Account scope | Per-account projections | 2026-03-01 | |
+| 6.6 | Income consideration | Yes — include known/predicted income deposits | 2026-03-01 | |
+| 7.1 | Pattern types | Post-payday, category clusters, day-of-week, merchant frequency | 2026-03-01 | No time-of-day, no escalation, no seasonal |
+| 7.2 | Detection sensitivity | Moderate (flag likely patterns with noise tolerance) | 2026-03-01 | |
+| 7.3 | Minimum data requirement | Adaptive (start basic, add complex patterns as data grows) | 2026-03-01 | |
+| 7.4 | Alert timing | Preventive + retrospective (no real-time) | 2026-03-01 | |
+| 7.5 | Alert tone | Gentle nudge | 2026-03-01 | |
+| 7.6 | Cooldown period | Once per occurrence window | 2026-03-01 | |
+| 7.7 | Privacy sensitivity | On-device + explicit opt-in | 2026-03-01 | All analysis local, user opts in separately |
+| 8.1 | Placement | New dedicated "Financial Optimizer" section in Insights tab | 2026-03-01 | |
+| 8.2 | Card types | New specific types: debt, subscription, fraud, balance, impulse, reward | 2026-03-01 | Each with unique icons/colors |
+| 8.3 | Priority & ordering | By dollar impact (highest potential savings first) | 2026-03-01 | |
+| 8.4 | Insight density | Top 3-5 with "See All" expansion | 2026-03-01 | |
+| 8.5 | Actionability | Informational only (no action buttons) | 2026-03-01 | |
+| 8.6 | Detail views | Debt Dashboard + Card Wallet + Balance Forecast (no Subscription Manager screen) | 2026-03-01 | |
+| 8.7 | Notification integration | New types (debt_alert, fraud_alert, etc.) + user configures which become push | 2026-03-01 | |
+| 8.8 | Feature toggles | Granular (individual toggle per feature) | 2026-03-01 | |
+| 8.9 | Empty states | Placeholder cards for production; demo data for demo mode | 2026-03-01 | |
+| 9.1 | New data models | All 6: Debt, PaymentCard, Subscription, FinancialProfile, OptimizerInsight, SpendingPattern | 2026-03-01 | |
+| 9.2 | Data persistence | Zustand + Supabase (already in place) | 2026-03-01 | |
+| 9.3 | AI/LLM usage | Hybrid: local math for calculations, Gemini for NL insight text (already implemented) | 2026-03-01 | |
+| 9.4 | Gemini API budget | Cache + change detection (only regenerate when data changes) | 2026-03-01 | |
+| 10.1 | Feature priority | 1. Spendable Budget, 2. Balance Alert, 3. Impulse, 4. Debt, 5. Duplicates, 6. Subs, 7. Cards | 2026-03-01 | |
+| 10.2 | MVP scope | Top 2 polished: Spendable Budget Advisor + Predictive Balance Alert | 2026-03-01 | |
+| 10.3 | Phased rollout | Phase 1: Budget + Balance (MVP), Phase 2: Impulse + Debt, Phase 3: Duplicates + Subs + Cards | 2026-03-01 | |
