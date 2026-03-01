@@ -1,11 +1,23 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { View, StyleSheet } from 'react-native';
 import Svg, {
   Circle,
   Text as SvgText,
 } from 'react-native-svg';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  useAnimatedReaction,
+  useAnimatedProps,
+  withSpring,
+  withTiming,
+  runOnJS,
+  Easing,
+} from 'react-native-reanimated';
 import { Colors } from '../../constants/colors';
 import { Typography } from '../../constants/typography';
+
+const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
 export interface CCIBadgeProps {
   score: number;
@@ -37,40 +49,50 @@ export const CCIBadge: React.FC<CCIBadgeProps> = ({
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
   const center = size / 2;
+  const glowStrokeWidth = strokeWidth * 1.5;
 
+  const targetOffset = circumference * (1 - score / 100);
+  const animatedOffset = useSharedValue(circumference);
+  const containerScale = useSharedValue(0.6);
   const [displayProgress, setDisplayProgress] = useState(0);
-  const animRef = useRef<ReturnType<typeof requestAnimationFrame> | null>(null);
+
+  const updateDisplay = useCallback((v: number) => {
+    const progress = 1 - v / circumference;
+    setDisplayProgress(Math.round(progress * 100));
+  }, [circumference]);
 
   useEffect(() => {
-    const startTime = Date.now();
-    const duration = 800;
+    // Scale-in spring
+    containerScale.value = withSpring(1, { damping: 10, stiffness: 100 });
+    // Draw-in arc
+    animatedOffset.value = withTiming(targetOffset, {
+      duration: 800,
+      easing: Easing.out(Easing.cubic),
+    });
+  }, [targetOffset, circumference]);
 
-    const animate = () => {
-      const elapsed = Date.now() - startTime;
-      const progress = Math.min(elapsed / duration, 1);
-      const eased = 1 - Math.pow(1 - progress, 3);
-      setDisplayProgress(eased * score);
+  useAnimatedReaction(
+    () => animatedOffset.value,
+    (current) => {
+      runOnJS(updateDisplay)(current);
+    },
+  );
 
-      if (progress < 1) {
-        animRef.current = requestAnimationFrame(animate);
-      }
-    };
+  const animatedProps = useAnimatedProps(() => ({
+    strokeDashoffset: animatedOffset.value,
+  }));
 
-    animRef.current = requestAnimationFrame(animate);
-    return () => {
-      if (animRef.current) cancelAnimationFrame(animRef.current);
-    };
-  }, [score]);
+  const scaleStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: containerScale.value }],
+  }));
 
-  const strokeDashoffset =
-    circumference - (displayProgress / 100) * circumference;
   const color = getCCIColor(score);
   const label = getCCILabel(score);
 
   const totalHeight = size + (showLabel ? 20 : 0);
 
   return (
-    <View style={[styles.container, { width: size, height: totalHeight }]}>
+    <Animated.View style={[styles.container, { width: size, height: totalHeight }, scaleStyle]}>
       <Svg width={size} height={totalHeight} viewBox={`0 0 ${size} ${totalHeight}`}>
         {/* Background ring */}
         <Circle
@@ -82,8 +104,24 @@ export const CCIBadge: React.FC<CCIBadgeProps> = ({
           fill="none"
         />
 
+        {/* Glow bloom layer */}
+        <AnimatedCircle
+          cx={center}
+          cy={center}
+          r={radius}
+          stroke={color}
+          strokeWidth={glowStrokeWidth}
+          fill="none"
+          strokeDasharray={`${circumference}`}
+          animatedProps={animatedProps}
+          strokeLinecap="round"
+          rotation={-90}
+          origin={`${center}, ${center}`}
+          opacity={0.2}
+        />
+
         {/* Score arc */}
-        <Circle
+        <AnimatedCircle
           cx={center}
           cy={center}
           r={radius}
@@ -91,7 +129,7 @@ export const CCIBadge: React.FC<CCIBadgeProps> = ({
           strokeWidth={strokeWidth}
           fill="none"
           strokeDasharray={`${circumference}`}
-          strokeDashoffset={strokeDashoffset}
+          animatedProps={animatedProps}
           strokeLinecap="round"
           rotation={-90}
           origin={`${center}, ${center}`}
@@ -107,7 +145,7 @@ export const CCIBadge: React.FC<CCIBadgeProps> = ({
           fontSize={Typography.sizes.lg}
           fontWeight={Typography.weights.bold}
         >
-          {`${Math.round(displayProgress)}%`}
+          {`${displayProgress}%`}
         </SvgText>
 
         {/* Quality label */}
@@ -124,7 +162,7 @@ export const CCIBadge: React.FC<CCIBadgeProps> = ({
           </SvgText>
         )}
       </Svg>
-    </View>
+    </Animated.View>
   );
 };
 

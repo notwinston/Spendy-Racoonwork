@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { View, StyleSheet, Dimensions } from 'react-native';
 import Svg, {
   Path,
@@ -7,6 +7,13 @@ import Svg, {
   G,
   Text as SvgText,
 } from 'react-native-svg';
+import {
+  useSharedValue,
+  useAnimatedReaction,
+  withTiming,
+  runOnJS,
+  Easing,
+} from 'react-native-reanimated';
 import { Colors } from '../../constants/colors';
 import { Typography } from '../../constants/typography';
 
@@ -43,28 +50,22 @@ export const GrowthCurveChart: React.FC<GrowthCurveChartProps> = ({
   height = 200,
 }) => {
   const [animProgress, setAnimProgress] = useState(0);
-  const animRef = useRef<ReturnType<typeof requestAnimationFrame> | null>(null);
+  const animValue = useSharedValue(0);
+
+  const updateProgress = useCallback((v: number) => {
+    setAnimProgress(v);
+  }, []);
 
   useEffect(() => {
-    const startTime = Date.now();
-    const duration = 800;
-
-    const animate = () => {
-      const elapsed = Date.now() - startTime;
-      const progress = Math.min(elapsed / duration, 1);
-      const eased = 1 - Math.pow(1 - progress, 3);
-      setAnimProgress(eased);
-
-      if (progress < 1) {
-        animRef.current = requestAnimationFrame(animate);
-      }
-    };
-
-    animRef.current = requestAnimationFrame(animate);
-    return () => {
-      if (animRef.current) cancelAnimationFrame(animRef.current);
-    };
+    animValue.value = withTiming(1, { duration: 800, easing: Easing.out(Easing.cubic) });
   }, []);
+
+  useAnimatedReaction(
+    () => animValue.value,
+    (current) => {
+      runOnJS(updateProgress)(current);
+    },
+  );
 
   // Validate data
   const hasData =

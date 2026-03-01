@@ -1,11 +1,20 @@
-import React, { useEffect, useRef } from 'react';
-import { View, StyleSheet, Animated } from 'react-native';
+import React, { useEffect, useCallback, useState } from 'react';
+import { View, StyleSheet } from 'react-native';
 import Svg, {
   Path,
   Line,
   Circle,
   Text as SvgText,
 } from 'react-native-svg';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  useAnimatedReaction,
+  withTiming,
+  withSpring,
+  Easing,
+  runOnJS,
+} from 'react-native-reanimated';
 import { Colors } from '../../constants/colors';
 import { Typography } from '../../constants/typography';
 
@@ -50,35 +59,49 @@ export const BurnRateGauge: React.FC<BurnRateGaugeProps> = ({
   const radius = size / 2 - 12;
   const strokeW = 10;
 
-  // Pulse animation for rate > 1.0
-  const pulseAnim = useRef(new Animated.Value(1)).current;
+  // Reanimated needle sweep animation
+  const rateToAngle = (r: number) => 180 + ((r - 0.5) / 1.0) * 180;
+
+  const targetAngle = rateToAngle(rate);
+  const animatedAngle = useSharedValue(180); // start from left
+  const [displayAngle, setDisplayAngle] = useState(180);
+
+  const updateAngle = useCallback((v: number) => {
+    setDisplayAngle(v);
+  }, []);
+
+  useEffect(() => {
+    animatedAngle.value = withSpring(targetAngle, { damping: 12, stiffness: 80 });
+  }, [targetAngle]);
+
+  useAnimatedReaction(
+    () => animatedAngle.value,
+    (current) => {
+      runOnJS(updateAngle)(current);
+    },
+  );
+
+  // Pulse scale for over-budget
+  const scale = useSharedValue(1);
 
   useEffect(() => {
     if (rate > 1.0) {
-      const pulse = Animated.loop(
-        Animated.sequence([
-          Animated.timing(pulseAnim, {
-            toValue: 1.05,
-            duration: 1000,
-            useNativeDriver: true,
-          }),
-          Animated.timing(pulseAnim, {
-            toValue: 1.0,
-            duration: 1000,
-            useNativeDriver: true,
-          }),
-        ]),
-      );
-      pulse.start();
-      return () => pulse.stop();
+      const runPulse = () => {
+        scale.value = withTiming(1.05, { duration: 1000, easing: Easing.inOut(Easing.ease) }, () => {
+          scale.value = withTiming(1.0, { duration: 1000, easing: Easing.inOut(Easing.ease) }, () => {
+            runPulse();
+          });
+        });
+      };
+      runPulse();
     } else {
-      pulseAnim.setValue(1);
+      scale.value = withTiming(1, { duration: 300 });
     }
-  }, [rate, pulseAnim]);
+  }, [rate]);
 
-  // Arc zones: mapped to 180° to 360° (semi-circle, open at bottom)
-  // Range 0.5 to 1.5 maps to 180° to 360°
-  const rateToAngle = (r: number) => 180 + ((r - 0.5) / 1.0) * 180;
+  const animatedContainerStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
 
   // Zone boundaries in rate space
   const zones = [
@@ -88,9 +111,8 @@ export const BurnRateGauge: React.FC<BurnRateGaugeProps> = ({
     { start: 1.2, end: 1.5, color: Colors.burnOver },
   ];
 
-  // Needle angle
-  const needleAngle = rateToAngle(rate);
-  const needleRad = (needleAngle * Math.PI) / 180;
+  // Needle position derived from animated angle
+  const needleRad = (displayAngle * Math.PI) / 180;
   const needleLength = radius - 8;
   const needleX = cx + needleLength * Math.cos(needleRad);
   const needleY = cy + needleLength * Math.sin(needleRad);
@@ -103,7 +125,7 @@ export const BurnRateGauge: React.FC<BurnRateGaugeProps> = ({
       style={[
         styles.container,
         { width: size, height: svgHeight },
-        { transform: [{ scale: pulseAnim }] },
+        animatedContainerStyle,
       ]}
     >
       <Svg width={size} height={svgHeight} viewBox={`0 0 ${size} ${svgHeight}`}>

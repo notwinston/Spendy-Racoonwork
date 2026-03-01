@@ -1,5 +1,5 @@
-import React, { useEffect, useState, useRef } from 'react';
-import { View, StyleSheet, Animated } from 'react-native';
+import React, { useEffect, useCallback } from 'react';
+import { View, StyleSheet } from 'react-native';
 import Svg, {
   Circle,
   Defs,
@@ -7,8 +7,19 @@ import Svg, {
   Stop,
   Text as SvgText,
 } from 'react-native-svg';
+import ReanimatedModule, {
+  useSharedValue,
+  useAnimatedProps,
+  withTiming,
+  Easing,
+  useAnimatedReaction,
+  runOnJS,
+} from 'react-native-reanimated';
 import { Colors } from '../../constants/colors';
 import { Typography } from '../../constants/typography';
+import { useState } from 'react';
+
+const AnimatedCircle = ReanimatedModule.createAnimatedComponent(Circle);
 
 export interface HealthScoreRingProps {
   score: number;
@@ -38,42 +49,35 @@ export const HealthScoreRing: React.FC<HealthScoreRingProps> = ({
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
   const center = size / 2;
+  const glowStrokeWidth = strokeWidth * 1.5;
 
-  const [displayProgress, setDisplayProgress] = useState(animated ? 0 : score);
-  const animRef = useRef<ReturnType<typeof requestAnimationFrame> | null>(null);
+  const targetOffset = circumference * (1 - score / 100);
+  const animatedOffset = useSharedValue(animated ? circumference : targetOffset);
+  const [displayScore, setDisplayScore] = useState(animated ? 0 : score);
+
+  const updateDisplay = useCallback((v: number) => {
+    const progress = 1 - v / circumference;
+    setDisplayScore(Math.round(progress * 100));
+  }, [circumference]);
 
   useEffect(() => {
-    if (!animated) {
-      setDisplayProgress(score);
-      return;
-    }
+    animatedOffset.value = withTiming(targetOffset, {
+      duration: 1200,
+      easing: Easing.out(Easing.cubic),
+    });
+  }, [targetOffset, circumference]);
 
-    const startTime = Date.now();
-    const duration = 1000;
+  useAnimatedReaction(
+    () => animatedOffset.value,
+    (current) => {
+      runOnJS(updateDisplay)(current);
+    },
+  );
 
-    const animate = () => {
-      const elapsed = Date.now() - startTime;
-      const progress = Math.min(elapsed / duration, 1);
-      // Ease out cubic
-      const eased = 1 - Math.pow(1 - progress, 3);
-      setDisplayProgress(eased * score);
+  const animatedProps = useAnimatedProps(() => ({
+    strokeDashoffset: animatedOffset.value,
+  }));
 
-      if (progress < 1) {
-        animRef.current = requestAnimationFrame(animate);
-      }
-    };
-
-    animRef.current = requestAnimationFrame(animate);
-
-    return () => {
-      if (animRef.current) {
-        cancelAnimationFrame(animRef.current);
-      }
-    };
-  }, [score, animated]);
-
-  const strokeDashoffset =
-    circumference - (displayProgress / 100) * circumference;
   const grade = getGrade(score);
 
   return (
@@ -97,8 +101,24 @@ export const HealthScoreRing: React.FC<HealthScoreRingProps> = ({
           fill="none"
         />
 
+        {/* Glow bloom layer */}
+        <AnimatedCircle
+          cx={center}
+          cy={center}
+          r={radius}
+          stroke="url(#scoreGradient)"
+          strokeWidth={glowStrokeWidth}
+          fill="none"
+          strokeDasharray={`${circumference}`}
+          animatedProps={animatedProps}
+          strokeLinecap="round"
+          rotation={-90}
+          origin={`${center}, ${center}`}
+          opacity={0.2}
+        />
+
         {/* Score arc */}
-        <Circle
+        <AnimatedCircle
           cx={center}
           cy={center}
           r={radius}
@@ -106,7 +126,7 @@ export const HealthScoreRing: React.FC<HealthScoreRingProps> = ({
           strokeWidth={strokeWidth}
           fill="none"
           strokeDasharray={`${circumference}`}
-          strokeDashoffset={strokeDashoffset}
+          animatedProps={animatedProps}
           strokeLinecap="round"
           rotation={-90}
           origin={`${center}, ${center}`}
@@ -138,7 +158,7 @@ export const HealthScoreRing: React.FC<HealthScoreRingProps> = ({
           fontFamily="DMMono_500Medium"
           fontWeight={Typography.weights.medium}
         >
-          {Math.round(displayProgress)}
+          {displayScore}
         </SvgText>
       </Svg>
     </View>
