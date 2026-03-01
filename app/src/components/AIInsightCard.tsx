@@ -1,0 +1,85 @@
+import React from 'react';
+import { View, Text, StyleSheet, Pressable } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { Colors, Typography, Spacing } from '../constants';
+
+export interface AIInsightCardProps {
+  type: 'warning' | 'opportunity' | 'win';
+  title: string;
+  body: string;
+  actionLabel?: string;
+  onAction?: () => void;
+}
+
+const TYPE_CONFIG: Record<
+  AIInsightCardProps['type'],
+  { color: string; icon: keyof typeof Ionicons.glyphMap }
+> = {
+  warning: { color: '#FF6B6B', icon: 'alert-circle' },
+  opportunity: { color: '#3B82F6', icon: 'cash-outline' },
+  win: { color: '#22C55E', icon: 'trending-up' },
+};
+
+export function AIInsightCard({
+  type,
+  title,
+  body,
+  actionLabel,
+  onAction,
+}: AIInsightCardProps) {
+  const config = TYPE_CONFIG[type];
+
+  return (
+    <View style={[styles.card, { borderLeftColor: config.color }]}>
+      <View style={styles.header}>
+        <Ionicons name={config.icon} size={20} color={config.color} />
+        <Text style={[styles.title, { color: config.color }]}>{title}</Text>
+      </View>
+      <Text style={styles.body}>{body}</Text>
+      {actionLabel && onAction && (
+        <Pressable style={[styles.actionBtn, { backgroundColor: config.color }]} onPress={onAction}>
+          <Text style={styles.actionText}>{actionLabel}</Text>
+        </Pressable>
+      )}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  card: {
+    backgroundColor: Colors.card,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.cardBorder,
+    borderLeftWidth: 4,
+    padding: Spacing.lg,
+    marginBottom: Spacing.md,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    marginBottom: Spacing.sm,
+  },
+  title: {
+    fontSize: Typography.sizes.md,
+    fontWeight: Typography.weights.semibold,
+  },
+  body: {
+    fontSize: Typography.sizes.sm,
+    color: Colors.textSecondary,
+    lineHeight: Typography.sizes.sm * Typography.lineHeights.relaxed,
+  },
+  actionBtn: {
+    marginTop: Spacing.md,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.lg,
+    borderRadius: 8,
+    alignSelf: 'flex-start',
+  },
+  actionText: {
+    fontSize: Typography.sizes.sm,
+    fontWeight: Typography.weights.semibold,
+    color: Colors.textPrimary,
+  },
+});
