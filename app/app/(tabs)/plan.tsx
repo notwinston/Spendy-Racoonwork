@@ -18,7 +18,7 @@ import { Card } from '../../src/components/ui/Card';
 import { HiddenCostBreakdown } from '../../src/components/HiddenCostBreakdown';
 import { FloatingChatButton } from '../../src/components/FloatingChatButton';
 import { BudgetAdjustmentCard } from '../../src/components/BudgetAdjustmentCard';
-import { RecurringChip } from '../../src/components/RecurringChip';
+import { GoalEditor } from '../../src/components/GoalEditor';
 import { useCalendarStore } from '../../src/stores/calendarStore';
 import { usePredictionStore } from '../../src/stores/predictionStore';
 import { useTransactionStore } from '../../src/stores/transactionStore';
@@ -35,8 +35,6 @@ import type {
   SpendingPrediction,
   EventCategory,
   ParsedReceipt,
-  RecurringTransaction,
-  TransactionFrequency,
 } from '../../src/types';
 
 const CATEGORY_ICONS: Record<EventCategory, string> = {
@@ -56,13 +54,7 @@ const CATEGORY_ICONS: Record<EventCategory, string> = {
   other: 'ellipsis-horizontal',
 };
 
-const FREQUENCY_LABELS: Record<TransactionFrequency, string> = {
-  weekly: 'Weekly',
-  biweekly: 'Bi-weekly',
-  monthly: 'Monthly',
-  quarterly: 'Quarterly',
-  yearly: 'Yearly',
-};
+// FREQUENCY_LABELS removed - recurring expenses section moved to Insights
 
 function getConfidenceColor(label: string): string {
   switch (label) {
@@ -104,10 +96,12 @@ export default function PlanScreen() {
   } = usePredictionStore();
   const {
     transactions,
-    recurringTransactions,
     loadDemoData: loadTransactionDemo,
   } = useTransactionStore();
   const { totalBudget, totalSpent } = useBudgetStore();
+
+  // GoalEditor modal state
+  const [goalEditorVisible, setGoalEditorVisible] = useState(false);
 
   // Savings rules local state
   const [roundUpEnabled, setRoundUpEnabled] = useState(false);
@@ -241,30 +235,6 @@ export default function PlanScreen() {
     return transactions.filter((t) => !t.reviewed).length;
   }, [transactions]);
 
-  // Active recurring transactions
-  const activeRecurring = useMemo(() => {
-    return recurringTransactions.filter((r) => r.is_active);
-  }, [recurringTransactions]);
-
-  // Total monthly recurring
-  const totalMonthlyRecurring = useMemo(() => {
-    return activeRecurring.reduce((sum, r) => {
-      switch (r.frequency) {
-        case 'weekly':
-          return sum + r.avg_amount * 4.33;
-        case 'biweekly':
-          return sum + r.avg_amount * 2.17;
-        case 'monthly':
-          return sum + r.avg_amount;
-        case 'quarterly':
-          return sum + r.avg_amount / 3;
-        case 'yearly':
-          return sum + r.avg_amount / 12;
-        default:
-          return sum + r.avg_amount;
-      }
-    }, 0);
-  }, [activeRecurring]);
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -507,48 +477,15 @@ export default function PlanScreen() {
           </View>
         </Card>
 
-        {/* --- Recurring Expenses --- */}
-        <Text style={styles.sectionTitle}>Recurring Expenses</Text>
-        {activeRecurring.length > 0 && (
-          <Card style={styles.summaryCard}>
-            <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Est. Monthly Recurring</Text>
-              <Text style={[styles.summaryAmount, { color: Colors.warning }]}>
-                {formatCurrency(totalMonthlyRecurring)}
-              </Text>
-            </View>
-            <Text style={styles.summarySubtext}>
-              {activeRecurring.length} active recurring{' '}
-              {activeRecurring.length === 1 ? 'expense' : 'expenses'}
-            </Text>
-          </Card>
-        )}
-
-        {activeRecurring.length === 0 ? (
-          <Card>
-            <View style={styles.emptyState}>
-              <Ionicons name="repeat-outline" size={36} color={Colors.textMuted} />
-              <Text style={styles.emptyStateText}>No recurring expenses detected</Text>
-            </View>
-          </Card>
-        ) : (
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.recurringChipScroll}
-          >
-            {activeRecurring.map((recurring) => (
-              <RecurringChip
-                key={recurring.id}
-                merchant={recurring.merchant_name}
-                amount={recurring.avg_amount}
-                frequency={FREQUENCY_LABELS[recurring.frequency]}
-                nextDate={recurring.next_expected_date ? formatDate(recurring.next_expected_date) : ''}
-                onPress={() => {}}
-              />
-            ))}
-          </ScrollView>
-        )}
+        {/* --- New Goal Button --- */}
+        <TouchableOpacity
+          style={styles.newGoalButton}
+          onPress={() => setGoalEditorVisible(true)}
+          activeOpacity={0.8}
+        >
+          <Ionicons name="add-circle" size={22} color={Colors.textPrimary} />
+          <Text style={styles.newGoalButtonText}>New Goal</Text>
+        </TouchableOpacity>
 
         {/* --- Transaction Review Queue --- */}
         <Text style={styles.sectionTitle}>Transaction Review</Text>
@@ -581,6 +518,10 @@ export default function PlanScreen() {
           </Card>
         </TouchableOpacity>
       </ScrollView>
+      <GoalEditor
+        visible={goalEditorVisible}
+        onClose={() => setGoalEditorVisible(false)}
+      />
       <FloatingChatButton />
     </SafeAreaView>
   );
@@ -616,9 +557,6 @@ const styles = StyleSheet.create({
     fontSize: Typography.sizes.sm,
     color: Colors.accent,
     fontWeight: Typography.weights.medium,
-  },
-  recurringChipScroll: {
-    paddingVertical: Spacing.sm,
   },
   // Summary Card
   summaryCard: {
@@ -757,41 +695,22 @@ const styles = StyleSheet.create({
     color: Colors.textMuted,
     marginTop: 2,
   },
-  // Recurring Expenses
-  recurringCard: {
-    marginBottom: Spacing.sm,
-  },
-  recurringRow: {
+  // New Goal Button
+  newGoalButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.md,
-  },
-  recurringIconWrap: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: Colors.card,
-    borderWidth: 1,
-    borderColor: Colors.cardBorder,
-    alignItems: 'center',
     justifyContent: 'center',
+    gap: Spacing.sm,
+    backgroundColor: Colors.accentBright,
+    borderRadius: Spacing.radiusMd,
+    paddingVertical: Spacing.md,
+    marginTop: Spacing.lg,
+    marginBottom: Spacing.md,
   },
-  recurringInfo: {
-    flex: 1,
-  },
-  recurringMerchant: {
-    fontSize: Typography.sizes.md,
-    fontWeight: Typography.weights.medium,
-    color: Colors.textPrimary,
-  },
-  recurringFrequency: {
-    fontSize: Typography.sizes.sm,
-    color: Colors.textMuted,
-    marginTop: 2,
-  },
-  recurringAmount: {
-    fontSize: Typography.sizes.lg,
-    fontWeight: Typography.weights.semibold,
+  newGoalButtonText: {
+    fontFamily: 'DMSans_600SemiBold',
+    fontSize: 14,
+    fontWeight: '600',
     color: Colors.textPrimary,
   },
   // Transaction Review
