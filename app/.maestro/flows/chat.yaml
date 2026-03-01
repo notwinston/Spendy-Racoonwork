@@ -1,0 +1,44 @@
+appId: com.futurespend.app
+name: "Chat Flow"
+---
+
+# Launch the app (should land on Dashboard after onboarding)
+- launchApp
+
+# Verify the FloatingChatButton is visible on the Dashboard
+# The button uses a chatbubble-ellipses icon
+- assertVisible:
+    id: "chatbubble-ellipses"
+
+# Tap the floating chat button to open the chat sheet
+- tapOn:
+    id: "chatbubble-ellipses"
+
+# Wait for the chat sheet animation to complete
+- waitForAnimationToEnd
+
+# Verify the chat sheet opened with correct header
+- assertVisible: "AI Assistant"
+- assertVisible: "Powered by Gemini"
+
+# Verify empty state message
+- assertVisible: "Ask me anything!"
+
+# Verify the input placeholder is present
+- assertVisible: "Ask about your finances..."
+
+# Type a message in the input field
+- tapOn: "Ask about your finances..."
+- inputText: "What's my budget?"
+
+# Tap the send button
+- tapOn:
+    id: "send"
+
+# Wait for AI response (2-3 seconds)
+- extendedWaitUntil:
+    visible: "budget"
+    timeout: 5000
+
+# Swipe down to dismiss the chat sheet
+- swipeDown

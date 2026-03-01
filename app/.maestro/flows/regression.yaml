@@ -1,0 +1,30 @@
+appId: com.futurespend.app
+name: "Full Regression Suite"
+---
+
+# This regression suite runs all major flows sequentially.
+# Each sub-flow is included via runFlow to ensure isolation.
+
+# Phase 1: Onboarding
+- runFlow: onboarding.yaml
+
+# Phase 2: Dashboard
+- runFlow: dashboard.yaml
+
+# Phase 3: Tab Navigation
+- runFlow: navigation.yaml
+
+# Phase 4: Insights
+- runFlow: insights.yaml
+
+# Phase 5: Calendar + Plan
+- runFlow: calendar-plan.yaml
+
+# Phase 6: Arena + Social
+- runFlow: arena.yaml
+
+# Phase 7: Settings
+- runFlow: settings.yaml
+
+# Phase 8: Chat
+- runFlow: chat.yaml

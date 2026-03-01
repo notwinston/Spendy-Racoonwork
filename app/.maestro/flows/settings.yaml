@@ -1,0 +1,47 @@
+appId: com.futurespend.app
+name: "Settings Flow"
+---
+
+# Launch the app and navigate to Settings via the header avatar
+- launchApp
+
+# Tap the avatar button in the header to open Settings
+# The Header renders a TouchableOpacity with a person icon that navigates to /settings
+- tapOn:
+    id: "person"
+
+# Verify Settings screen title
+- assertVisible: "Settings"
+
+# Verify profile section - name visible
+- assertVisible:
+    text: "User"
+
+# Verify Connected Accounts section
+- assertVisible: "Connected Accounts"
+- assertVisible: "Google Calendar"
+- assertVisible: "Bank Account"
+
+# Verify Notification Preferences section
+- assertVisible: "Notifications"
+- assertVisible: "Spending Alerts"
+- assertVisible: "Budget Warnings"
+- assertVisible: "Social Nudges"
+
+# Scroll to see more notification settings
+- scrollDown
+- assertVisible: "Challenge Updates"
+- assertVisible: "Streak Reminders"
+- assertVisible: "Weekly Summary"
+
+# Verify Privacy section
+- scrollDown
+- assertVisible: "Privacy"
+- assertVisible: "Profile Visibility"
+- assertVisible: "Share Spending with Friends"
+- assertVisible: "Anonymous in Leaderboards"
+
+# Scroll to bottom - verify sign out and delete account
+- scrollDown
+- assertVisible: "Sign Out"
+- assertVisible: "Delete Account"

@@ -1,0 +1,61 @@
+appId: com.futurespend.app
+name: "Calendar and Plan Flow"
+---
+
+# Launch and navigate to Calendar tab
+- launchApp
+- tapOn: "Calendar"
+
+# Verify Calendar screen renders
+- assertVisible: "Calendar"
+
+# Verify month view renders with toggle buttons
+- assertVisible: "Month"
+- assertVisible: "Week"
+
+# Verify day headers are visible (Mon, Tue, etc.)
+- assertVisible: "Sun"
+- assertVisible: "Mon"
+- assertVisible: "Tue"
+
+# Tap on a day cell (day 15 is typically safe mid-month)
+- tapOn: "15"
+
+# Wait for the day detail sheet to appear
+- waitForAnimationToEnd
+
+# Dismiss the day detail sheet by swiping down
+- swipeDown
+
+# Navigate to Plan tab
+- tapOn: "Plan"
+
+# Verify Plan screen renders
+- assertVisible: "Plan"
+
+# Verify predictions section is visible
+- assertVisible: "Upcoming Predictions"
+
+# Scroll down to verify Budget Planner section
+- scrollDown
+- assertVisible: "Budget Planner"
+
+# Scroll to verify Scan a Receipt section
+- scrollDown
+- assertVisible: "Scan a Receipt"
+- assertVisible: "Camera"
+- assertVisible: "Gallery"
+
+# Scroll to verify Savings Rules section
+- scrollDown
+- assertVisible: "Savings Rules"
+- assertVisible: "Monthly Savings Goal"
+
+# Scroll to verify Recurring Expenses section
+- scrollDown
+- assertVisible: "Recurring Expenses"
+
+# Scroll to verify Transaction Review section
+- scrollDown
+- assertVisible: "Transaction Review"
+- assertVisible: "Review Transactions"

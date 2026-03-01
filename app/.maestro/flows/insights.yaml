@@ -1,0 +1,51 @@
+appId: com.futurespend.app
+name: "Insights Flow"
+---
+
+# Launch and navigate to Insights tab
+- launchApp
+- tapOn: "Insights"
+
+# Section 1: Financial Health Score
+- assertVisible: "Insights"
+- assertVisible: "Financial Health Score"
+- assertVisible: "Budget Adherence"
+- assertVisible: "Savings Rate"
+
+# Scroll to Section 2: Twin Gauges
+- scrollDown
+- assertVisible: "Burn Rate & Velocity"
+- assertVisible: "Burn Rate"
+- assertVisible: "Spending Velocity"
+
+# Scroll to Section 3: Calendar Correlation
+- scrollDown
+- assertVisible: "Calendar Correlation"
+
+# Scroll to Section 4: Spending Trends
+- scrollDown
+- assertVisible: "Spending Trends"
+- assertVisible: "Weekly"
+- assertVisible: "Monthly"
+
+# Scroll to Section 5: Category Breakdown
+- scrollDown
+- assertVisible: "Category Breakdown"
+
+# Scroll to Section 6: AI Insights cards
+- scrollDown
+- assertVisible: "AI Insights"
+- assertVisible: "Dining Acceleration"
+- assertVisible: "Subscription Savings"
+
+# Scroll further to see more AI insight
+- scrollDown
+- assertVisible: "Coffee Savings Win"
+
+# Scroll to Section 7: Savings Projection
+- scrollDown
+- assertVisible: "Savings Projection"
+
+# Scroll to Section 8: Month-over-Month
+- scrollDown
+- assertVisible: "Month-over-Month"

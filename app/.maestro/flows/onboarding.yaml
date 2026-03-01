@@ -1,0 +1,52 @@
+appId: com.futurespend.app
+name: "Onboarding Flow"
+---
+
+# Launch the app fresh
+- launchApp:
+    clearState: true
+
+# Welcome Screen
+- assertVisible: "FutureSpend"
+- assertVisible: "See Tomorrow, Save Today, Share Success"
+- assertVisible: "Calendar Intelligence"
+- assertVisible: "Smart Predictions"
+- assertVisible: "Social Savings"
+- tapOn: "Get Started"
+
+# Connect Calendar Screen
+- assertVisible: "Connect Your Calendar"
+- assertVisible: "predict upcoming expenses"
+- tapOn: "Use Demo Data"
+
+# After loading demo data, the screen transitions to "Calendar Connected!" then "Continue"
+- waitForAnimationToEnd
+- tapOn: "Continue"
+
+# Connect Bank Screen
+- assertVisible: "Connect Your Bank"
+- assertVisible: "Securely link your accounts"
+- tapOn:
+    text: "Use Demo Data"
+    index: 0
+
+# After loading demo data, the screen transitions to "Bank Connected!" then "Continue"
+- waitForAnimationToEnd
+- tapOn: "Continue"
+
+# Set Budget Screen
+- assertVisible: "Set Your Budget"
+- assertVisible: "Set a monthly spending target"
+
+# Tap the $1,000 preset chip
+- tapOn: "$1,000"
+
+# Verify the selected amount is reflected
+- assertVisible: "Suggested Allocation"
+
+# Tap the confirm button
+- tapOn: "Looks Good!"
+
+# Verify we land on Dashboard
+- assertVisible: "Dashboard"
+- assertVisible: "Monthly Budget"

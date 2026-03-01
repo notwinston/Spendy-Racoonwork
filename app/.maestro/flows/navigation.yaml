@@ -1,0 +1,44 @@
+appId: com.futurespend.app
+name: "Tab Navigation Flow"
+---
+
+# Assumes the app is launched and onboarding is complete
+- launchApp
+
+# Start on Dashboard
+- assertVisible: "Dashboard"
+
+# Navigate to Calendar tab
+- tapOn: "Calendar"
+- assertVisible: "Calendar"
+- assertVisible: "Month"
+
+# Navigate to Plan tab
+- tapOn: "Plan"
+- assertVisible: "Plan"
+- assertVisible: "Upcoming Predictions"
+
+# Navigate to Arena tab
+- tapOn: "Arena"
+- assertVisible: "Arena"
+- assertVisible: "My Progress"
+
+# Navigate to Insights tab
+- tapOn: "Insights"
+- assertVisible: "Insights"
+- assertVisible: "Financial Health Score"
+
+# Navigate back to Dashboard
+- tapOn: "Dashboard"
+- assertVisible: "Dashboard"
+- assertVisible: "Monthly Budget"
+
+# Tap settings avatar (person icon button in header) to open Settings
+# The Header component has an avatar button that navigates to /settings
+- tapOn:
+    id: "person"
+- assertVisible: "Settings"
+
+# Navigate back from Settings
+- tapOn:
+    id: "close"

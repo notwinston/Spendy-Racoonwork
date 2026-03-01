@@ -1,0 +1,51 @@
+appId: com.futurespend.app
+name: "Arena and Social Flow"
+---
+
+# Launch and navigate to Arena tab
+- launchApp
+- tapOn: "Arena"
+
+# Verify Arena screen renders with header
+- assertVisible: "Arena"
+
+# Verify the sub-tabs are visible
+- assertVisible: "My Progress"
+- assertVisible: "Challenges"
+- assertVisible: "Leaderboard"
+- assertVisible: "Friends"
+
+# Verify XP progress is visible on My Progress tab (default)
+- assertVisible: "Level"
+- assertVisible: "XP"
+
+# Verify streak section
+- assertVisible: "day streak"
+
+# Verify Badges section
+- assertVisible: "Badges"
+
+# Tap Challenges tab
+- tapOn: "Challenges"
+
+# Verify challenges content
+- assertVisible: "Active Challenges"
+- assertVisible: "Browse Challenges"
+
+# Tap Leaderboard tab
+- tapOn: "Leaderboard"
+
+# Verify leaderboard content
+- assertVisible: "Global"
+- assertVisible: "Friends"
+- assertVisible: "Circle"
+
+# Tap Friends tab
+- tapOn:
+    text: "Friends"
+    index: 1
+
+# Verify friend content
+- assertVisible: "Your Friend Code"
+- assertVisible: "Share this code with friends"
+- assertVisible: "Add a Friend"

@@ -1,0 +1,34 @@
+appId: com.futurespend.app
+name: "Dashboard Flow"
+---
+
+# Assumes onboarding is complete and we are on the Dashboard tab
+- launchApp
+
+# Verify Dashboard tab is active and header is visible
+- assertVisible: "Dashboard"
+
+# Verify budget amount section is visible
+- assertVisible: "Monthly Budget"
+- assertVisible:
+    text: "left"
+- assertVisible:
+    text: "budget"
+
+# Verify days remaining badge
+- assertVisible: "days left"
+
+# Scroll down to verify more sections load
+- scrollDown
+
+# Verify Spending Velocity metric card
+- assertVisible: "Spending Velocity"
+
+# Verify Savings Rate metric card
+- assertVisible: "Savings Rate"
+
+# Verify CCI Score metric card
+- assertVisible: "CCI Score"
+
+# Scroll back up to verify Health Score ring is present
+- scrollUp
