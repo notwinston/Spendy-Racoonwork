@@ -171,13 +171,23 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
   notifications: [],
   isLoading: false,
 
-  togglePreference: (key: keyof NotificationPreferences) =>
+  togglePreference: (key: keyof NotificationPreferences) => {
     set((state) => ({
       preferences: {
         ...state.preferences,
         [key]: !state.preferences[key],
       },
-    })),
+    }));
+    // Schedule or cancel morning brief when hiddenCostAlerts is toggled
+    if (key === 'hiddenCostAlerts') {
+      const newValue = get().preferences.hiddenCostAlerts;
+      if (newValue) {
+        get().scheduleMorningBrief().catch(console.warn);
+      } else {
+        get().cancelMorningBrief().catch(console.warn);
+      }
+    }
+  },
 
   setProfileVisibility: (visibility: ProfileVisibility) =>
     set((state) => ({
@@ -225,4 +235,33 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
     })),
 
   clearAll: () => set({ notifications: [] }),
+
+  scheduleMorningBrief: async () => {
+    const { status } = await Notifications.requestPermissionsAsync();
+    if (status !== 'granted') return;
+
+    // Cancel any existing morning brief schedule
+    await Notifications.cancelScheduledNotificationAsync('morning-brief').catch(() => {});
+
+    // Only schedule if preference is enabled
+    if (!get().preferences.hiddenCostAlerts) return;
+
+    await Notifications.scheduleNotificationAsync({
+      content: {
+        title: "Today's Spending Forecast",
+        body: "Check your daily brief for today's events and hidden costs.",
+        data: { screen: 'dashboard' },
+      },
+      trigger: {
+        type: SchedulableTriggerInputTypes.DAILY,
+        hour: 8,
+        minute: 0,
+      },
+      identifier: 'morning-brief',
+    });
+  },
+
+  cancelMorningBrief: async () => {
+    await Notifications.cancelScheduledNotificationAsync('morning-brief').catch(() => {});
+  },
 }));
