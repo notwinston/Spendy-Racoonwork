@@ -1,5 +1,11 @@
-import React, { useEffect, useRef } from 'react';
-import { Animated, ViewStyle } from 'react-native';
+import React, { useEffect } from 'react';
+import { ViewStyle } from 'react-native';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withRepeat,
+  withTiming,
+} from 'react-native-reanimated';
 import { Colors } from '../../constants';
 
 interface SkeletonLoaderProps {
@@ -15,30 +21,19 @@ export function SkeletonLoader({
   borderRadius = 8,
   style,
 }: SkeletonLoaderProps) {
-  const opacity = useRef(new Animated.Value(0.3)).current;
+  const opacity = useSharedValue(0.3);
 
   useEffect(() => {
-    const animation = Animated.loop(
-      Animated.sequence([
-        Animated.timing(opacity, {
-          toValue: 0.7,
-          duration: 1000,
-          useNativeDriver: true,
-        }),
-        Animated.timing(opacity, {
-          toValue: 0.3,
-          duration: 1000,
-          useNativeDriver: true,
-        }),
-      ]),
+    opacity.value = withRepeat(
+      withTiming(0.7, { duration: 1000 }),
+      -1,
+      true,
     );
+  }, []);
 
-    animation.start();
-
-    return () => {
-      animation.stop();
-    };
-  }, [opacity]);
+  const animatedStyle = useAnimatedStyle(() => ({
+    opacity: opacity.value,
+  }));
 
   return (
     <Animated.View
@@ -48,8 +43,8 @@ export function SkeletonLoader({
           height,
           borderRadius,
           backgroundColor: Colors.cardBorder,
-          opacity,
         },
+        animatedStyle,
         style,
       ]}
     />

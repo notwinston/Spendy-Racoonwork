@@ -1,5 +1,11 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { Animated, Text, TextStyle } from 'react-native';
+import React, { useEffect, useState, useCallback } from 'react';
+import { Text, TextStyle } from 'react-native';
+import {
+  useSharedValue,
+  withTiming,
+  useAnimatedReaction,
+  runOnJS,
+} from 'react-native-reanimated';
 import { Colors, Typography } from '../../constants';
 
 interface AnimatedNumberProps {
@@ -17,26 +23,23 @@ export function AnimatedNumber({
   suffix = '',
   style,
 }: AnimatedNumberProps) {
-  const animatedValue = useRef(new Animated.Value(0)).current;
+  const animatedValue = useSharedValue(0);
   const [displayValue, setDisplayValue] = useState(0);
 
+  const updateDisplay = useCallback((v: number) => {
+    setDisplayValue(Math.round(v));
+  }, []);
+
   useEffect(() => {
-    animatedValue.setValue(0);
+    animatedValue.value = withTiming(value, { duration });
+  }, [value, duration]);
 
-    const listener = animatedValue.addListener(({ value: v }) => {
-      setDisplayValue(Math.round(v));
-    });
-
-    Animated.timing(animatedValue, {
-      toValue: value,
-      duration,
-      useNativeDriver: false,
-    }).start();
-
-    return () => {
-      animatedValue.removeListener(listener);
-    };
-  }, [value, duration, animatedValue]);
+  useAnimatedReaction(
+    () => animatedValue.value,
+    (current) => {
+      runOnJS(updateDisplay)(current);
+    },
+  );
 
   return (
     <Text style={[defaultStyle, style]}>

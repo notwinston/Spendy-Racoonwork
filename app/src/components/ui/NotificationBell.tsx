@@ -1,6 +1,13 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import React, { useEffect } from 'react';
+import { Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSequence,
+  withTiming,
+  withSpring,
+} from 'react-native-reanimated';
 import { Colors, Typography, Spacing } from '../../constants';
 
 interface NotificationBellProps {
@@ -9,23 +16,51 @@ interface NotificationBellProps {
 }
 
 export function NotificationBell({ count = 0, onPress }: NotificationBellProps) {
+  const rotation = useSharedValue(0);
+  const badgeScale = useSharedValue(count > 0 ? 1 : 0);
+
+  useEffect(() => {
+    if (count > 0) {
+      // Tilt animation on count change
+      rotation.value = withSequence(
+        withTiming(15, { duration: 100 }),
+        withTiming(-15, { duration: 100 }),
+        withTiming(0, { duration: 100 }),
+      );
+      // Badge scale in
+      badgeScale.value = withSpring(1, { damping: 12 });
+    } else {
+      badgeScale.value = withTiming(0, { duration: 150 });
+    }
+  }, [count]);
+
+  const bellAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ rotateZ: `${rotation.value}deg` }],
+  }));
+
+  const badgeAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: badgeScale.value }],
+  }));
+
   return (
     <TouchableOpacity
       style={styles.container}
       onPress={onPress}
       activeOpacity={0.7}
     >
-      <Ionicons
-        name="notifications-outline"
-        size={24}
-        color={Colors.textPrimary}
-      />
+      <Animated.View style={bellAnimatedStyle}>
+        <Ionicons
+          name="notifications-outline"
+          size={24}
+          color={Colors.textPrimary}
+        />
+      </Animated.View>
       {count > 0 ? (
-        <View style={styles.badge}>
+        <Animated.View style={[styles.badge, badgeAnimatedStyle]}>
           <Text style={styles.badgeText}>
             {count > 99 ? '99+' : String(count)}
           </Text>
-        </View>
+        </Animated.View>
       ) : null}
     </TouchableOpacity>
   );

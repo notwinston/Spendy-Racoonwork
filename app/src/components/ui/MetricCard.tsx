@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Card } from './Card';
+import { GlassCard } from './GlassCard';
 import { Colors, Typography, Spacing } from '../../constants';
 
 interface MetricCardProps {
@@ -23,9 +23,9 @@ export function MetricCard({
 }: MetricCardProps) {
   const trendColor =
     trend === 'up'
-      ? Colors.positive
+      ? '#00D09C'
       : trend === 'down'
-        ? Colors.danger
+        ? '#EF4444'
         : Colors.textSecondary;
 
   const trendIcon =
@@ -35,8 +35,15 @@ export function MetricCard({
         ? 'arrow-down'
         : 'remove';
 
+  const accentEdge = trend && trend !== 'flat' ? 'left' as const : 'none' as const;
+
   const content = (
-    <Card style={styles.card}>
+    <GlassCard
+      style={styles.card}
+      accentEdge={accentEdge}
+      accentColor={trendColor}
+      onPress={onPress}
+    >
       <Text style={styles.label}>{label}</Text>
       <Text style={styles.value}>{value}</Text>
       {trend && trendValue ? (
@@ -49,19 +56,12 @@ export function MetricCard({
           <Text style={[styles.trendText, { color: trendColor }]}>
             {trendValue}
           </Text>
+          <View style={[styles.trendBar, { backgroundColor: trendColor }]} />
         </View>
       ) : null}
       {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
-    </Card>
+    </GlassCard>
   );
-
-  if (onPress) {
-    return (
-      <TouchableOpacity activeOpacity={0.8} onPress={onPress}>
-        {content}
-      </TouchableOpacity>
-    );
-  }
 
   return content;
 }
@@ -78,7 +78,7 @@ const styles = StyleSheet.create({
   },
   value: {
     fontFamily: 'DMMono_500Medium',
-    fontSize: Typography.sizes['2xl'],
+    fontSize: 28,
     fontWeight: Typography.weights.bold,
     color: Colors.textPrimary,
   },
@@ -91,6 +91,13 @@ const styles = StyleSheet.create({
   trendText: {
     fontSize: Typography.sizes.sm,
     fontWeight: Typography.weights.medium,
+  },
+  trendBar: {
+    height: 3,
+    flex: 1,
+    borderRadius: 2,
+    marginLeft: 8,
+    opacity: 0.6,
   },
   subtitle: {
     fontSize: Typography.sizes.xs,

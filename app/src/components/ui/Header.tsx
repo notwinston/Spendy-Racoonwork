@@ -43,7 +43,7 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.md,
   },
   title: {
-    ...Typography.brand.pageTitle,
+    ...Typography.brand.screenTitle,
   },
   rightSection: {
     flexDirection: 'row',
@@ -62,5 +62,9 @@ const styles = StyleSheet.create({
     borderColor: Colors.accent,
     justifyContent: 'center',
     alignItems: 'center',
+    shadowColor: Colors.glowBlue,
+    shadowRadius: 8,
+    shadowOpacity: 0.25,
+    shadowOffset: { width: 0, height: 0 },
   },
 });

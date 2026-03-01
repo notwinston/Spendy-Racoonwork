@@ -1,21 +1,30 @@
 import React from 'react';
 import {
   TouchableOpacity,
+  Pressable,
   Text,
   StyleSheet,
   ActivityIndicator,
   ViewStyle,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+} from 'react-native-reanimated';
 import { Colors, Typography, Spacing } from '../../constants';
 
 interface ButtonProps {
   title: string;
   onPress: () => void;
-  variant?: 'primary' | 'secondary' | 'ghost' | 'danger' | 'outline';
+  variant?: 'primary' | 'secondary' | 'ghost' | 'danger' | 'outline' | 'gradient';
   loading?: boolean;
   disabled?: boolean;
   style?: ViewStyle;
 }
+
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 export function Button({
   title,
@@ -25,6 +34,19 @@ export function Button({
   disabled = false,
   style,
 }: ButtonProps) {
+  // Gradient variant uses Pressable + Reanimated
+  if (variant === 'gradient') {
+    return (
+      <GradientButton
+        title={title}
+        onPress={onPress}
+        loading={loading}
+        disabled={disabled}
+        style={style}
+      />
+    );
+  }
+
   // Map 'outline' to 'secondary' for backwards compat
   const resolvedVariant = variant === 'outline' ? 'secondary' : variant;
 
@@ -63,6 +85,51 @@ export function Button({
   );
 }
 
+function GradientButton({
+  title,
+  onPress,
+  loading,
+  disabled,
+  style,
+}: Omit<ButtonProps, 'variant'>) {
+  const scale = useSharedValue(1);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+
+  const handlePressIn = () => {
+    scale.value = withSpring(0.97, { damping: 15, stiffness: 150 });
+  };
+
+  const handlePressOut = () => {
+    scale.value = withSpring(1, { damping: 15, stiffness: 150 });
+  };
+
+  return (
+    <AnimatedPressable
+      onPress={onPress}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
+      disabled={disabled || loading}
+      style={[animatedStyle, disabled && styles.disabled]}
+    >
+      <LinearGradient
+        colors={['#00D09C', '#2563EB']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+        style={[styles.button, styles.gradientInner, style]}
+      >
+        {loading ? (
+          <ActivityIndicator color={Colors.textPrimary} />
+        ) : (
+          <Text style={[styles.text, styles.gradientText]}>{title}</Text>
+        )}
+      </LinearGradient>
+    </AnimatedPressable>
+  );
+}
+
 const styles = StyleSheet.create({
   button: {
     paddingVertical: Spacing.md,
@@ -74,6 +141,10 @@ const styles = StyleSheet.create({
   },
   primary: {
     backgroundColor: Colors.accentBright,
+    shadowColor: Colors.glowTeal,
+    shadowRadius: 12,
+    shadowOpacity: 0.3,
+    shadowOffset: { width: 0, height: 0 },
   },
   secondary: {
     backgroundColor: 'rgba(37,99,235,0.12)',
@@ -106,5 +177,14 @@ const styles = StyleSheet.create({
   },
   disabledText: {
     color: Colors.textMuted,
+  },
+  gradientInner: {
+    shadowColor: Colors.glowTeal,
+    shadowRadius: 12,
+    shadowOpacity: 0.3,
+    shadowOffset: { width: 0, height: 0 },
+  },
+  gradientText: {
+    color: '#FFFFFF',
   },
 });
