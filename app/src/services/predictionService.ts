@@ -437,6 +437,37 @@ export function findSimilarTransactions(
     .slice(0, 10);
 }
 
+/**
+ * Predict hidden costs for a SINGLE event (lazy, on-demand).
+ * Falls back to mock adapter on failure.
+ */
+export async function predictHiddenCostsForEvent(
+  event: CalendarEvent,
+  transactions: Transaction[],
+  userId?: string,
+): Promise<HiddenCost[]> {
+  const similar = findSimilarTransactions(event, transactions);
+  const prompt = buildHiddenCostPrompt(event, similar, []);
+  const predictionId = `pred_hidden_${event.id}_${Date.now()}`;
+
+  try {
+    const adapter = await getAdapter();
+    const raw = await adapter.predict(prompt);
+    return parseHiddenCostResponse(raw, event, predictionId);
+  } catch (error) {
+    console.warn(`[PredictionService] Hidden cost prediction failed for event ${event.id}, falling back to mock:`, error);
+    try {
+      const { MockAdapter } = await import('./llm/mock');
+      const mock = new MockAdapter();
+      const raw = await mock.predict(prompt);
+      return parseHiddenCostResponse(raw, event, predictionId);
+    } catch (mockError) {
+      console.error(`[PredictionService] Mock hidden cost also failed for event ${event.id}:`, mockError);
+      return [];
+    }
+  }
+}
+
 export async function predictHiddenCosts(
   events: CalendarEvent[],
   transactions: Transaction[],
@@ -444,21 +475,10 @@ export async function predictHiddenCosts(
 ): Promise<HiddenCost[]> {
   if (events.length === 0) return [];
 
-  const adapter = await getAdapter();
   const allResults: HiddenCost[] = [];
 
   const promises = events.map(async (event) => {
-    const similar = findSimilarTransactions(event, transactions);
-    const prompt = buildHiddenCostPrompt(event, similar, []);
-    const predictionId = `pred_hidden_${event.id}_${Date.now()}`;
-
-    try {
-      const raw = await adapter.predict(prompt);
-      return parseHiddenCostResponse(raw, event, predictionId);
-    } catch (error) {
-      console.warn(`[PredictionService] Hidden cost prediction failed for event ${event.id}:`, error);
-      return [];
-    }
+    return predictHiddenCostsForEvent(event, transactions, userId);
   });
 
   const results = await Promise.allSettled(promises);

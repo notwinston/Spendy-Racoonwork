@@ -15,6 +15,7 @@ import {
   predictSpending,
   generateInsight,
   predictHiddenCosts,
+  predictHiddenCostsForEvent,
   buildEventCostBreakdowns,
   generateDailyBrief as buildDailyBrief,
   matchPredictionsToActuals,
@@ -52,6 +53,9 @@ interface PredictionState {
 
   /** True while analyzing hidden costs. */
   isAnalyzingHiddenCosts: boolean;
+
+  /** Set of event IDs currently loading hidden costs (for lazy per-event loading). */
+  loadingHiddenCostEventIds: Set<string>;
 
   /** ISO date string of last accuracy check to prevent re-running. */
   lastAccuracyCheck: string | null;
@@ -98,6 +102,13 @@ interface PredictionState {
     userId?: string,
   ) => Promise<void>;
 
+  /** Analyze hidden costs for a SINGLE event (lazy, on-demand when user taps). */
+  analyzeHiddenCostsForEvent: (
+    event: CalendarEvent,
+    transactions: Transaction[],
+    userId?: string,
+  ) => Promise<void>;
+
   /** Dismiss a specific hidden cost by ID. */
   dismissHiddenCost: (costId: string) => void;
 
@@ -132,6 +143,7 @@ export const usePredictionStore = create<PredictionState>((set, get) => ({
   eventCostBreakdowns: {},
   dailyBrief: null,
   isAnalyzingHiddenCosts: false,
+  loadingHiddenCostEventIds: new Set<string>(),
   lastAccuracyCheck: null,
   confirmedEstimates: {},
 
@@ -238,6 +250,40 @@ export const usePredictionStore = create<PredictionState>((set, get) => ({
       const message = error instanceof Error ? error.message : 'Hidden cost analysis failed';
       console.error('[PredictionStore] analyzeHiddenCosts error:', error);
       set({ isAnalyzingHiddenCosts: false, error: message });
+    }
+  },
+
+  analyzeHiddenCostsForEvent: async (event, transactions, userId) => {
+    const { hiddenCosts, loadingHiddenCostEventIds } = get();
+
+    // Skip if already loaded or currently loading
+    if (hiddenCosts.some(hc => hc.calendar_event_id === event.id)) return;
+    if (loadingHiddenCostEventIds.has(event.id)) return;
+
+    // Mark as loading
+    const newLoading = new Set(loadingHiddenCostEventIds);
+    newLoading.add(event.id);
+    set({ loadingHiddenCostEventIds: newLoading });
+
+    try {
+      const newCosts = await predictHiddenCostsForEvent(event, transactions, userId);
+      const updatedCosts = [...get().hiddenCosts, ...newCosts];
+      const txns = useTransactionStore.getState().transactions;
+      const breakdowns = buildEventCostBreakdowns(get().predictions, updatedCosts, txns);
+
+      const doneLoading = new Set(get().loadingHiddenCostEventIds);
+      doneLoading.delete(event.id);
+
+      set({
+        hiddenCosts: updatedCosts,
+        eventCostBreakdowns: breakdowns,
+        loadingHiddenCostEventIds: doneLoading,
+      });
+    } catch (error) {
+      console.error(`[PredictionStore] analyzeHiddenCostsForEvent error for ${event.id}:`, error);
+      const doneLoading = new Set(get().loadingHiddenCostEventIds);
+      doneLoading.delete(event.id);
+      set({ loadingHiddenCostEventIds: doneLoading });
     }
   },
 
@@ -378,6 +424,7 @@ export const usePredictionStore = create<PredictionState>((set, get) => ({
       eventCostBreakdowns: {},
       dailyBrief: null,
       isAnalyzingHiddenCosts: false,
+      loadingHiddenCostEventIds: new Set<string>(),
       lastAccuracyCheck: null,
       confirmedEstimates: {},
     });

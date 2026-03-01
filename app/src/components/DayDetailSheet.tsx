@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   Modal,
   StyleSheet,
+  ActivityIndicator,
 } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
@@ -13,6 +14,8 @@ import { Colors, Typography, Spacing } from '../constants';
 import { GlassCard } from './ui/GlassCard';
 import EventCostDropdown from './EventCostDropdown';
 import { usePredictionStore } from '../stores/predictionStore';
+import { useTransactionStore } from '../stores/transactionStore';
+import { useAuthStore } from '../stores/authStore';
 import type { CalendarEvent, SpendingPrediction, EventCategory } from '../types';
 
 const CATEGORY_COLORS: Record<EventCategory, string> = {
@@ -69,7 +72,30 @@ export function DayDetailSheet({
   onClose,
 }: DayDetailSheetProps) {
   const [expandedEventId, setExpandedEventId] = useState<string | null>(null);
-  const { eventCostBreakdowns, dismissHiddenCost, confirmEstimate, confirmedEstimates } = usePredictionStore();
+  const {
+    eventCostBreakdowns,
+    dismissHiddenCost,
+    confirmEstimate,
+    confirmedEstimates,
+    analyzeHiddenCostsForEvent,
+    loadingHiddenCostEventIds,
+  } = usePredictionStore();
+  const { transactions } = useTransactionStore();
+  const userId = useAuthStore((s) => s.user?.id);
+
+  // Lazy-load hidden costs when user expands an event
+  const handleExpandEvent = useCallback((eventId: string) => {
+    setExpandedEventId(prev => {
+      const newId = prev === eventId ? null : eventId;
+      if (newId && !eventCostBreakdowns[newId]) {
+        const event = events.find(e => e.id === newId);
+        if (event) {
+          analyzeHiddenCostsForEvent(event, transactions, userId);
+        }
+      }
+      return newId;
+    });
+  }, [events, eventCostBreakdowns, analyzeHiddenCostsForEvent, transactions, userId]);
 
   const predictionMap = new Map<string, SpendingPrediction>();
   for (const p of predictions) {
@@ -135,7 +161,7 @@ export function DayDetailSheet({
                   >
                   <TouchableOpacity
                     activeOpacity={0.7}
-                    onPress={() => setExpandedEventId(prev => prev === event.id ? null : event.id)}
+                    onPress={() => handleExpandEvent(event.id)}
                   >
                     <GlassCard style={styles.eventCard}>
                       <View style={styles.eventRow}>
@@ -155,14 +181,12 @@ export function DayDetailSheet({
                             ~${prediction.predicted_amount.toFixed(0)}
                           </Text>
                         )}
-                        {hasBreakdown && (
-                          <Ionicons
-                            name={expandedEventId === event.id ? 'chevron-up' : 'chevron-down'}
-                            size={18}
-                            color={Colors.textMuted}
-                            style={{ marginLeft: Spacing.xs }}
-                          />
-                        )}
+                        <Ionicons
+                          name={expandedEventId === event.id ? 'chevron-up' : 'chevron-down'}
+                          size={18}
+                          color={Colors.textMuted}
+                          style={{ marginLeft: Spacing.xs }}
+                        />
                       </View>
 
                       {/* Prediction Card */}
@@ -182,6 +206,14 @@ export function DayDetailSheet({
                               {prediction.explanation}
                             </Text>
                           )}
+                        </View>
+                      )}
+
+                      {/* Loading indicator for hidden costs */}
+                      {expandedEventId === event.id && loadingHiddenCostEventIds.has(event.id) && (
+                        <View style={styles.loadingRow}>
+                          <ActivityIndicator size="small" color={Colors.accent} />
+                          <Text style={styles.loadingText}>Analyzing hidden costs...</Text>
                         </View>
                       )}
 
@@ -361,5 +393,19 @@ const styles = StyleSheet.create({
     color: Colors.textMuted,
     marginTop: Spacing.xs,
     fontStyle: 'italic',
+  },
+  loadingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.sm,
+    marginTop: Spacing.md,
+    padding: Spacing.md,
+    backgroundColor: Colors.glassBg,
+    borderRadius: 10,
+  },
+  loadingText: {
+    fontSize: Typography.sizes.sm,
+    color: Colors.accent,
   },
 });

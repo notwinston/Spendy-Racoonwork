@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo, useCallback } from 'react';
+import React, { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -134,9 +134,9 @@ export default function CalendarScreen() {
     isPredicting,
     hiddenCosts,
     eventCostBreakdowns,
-    analyzeHiddenCosts,
+    analyzeHiddenCostsForEvent,
     dismissHiddenCost,
-    isAnalyzingHiddenCosts,
+    loadingHiddenCostEventIds,
     confirmEstimate,
     confirmedEstimates,
   } = usePredictionStore();
@@ -149,26 +149,20 @@ export default function CalendarScreen() {
     }
   }, [user?.id, events.length, loadCalendarDemo]);
 
-  // Generate predictions for future events when events are loaded or new events are synced
-  const [lastPredictedCount, setLastPredictedCount] = useState(0);
+  // Generate predictions for future events — only if none exist yet (login may have already generated them)
+  const hasFetchedPredictions = useRef(false);
   useEffect(() => {
-    if (events.length > 0 && events.length !== lastPredictedCount && !isPredicting) {
+    if (hasFetchedPredictions.current) return;
+    if (events.length > 0 && predictions.length === 0 && !isPredicting) {
       const futureEvents = events.filter(
         (e) => new Date(e.start_time) >= new Date()
       );
       if (futureEvents.length > 0) {
+        hasFetchedPredictions.current = true;
         generatePredictions(futureEvents, user?.id);
-        setLastPredictedCount(events.length);
       }
     }
-  }, [events.length, lastPredictedCount, isPredicting, generatePredictions, user?.id, events]);
-
-  // Analyze hidden costs when predictions are available
-  useEffect(() => {
-    if (predictions.length > 0 && hiddenCosts.length === 0 && !isAnalyzingHiddenCosts) {
-      analyzeHiddenCosts(events, transactions);
-    }
-  }, [predictions.length, hiddenCosts.length, isAnalyzingHiddenCosts, analyzeHiddenCosts, events, transactions]);
+  }, [events.length, predictions.length, isPredicting, generatePredictions, user?.id]);
 
   // Map predictions by event ID for quick lookup
   const predictionMap = useMemo(() => {
@@ -235,6 +229,20 @@ export default function CalendarScreen() {
     newDate.setDate(newDate.getDate() + 7 * direction);
     setCurrentDate(newDate);
   };
+
+  // Lazy-load hidden costs when user expands an event
+  const handleExpandEvent = useCallback((eventId: string) => {
+    setExpandedEventId(prev => {
+      const newId = prev === eventId ? null : eventId;
+      if (newId && !eventCostBreakdowns[newId]) {
+        const event = events.find(e => e.id === newId);
+        if (event) {
+          analyzeHiddenCostsForEvent(event, transactions, user?.id);
+        }
+      }
+      return newId;
+    });
+  }, [events, eventCostBreakdowns, analyzeHiddenCostsForEvent, transactions, user?.id]);
 
   const handleDayPress = (date: Date) => {
     setSelectedDate(date);
@@ -413,7 +421,7 @@ export default function CalendarScreen() {
                       <React.Fragment key={event.id}>
                         <TouchableOpacity
                           activeOpacity={0.7}
-                          onPress={() => setExpandedEventId(prev => prev === event.id ? null : event.id)}
+                          onPress={() => handleExpandEvent(event.id)}
                         >
                           <View style={styles.weekEventItem}>
                             <View style={styles.weekEventTime}>
@@ -442,6 +450,12 @@ export default function CalendarScreen() {
                             </View>
                           </View>
                         </TouchableOpacity>
+                        {expandedEventId === event.id && loadingHiddenCostEventIds.has(event.id) && (
+                          <View style={styles.predictingBanner}>
+                            <ActivityIndicator size="small" color={Colors.accent} />
+                            <Text style={styles.predictingText}>Analyzing hidden costs...</Text>
+                          </View>
+                        )}
                         {expandedEventId === event.id && eventCostBreakdowns[event.id] && (
                           <EventCostDropdown
                             breakdown={eventCostBreakdowns[event.id]}
