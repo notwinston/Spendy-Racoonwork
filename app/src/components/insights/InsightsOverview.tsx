@@ -3,6 +3,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Typography, Spacing } from '../../constants';
 import { Card } from '../ui/Card';
+import { GlassCard } from '../ui/GlassCard';
 import { HealthScoreRing } from '../charts';
 import { useAuthStore } from '../../stores/authStore';
 import { useTransactionStore } from '../../stores/transactionStore';
@@ -153,7 +154,7 @@ export function InsightsOverview() {
   return (
     <View>
       {/* Financial Health Card - Two Column Layout */}
-      <Card style={styles.healthCard}>
+      <GlassCard style={styles.healthCard}>
         <Text style={styles.healthLabel}>Financial Health</Text>
         <View style={styles.healthColumns}>
           {/* Left: Score + Grade */}
@@ -209,30 +210,30 @@ export function InsightsOverview() {
             })}
           </View>
         </View>
-      </Card>
+      </GlassCard>
 
       {/* Month Summary KPIs */}
       <View style={styles.kpiRow}>
-        <View style={styles.kpiChip}>
+        <GlassCard intensity="subtle" style={styles.kpiChip}>
           <Text style={styles.kpiLabel}>
             {userIncome ? 'Total Income' : 'Est. Income'}
           </Text>
           <Text style={[styles.kpiAmount, { color: Colors.positive }]}>
             ${totalIncome.toLocaleString()}
           </Text>
-        </View>
-        <View style={styles.kpiChip}>
+        </GlassCard>
+        <GlassCard intensity="subtle" style={styles.kpiChip}>
           <Text style={styles.kpiLabel}>Total Expenses</Text>
           <Text style={[styles.kpiAmount, { color: Colors.negative }]}>
             ${totalExpenses > 0 ? totalExpenses.toLocaleString() : '0'}
           </Text>
-        </View>
-        <View style={styles.kpiChip}>
+        </GlassCard>
+        <GlassCard intensity="subtle" style={styles.kpiChip}>
           <Text style={styles.kpiLabel}>Net</Text>
           <Text style={[styles.kpiAmount, { color: net >= 0 ? Colors.positive : Colors.negative }]}>
             {net >= 0 ? '+' : '-'}${Math.abs(net).toLocaleString()}
           </Text>
-        </View>
+        </GlassCard>
       </View>
 
       {/* Days Until Budget Runs Out — only for current month */}
@@ -340,11 +341,6 @@ const styles = StyleSheet.create({
   },
   kpiChip: {
     flex: 1,
-    backgroundColor: Colors.bgCard,
-    borderRadius: Spacing.radiusMd,
-    padding: Spacing.md,
-    borderWidth: 1,
-    borderColor: Colors.borderSubtle,
     alignItems: 'center',
   },
   kpiLabel: {

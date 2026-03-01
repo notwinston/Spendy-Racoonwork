@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { View, Text, StyleSheet, Pressable, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Typography, Spacing } from '../../constants';
-import { Card } from '../ui/Card';
+import { GlassCard } from '../ui/GlassCard';
 import { TrendLineChart } from '../charts';
 import { MonthComparison } from '../MonthComparison';
 import type { TrendDataPoint } from '../charts';
@@ -202,7 +202,7 @@ export function InsightsTrends() {
     <View>
       {/* Widget 1: Income vs Spending */}
       <Text style={styles.sectionTitle}>Income vs Spending</Text>
-      <Card>
+      <GlassCard>
         {/* Time toggle */}
         <View style={styles.toggleRow}>
           {(['weekly', 'monthly', 'yearly'] as TimePeriod[]).map((period) => {
@@ -251,7 +251,7 @@ export function InsightsTrends() {
             {timePeriod === 'weekly' ? '/wk' : '/mo'}
           </Text>
         </View>
-      </Card>
+      </GlassCard>
 
       {/* Widget 2: Net Income / Spending Breakdown Toggle */}
       <View style={styles.widget2Header}>
@@ -278,7 +278,7 @@ export function InsightsTrends() {
         </View>
       </View>
 
-      <Card>
+      <GlassCard>
         {breakdownView === 'net' ? (
           <View style={styles.barChart}>
             {netIncomeData.map((item, idx) => {
@@ -348,13 +348,13 @@ export function InsightsTrends() {
             </View>
           </View>
         )}
-      </Card>
+      </GlassCard>
 
       {/* Month Comparison */}
       <Text style={styles.sectionTitle}>Month-over-Month</Text>
-      <Card>
+      <GlassCard>
         <MonthComparison thisMonth={momData.thisMonth} lastMonth={momData.lastMonth} />
-      </Card>
+      </GlassCard>
     </View>
   );
 }

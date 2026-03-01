@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { View, Text, StyleSheet, Platform } from 'react-native';
 import { Colors, Typography, Spacing } from '../../constants';
-import { Card } from '../ui/Card';
+import { GlassCard } from '../ui/GlassCard';
 import { useTransactionStore } from '../../stores/transactionStore';
 import { useBudgetStore } from '../../stores/budgetStore';
 import { getProjectionScenarios } from '../../utils/financialCalcs';
@@ -148,9 +148,9 @@ export function InsightsSavings() {
     const futureCheck = new Date(selectedMonth.year, selectedMonth.month, 1) > new Date();
     if (futureCheck) {
       return (
-        <Card>
+        <GlassCard>
           <Text style={styles.emptyText}>No data for {getDisplayLabel(selectedMonth)}</Text>
-        </Card>
+        </GlassCard>
       );
     }
   }
@@ -158,7 +158,7 @@ export function InsightsSavings() {
   return (
     <View>
       {/* Overall Progress Bar */}
-      <Card>
+      <GlassCard accentEdge="left" accentColor={Colors.positive}>
         <Text style={styles.cardLabel}>Overall Savings Progress</Text>
         <View style={styles.overallProgressBg}>
           <View style={[styles.overallProgressSaved, { width: `${Math.min(100, savedPct)}%` }]} />
@@ -185,21 +185,21 @@ export function InsightsSavings() {
             Goal: <Text style={styles.overallTargetValue}>${savingsGoalTotal.toLocaleString()}</Text>
           </Text>
         </View>
-      </Card>
+      </GlassCard>
 
       {/* Savings Rate */}
-      <Card style={styles.rateCard}>
+      <GlassCard style={styles.rateCard}>
         <Text style={styles.cardLabel}>Savings Rate</Text>
         <Text style={[styles.rateNumeral, { color: savingsRate >= 0 ? Colors.positive : Colors.negative }]}>
           {savingsRate.toFixed(1)}
           <Text style={styles.ratePct}>%</Text>
         </Text>
         <Text style={styles.rateSubtext}>of income saved this month</Text>
-      </Card>
+      </GlassCard>
 
       {/* What-If Slider */}
       <Text style={styles.sectionTitle}>What-If Projection</Text>
-      <Card>
+      <GlassCard>
         <Text style={styles.sliderLabel}>Monthly Contribution</Text>
         <View style={styles.sliderValueRow}>
           <Text style={styles.sliderValue}>${sliderContribution.toFixed(0)}</Text>
@@ -233,7 +233,7 @@ export function InsightsSavings() {
             </View>
           ))}
         </View>
-      </Card>
+      </GlassCard>
 
       {/* Per-Goal Cards */}
       <Text style={styles.sectionTitle}>Savings Goals</Text>
@@ -243,7 +243,7 @@ export function InsightsSavings() {
         const addedGoalPct = (goal.addedThisMonth / goal.target) * 100;
 
         return (
-          <Card key={goal.name} style={styles.goalCard}>
+          <GlassCard key={goal.name} accentEdge="left" accentColor={Colors.positive} style={styles.goalCard}>
             <View style={styles.goalHeader}>
               <Text style={styles.goalName}>{goal.name}</Text>
               <Text style={styles.goalAmounts}>
@@ -265,7 +265,7 @@ export function InsightsSavings() {
                 ]}
               />
             </View>
-          </Card>
+          </GlassCard>
         );
       })}
     </View>

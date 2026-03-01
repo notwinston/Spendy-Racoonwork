@@ -1,8 +1,9 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import Animated, { FadeIn } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Typography, Spacing } from '../../constants';
-import { Card } from '../ui/Card';
+import { GlassCard } from '../ui/GlassCard';
 import { DonutChart } from '../charts';
 import type { DonutSegment } from '../charts';
 import { useTransactionStore, getCategoryMoM } from '../../stores/transactionStore';
@@ -113,9 +114,9 @@ export function InsightsThisMonth() {
     const futureCheck = new Date(selectedMonth.year, selectedMonth.month, 1) > new Date();
     if (futureCheck) {
       return (
-        <Card>
+        <GlassCard>
           <Text style={styles.emptyText}>No data for {getDisplayLabel(selectedMonth)}</Text>
-        </Card>
+        </GlassCard>
       );
     }
   }
@@ -124,24 +125,30 @@ export function InsightsThisMonth() {
     <View>
       {/* KPI Row */}
       <View style={styles.kpiRow}>
-        <Card style={styles.kpiCard}>
-          <Text style={styles.kpiLabel}>Income</Text>
-          <Text style={[styles.kpiAmount, { color: Colors.positive }]}>
-            ${totalIncome.toLocaleString()}
-          </Text>
-        </Card>
-        <Card style={styles.kpiCard}>
-          <Text style={styles.kpiLabel}>Expenses</Text>
-          <Text style={[styles.kpiAmount, { color: Colors.negative }]}>
-            ${totalExpenses > 0 ? totalExpenses.toLocaleString() : '0'}
-          </Text>
-        </Card>
-        <Card style={styles.kpiCard}>
-          <Text style={styles.kpiLabel}>Net</Text>
-          <Text style={[styles.kpiAmount, { color: net >= 0 ? Colors.positive : Colors.negative }]}>
-            {net >= 0 ? '+' : '-'}${Math.abs(net).toLocaleString()}
-          </Text>
-        </Card>
+        <Animated.View style={styles.kpiCardWrapper} entering={FadeIn.delay(0)}>
+          <GlassCard intensity="subtle" style={styles.kpiCard}>
+            <Text style={styles.kpiLabel}>Income</Text>
+            <Text style={[styles.kpiAmount, { color: Colors.positive }]}>
+              ${totalIncome.toLocaleString()}
+            </Text>
+          </GlassCard>
+        </Animated.View>
+        <Animated.View style={styles.kpiCardWrapper} entering={FadeIn.delay(80)}>
+          <GlassCard intensity="subtle" style={styles.kpiCard}>
+            <Text style={styles.kpiLabel}>Expenses</Text>
+            <Text style={[styles.kpiAmount, { color: Colors.negative }]}>
+              ${totalExpenses > 0 ? totalExpenses.toLocaleString() : '0'}
+            </Text>
+          </GlassCard>
+        </Animated.View>
+        <Animated.View style={styles.kpiCardWrapper} entering={FadeIn.delay(160)}>
+          <GlassCard intensity="subtle" style={styles.kpiCard}>
+            <Text style={styles.kpiLabel}>Net</Text>
+            <Text style={[styles.kpiAmount, { color: net >= 0 ? Colors.positive : Colors.negative }]}>
+              {net >= 0 ? '+' : '-'}${Math.abs(net).toLocaleString()}
+            </Text>
+          </GlassCard>
+        </Animated.View>
       </View>
 
       {/* Insight Chips */}
@@ -158,7 +165,7 @@ export function InsightsThisMonth() {
 
       {/* Spending Breakdown */}
       <Text style={styles.sectionTitle}>Spending Breakdown</Text>
-      <Card>
+      <GlassCard>
         <View style={styles.donutContainer}>
           <DonutChart data={donutData} size={160} />
         </View>
@@ -212,11 +219,11 @@ export function InsightsThisMonth() {
         {categoryMoM.length === 0 && (
           <Text style={styles.emptyText}>No spending data yet</Text>
         )}
-      </Card>
+      </GlassCard>
 
       {/* Savings Goal Progress */}
       <Text style={styles.sectionTitle}>Savings Goals</Text>
-      <Card>
+      <GlassCard>
         {savingsGoals.map((goal) => {
           const totalSaved = goal.saved + goal.addedThisMonth;
           const savedPct = (goal.saved / goal.target) * 100;
@@ -251,7 +258,7 @@ export function InsightsThisMonth() {
             </View>
           );
         })}
-      </Card>
+      </GlassCard>
     </View>
   );
 }
@@ -268,11 +275,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: Spacing.sm,
   },
-  kpiCard: {
+  kpiCardWrapper: {
     flex: 1,
+  },
+  kpiCard: {
     alignItems: 'center',
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.sm,
   },
   kpiLabel: {
     ...Typography.caption.meta,

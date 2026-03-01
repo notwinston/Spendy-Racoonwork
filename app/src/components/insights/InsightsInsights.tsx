@@ -1,8 +1,9 @@
 import React, { useMemo, useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import Animated, { FadeIn } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Typography, Spacing } from '../../constants';
-import { Card } from '../ui/Card';
+import { GlassCard } from '../ui/GlassCard';
 import { AIInsightCard } from '../AIInsightCard';
 import { AnomalyBanner } from '../AnomalyBanner';
 import { BillCalendarView } from '../BillCalendarView';
@@ -177,17 +178,17 @@ export function InsightsInsights() {
       <Text style={styles.sectionTitle}>Anomaly Detection</Text>
       <AnomalyBanner anomalies={anomalies} />
       {anomalies.length === 0 && (
-        <Card>
+        <GlassCard>
           <View style={styles.emptyRow}>
             <Ionicons name="checkmark-circle" size={20} color={Colors.positive} />
             <Text style={styles.emptyText}>No spending anomalies detected</Text>
           </View>
-        </Card>
+        </GlassCard>
       )}
 
       {/* Account Split Analysis */}
       <Text style={styles.sectionTitle}>Account Split</Text>
-      <Card>
+      <GlassCard>
         {accountSpend.map((account) => (
           <View key={account.name} style={styles.accountRow}>
             <Text style={styles.accountName}>{account.name}</Text>
@@ -214,7 +215,7 @@ export function InsightsInsights() {
         {accountSpend.length === 0 && (
           <Text style={styles.emptyText}>No account data available</Text>
         )}
-      </Card>
+      </GlassCard>
 
       {/* Spending Personality */}
       <Text style={styles.sectionTitle}>Spending Personality</Text>
@@ -260,34 +261,37 @@ export function InsightsInsights() {
       <Text style={styles.sectionTitle}>Suggestions</Text>
       {suggestions.length > 0 ? (
         suggestions.map((suggestion, idx) => (
-          <AIInsightCard
-            key={idx}
-            type={suggestion.type}
-            title={suggestion.title}
-            body={suggestion.body}
-          />
+          <Animated.View key={idx} entering={FadeIn.delay(idx * 80)}>
+            <AIInsightCard
+              type={suggestion.type}
+              title={suggestion.title}
+              body={suggestion.body}
+            />
+          </Animated.View>
         ))
       ) : (
-        <AIInsightCard
-          type="win"
-          title="Looking Good"
-          body="No specific suggestions right now. Your spending patterns are healthy!"
-        />
+        <Animated.View entering={FadeIn.delay(0)}>
+          <AIInsightCard
+            type="win"
+            title="Looking Good"
+            body="No specific suggestions right now. Your spending patterns are healthy!"
+          />
+        </Animated.View>
       )}
 
       {/* Upcoming Bills Calendar — always current */}
       {isCurrent && predictedBills.length > 0 && (
         <>
           <Text style={styles.sectionTitle}>Bill Calendar</Text>
-          <Card>
+          <GlassCard>
             <BillCalendarView bills={predictedBills} />
-          </Card>
+          </GlassCard>
         </>
       )}
 
       {/* Recurring Expenses */}
       <Text style={styles.sectionTitle}>Recurring Expenses</Text>
-      <Card>
+      <GlassCard>
         {Object.entries(recurringByFrequency).length > 0 ? (
           Object.entries(recurringByFrequency).map(([frequency, items]) => (
             <View key={frequency} style={styles.recurringGroup}>
@@ -310,7 +314,7 @@ export function InsightsInsights() {
             <Text style={styles.emptyText}>No recurring transactions detected</Text>
           </View>
         )}
-      </Card>
+      </GlassCard>
     </View>
   );
 }
