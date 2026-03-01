@@ -20,17 +20,37 @@ import {
 } from '../../stores/predictionStore';
 import { usePredictionStore } from '../../stores/predictionStore';
 import { useGamificationStore } from '../../stores/gamificationStore';
+import { useInsightsMonthStore, isCurrentMonth, getDisplayLabel } from '../../stores/insightsMonthStore';
 
 export function InsightsOverview() {
   const user = useAuthStore((s) => s.user);
   const { transactions } = useTransactionStore();
-  const { totalBudget, totalSpent } = useBudgetStore();
+  const { totalBudget } = useBudgetStore();
   const { predictions, hiddenCosts } = usePredictionStore();
   const gamification = useGamificationStore((s) => s.profile);
+  const selectedMonth = useInsightsMonthStore((s) => s.selectedMonth);
 
-  const now = new Date();
-  const dayOfMonth = now.getDate();
-  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  const isCurrent = isCurrentMonth(selectedMonth);
+
+  const refDate = useMemo(
+    () => new Date(selectedMonth.year, selectedMonth.month, 1),
+    [selectedMonth.year, selectedMonth.month],
+  );
+
+  // Compute totalSpent for selected month inline from transactions
+  const totalSpent = useMemo(() => {
+    const monthStart = new Date(selectedMonth.year, selectedMonth.month, 1);
+    const monthEnd = new Date(selectedMonth.year, selectedMonth.month + 1, 0, 23, 59, 59);
+    return transactions
+      .filter((t) => {
+        const d = new Date(t.date);
+        return d >= monthStart && d <= monthEnd;
+      })
+      .reduce((sum, t) => sum + Math.abs(t.amount), 0);
+  }, [transactions, selectedMonth.year, selectedMonth.month]);
+
+  const daysInMonth = new Date(selectedMonth.year, selectedMonth.month + 1, 0).getDate();
+  const dayOfMonth = isCurrent ? new Date().getDate() : daysInMonth;
   const streakDays = gamification.streakCount || user?.streakCount || 0;
 
   // ---------- Health Score ----------
@@ -45,8 +65,8 @@ export function InsightsOverview() {
   );
 
   const spendingStability = useMemo(
-    () => calculateSpendingStability(transactions),
-    [transactions],
+    () => calculateSpendingStability(transactions, refDate),
+    [transactions, refDate],
   );
 
   const cciRaw = useMemo(
@@ -107,6 +127,7 @@ export function InsightsOverview() {
   const net = totalIncome - totalExpenses;
 
   // ---------- Days Until Budget Runs Out (using predictive forecast) ----------
+  // Only show forecast for current month
   const forecast = useMemo(
     () => forecastMonthEnd(totalSpent, dayOfMonth, daysInMonth, totalBudget),
     [totalSpent, dayOfMonth, daysInMonth, totalBudget],
@@ -116,6 +137,18 @@ export function InsightsOverview() {
   const daysUntilBudgetRunsOut = dailySpendingRate > 0
     ? Math.round(remainingBudget / dailySpendingRate)
     : daysInMonth - dayOfMonth;
+
+  // Future month empty state
+  if (!isCurrent && totalSpent === 0) {
+    const futureCheck = new Date(selectedMonth.year, selectedMonth.month, 1) > new Date();
+    if (futureCheck) {
+      return (
+        <Card>
+          <Text style={styles.emptyText}>No data for {getDisplayLabel(selectedMonth)}</Text>
+        </Card>
+      );
+    }
+  }
 
   return (
     <View>
@@ -202,31 +235,33 @@ export function InsightsOverview() {
         </View>
       </View>
 
-      {/* Days Until Budget Runs Out */}
-      <View style={[styles.budgetChip, forecast.isOverBudget && styles.budgetChipDanger]}>
-        <Ionicons
-          name={forecast.isOverBudget ? 'warning' : 'alert-circle'}
-          size={16}
-          color={forecast.isOverBudget ? Colors.negative : Colors.warning}
-        />
-        <View style={styles.budgetChipContent}>
-          <Text style={[styles.budgetChipText, forecast.isOverBudget && styles.budgetChipTextDanger]}>
-            <Text style={[styles.budgetChipDays, forecast.isOverBudget && { color: Colors.negative }]}>
-              {daysUntilBudgetRunsOut}
-            </Text> days until budget runs out
-          </Text>
-          <Text style={styles.budgetChipForecast}>
-            Projected month-end:{' '}
-            <Text style={styles.budgetChipForecastValue}>
-              ${forecast.projected.toLocaleString()}
+      {/* Days Until Budget Runs Out — only for current month */}
+      {isCurrent && (
+        <View style={[styles.budgetChip, forecast.isOverBudget && styles.budgetChipDanger]}>
+          <Ionicons
+            name={forecast.isOverBudget ? 'warning' : 'alert-circle'}
+            size={16}
+            color={forecast.isOverBudget ? Colors.negative : Colors.warning}
+          />
+          <View style={styles.budgetChipContent}>
+            <Text style={[styles.budgetChipText, forecast.isOverBudget && styles.budgetChipTextDanger]}>
+              <Text style={[styles.budgetChipDays, forecast.isOverBudget && { color: Colors.negative }]}>
+                {daysUntilBudgetRunsOut}
+              </Text> days until budget runs out
             </Text>
-            {' '}({forecast.isOverBudget ? 'over by ' : 'under by '}
-            <Text style={{ color: forecast.isOverBudget ? Colors.negative : Colors.positive }}>
-              ${Math.abs(forecast.surplus).toLocaleString()}
-            </Text>)
-          </Text>
+            <Text style={styles.budgetChipForecast}>
+              Projected month-end:{' '}
+              <Text style={styles.budgetChipForecastValue}>
+                ${forecast.projected.toLocaleString()}
+              </Text>
+              {' '}({forecast.isOverBudget ? 'over by ' : 'under by '}
+              <Text style={{ color: forecast.isOverBudget ? Colors.negative : Colors.positive }}>
+                ${Math.abs(forecast.surplus).toLocaleString()}
+              </Text>)
+            </Text>
+          </View>
         </View>
-      </View>
+      )}
     </View>
   );
 }
@@ -354,5 +389,11 @@ const styles = StyleSheet.create({
   budgetChipForecastValue: {
     ...Typography.numeric.chartAxis,
     color: Colors.textSecondary,
+  },
+  emptyText: {
+    ...Typography.body.regular,
+    color: Colors.textMuted,
+    textAlign: 'center',
+    paddingVertical: Spacing.lg,
   },
 });

@@ -5,6 +5,7 @@ import { Card } from '../ui/Card';
 import { useTransactionStore } from '../../stores/transactionStore';
 import { useBudgetStore } from '../../stores/budgetStore';
 import { getProjectionScenarios } from '../../utils/financialCalcs';
+import { useInsightsMonthStore, isCurrentMonth, getDisplayLabel } from '../../stores/insightsMonthStore';
 
 // Use a simple custom slider implementation for compatibility
 function SimpleSlider({
@@ -82,7 +83,22 @@ const sliderStyles = StyleSheet.create({
 
 export function InsightsSavings() {
   const { transactions } = useTransactionStore();
-  const { totalBudget, totalSpent } = useBudgetStore();
+  const { totalBudget } = useBudgetStore();
+  const selectedMonth = useInsightsMonthStore((s) => s.selectedMonth);
+
+  const isCurrent = isCurrentMonth(selectedMonth);
+
+  // Compute totalSpent for selected month inline
+  const totalSpent = useMemo(() => {
+    const monthStart = new Date(selectedMonth.year, selectedMonth.month, 1);
+    const monthEnd = new Date(selectedMonth.year, selectedMonth.month + 1, 0, 23, 59, 59);
+    return transactions
+      .filter((t) => {
+        const d = new Date(t.date);
+        return d >= monthStart && d <= monthEnd;
+      })
+      .reduce((sum, t) => sum + Math.abs(t.amount), 0);
+  }, [transactions, selectedMonth.year, selectedMonth.month]);
 
   const mockIncome = 4200;
   const monthlySavings = Math.max(0, totalBudget - totalSpent);
@@ -120,12 +136,24 @@ export function InsightsSavings() {
     }));
   }, [sliderContribution]);
 
-  // ---------- Per-Goal Cards ----------
+  // ---------- Per-Goal Cards (goals always use current data) ----------
   const goals = useMemo(() => [
     { name: 'Emergency Fund', target: 5000, saved: 2800, addedThisMonth: monthlySavings * 0.4 },
     { name: 'Vacation', target: 2000, saved: 1200, addedThisMonth: monthlySavings * 0.3 },
     { name: 'New Laptop', target: 1500, saved: 600, addedThisMonth: monthlySavings * 0.3 },
   ], [monthlySavings]);
+
+  // Future month empty state
+  if (!isCurrent && totalSpent === 0) {
+    const futureCheck = new Date(selectedMonth.year, selectedMonth.month, 1) > new Date();
+    if (futureCheck) {
+      return (
+        <Card>
+          <Text style={styles.emptyText}>No data for {getDisplayLabel(selectedMonth)}</Text>
+        </Card>
+      );
+    }
+  }
 
   return (
     <View>
@@ -423,5 +451,11 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.positive,
     borderTopRightRadius: 4,
     borderBottomRightRadius: 4,
+  },
+  emptyText: {
+    ...Typography.body.regular,
+    color: Colors.textMuted,
+    textAlign: 'center',
+    paddingVertical: Spacing.lg,
   },
 });

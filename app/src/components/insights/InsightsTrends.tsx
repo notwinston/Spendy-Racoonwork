@@ -8,6 +8,7 @@ import { MonthComparison } from '../MonthComparison';
 import type { TrendDataPoint } from '../charts';
 import { useTransactionStore, getMonthlyTotals, getCategoryMoM } from '../../stores/transactionStore';
 import { useBudgetStore } from '../../stores/budgetStore';
+import { useInsightsMonthStore, getDisplayLabel } from '../../stores/insightsMonthStore';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 
@@ -34,22 +35,27 @@ type BreakdownView = 'net' | 'breakdown';
 export function InsightsTrends() {
   const { transactions } = useTransactionStore();
   const { totalBudget } = useBudgetStore();
+  const selectedMonth = useInsightsMonthStore((s) => s.selectedMonth);
 
   const [timePeriod, setTimePeriod] = useState<TimePeriod>('monthly');
   const [breakdownView, setBreakdownView] = useState<BreakdownView>('net');
 
-  const now = new Date();
+  // Reference date derived from the store — end of selected month
+  const refDate = useMemo(
+    () => new Date(selectedMonth.year, selectedMonth.month + 1, 0, 23, 59, 59),
+    [selectedMonth.year, selectedMonth.month],
+  );
 
   // ---------- Widget 1: Income vs Spending Chart ----------
   const trendData: TrendDataPoint[] = useMemo(() => {
     if (timePeriod === 'monthly' || timePeriod === 'yearly') {
       const months = timePeriod === 'yearly' ? 12 : 6;
-      return getMonthlyTotals(transactions, months);
+      return getMonthlyTotals(transactions, months, refDate);
     }
-    // Weekly: last 6 weeks
+    // Weekly: last 6 weeks ending at refDate
     const weeks: TrendDataPoint[] = [];
     for (let w = 5; w >= 0; w--) {
-      const weekEnd = new Date(now);
+      const weekEnd = new Date(refDate);
       weekEnd.setDate(weekEnd.getDate() - w * 7);
       const weekStart = new Date(weekEnd);
       weekStart.setDate(weekStart.getDate() - 7);
@@ -62,7 +68,7 @@ export function InsightsTrends() {
       weeks.push({ label: `W${6 - w}`, value: Math.round(weekTotal * 100) / 100 });
     }
     return weeks;
-  }, [transactions, timePeriod]);
+  }, [transactions, timePeriod, refDate]);
 
   const trendBudgetLine = useMemo(() => {
     if (timePeriod === 'weekly') return Math.round(totalBudget / 4);
@@ -83,7 +89,7 @@ export function InsightsTrends() {
     return Math.round(((current - previous) / previous) * 100);
   }, [trendData]);
 
-  // ---------- Widget 2: Net Income / Spending Breakdown ----------
+  // ---------- Widget 2: Net Income / Spending Breakdown Toggle ----------
   const mockIncome = 4200;
 
   const netIncomeData = useMemo(() => {
@@ -91,7 +97,7 @@ export function InsightsTrends() {
     const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     const result: { label: string; value: number }[] = [];
     for (let i = months - 1; i >= 0; i--) {
-      const monthDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const monthDate = new Date(selectedMonth.year, selectedMonth.month - i, 1);
       const monthEnd = new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 0, 23, 59, 59);
 
       const spending = transactions
@@ -107,7 +113,7 @@ export function InsightsTrends() {
       });
     }
     return result;
-  }, [transactions]);
+  }, [transactions, selectedMonth.year, selectedMonth.month]);
 
   // Spending breakdown by category per month
   const spendingBreakdown = useMemo(() => {
@@ -117,7 +123,7 @@ export function InsightsTrends() {
     const monthlyData: { label: string; categories: Record<string, number> }[] = [];
 
     for (let i = months - 1; i >= 0; i--) {
-      const monthDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const monthDate = new Date(selectedMonth.year, selectedMonth.month - i, 1);
       const monthEnd = new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 0, 23, 59, 59);
 
       const catMap: Record<string, number> = {};
@@ -137,13 +143,14 @@ export function InsightsTrends() {
       });
     }
     return { months: monthlyData, categories: Array.from(categories).slice(0, 6) };
-  }, [transactions]);
+  }, [transactions, selectedMonth.year, selectedMonth.month]);
 
   // Month-over-month data for MonthComparison
   const momData = useMemo(() => {
-    const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-    const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
+    const thisMonthStart = new Date(selectedMonth.year, selectedMonth.month, 1);
+    const thisMonthEnd = refDate;
+    const lastMonthStart = new Date(selectedMonth.year, selectedMonth.month - 1, 1);
+    const lastMonthEnd = new Date(selectedMonth.year, selectedMonth.month, 0, 23, 59, 59);
 
     let thisMonthTotal = 0;
     let lastMonthTotal = 0;
@@ -153,7 +160,7 @@ export function InsightsTrends() {
     for (const t of transactions) {
       const d = new Date(t.date);
       const amount = Math.abs(t.amount);
-      if (d >= thisMonthStart && d <= now) {
+      if (d >= thisMonthStart && d <= thisMonthEnd) {
         thisMonthTotal += amount;
         thisCats[t.category] = (thisCats[t.category] || 0) + amount;
       } else if (d >= lastMonthStart && d <= lastMonthEnd) {
@@ -176,7 +183,7 @@ export function InsightsTrends() {
           .sort((a, b) => b.amount - a.amount),
       },
     };
-  }, [transactions]);
+  }, [transactions, selectedMonth.year, selectedMonth.month, refDate]);
 
   // Max bar value for normalization
   const maxBarValue = useMemo(() => {

@@ -7,6 +7,7 @@ import { DonutChart } from '../charts';
 import type { DonutSegment } from '../charts';
 import { useTransactionStore, getCategoryMoM } from '../../stores/transactionStore';
 import { useBudgetStore } from '../../stores/budgetStore';
+import { useInsightsMonthStore, isCurrentMonth, getDisplayLabel } from '../../stores/insightsMonthStore';
 
 const CATEGORY_COLORS: Record<string, string> = {
   dining: Colors.negative,
@@ -27,15 +28,33 @@ const CATEGORY_COLORS: Record<string, string> = {
 
 export function InsightsThisMonth() {
   const { transactions } = useTransactionStore();
-  const { totalBudget, totalSpent, budgets } = useBudgetStore();
+  const { totalBudget, budgets } = useBudgetStore();
+  const selectedMonth = useInsightsMonthStore((s) => s.selectedMonth);
+
+  const refDate = useMemo(
+    () => new Date(selectedMonth.year, selectedMonth.month, 1),
+    [selectedMonth.year, selectedMonth.month],
+  );
+
+  // Compute totalSpent for selected month inline
+  const totalSpent = useMemo(() => {
+    const monthStart = new Date(selectedMonth.year, selectedMonth.month, 1);
+    const monthEnd = new Date(selectedMonth.year, selectedMonth.month + 1, 0, 23, 59, 59);
+    return transactions
+      .filter((t) => {
+        const d = new Date(t.date);
+        return d >= monthStart && d <= monthEnd;
+      })
+      .reduce((sum, t) => sum + Math.abs(t.amount), 0);
+  }, [transactions, selectedMonth.year, selectedMonth.month]);
 
   const mockIncome = 4200;
   const totalIncome = mockIncome;
   const totalExpenses = totalSpent > 0 ? totalSpent : 0;
   const net = totalIncome - totalExpenses;
 
-  // Category breakdown
-  const categoryMoM = useMemo(() => getCategoryMoM(transactions), [transactions]);
+  // Category breakdown using referenceDate
+  const categoryMoM = useMemo(() => getCategoryMoM(transactions, refDate), [transactions, refDate]);
 
   const donutData: DonutSegment[] = useMemo(() => {
     const totalCatSpend = categoryMoM.reduce((s, c) => s + c.thisMonth, 0);
@@ -87,6 +106,19 @@ export function InsightsThisMonth() {
       { name: 'New Laptop', target: 1500, saved: 600, addedThisMonth: monthlySaved * 0.3 },
     ];
   }, [totalBudget, totalSpent]);
+
+  // Future month empty state
+  const isCurrent = isCurrentMonth(selectedMonth);
+  if (!isCurrent && totalSpent === 0) {
+    const futureCheck = new Date(selectedMonth.year, selectedMonth.month, 1) > new Date();
+    if (futureCheck) {
+      return (
+        <Card>
+          <Text style={styles.emptyText}>No data for {getDisplayLabel(selectedMonth)}</Text>
+        </Card>
+      );
+    }
+  }
 
   return (
     <View>

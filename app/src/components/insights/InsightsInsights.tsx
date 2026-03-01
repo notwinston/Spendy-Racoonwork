@@ -12,6 +12,7 @@ import { FinancialProfileWizard } from '../FinancialProfileWizard';
 import { useTransactionStore, getCategoryMoM } from '../../stores/transactionStore';
 import { useBudgetStore, suggestCategoryBudgets } from '../../stores/budgetStore';
 import { detectAnomalies, predictBills } from '../../stores/predictionStore';
+import { useInsightsMonthStore, isCurrentMonth, getDisplayLabel } from '../../stores/insightsMonthStore';
 
 const PERSONALITY_MAP: Record<string, { name: string; emoji: string; icon: keyof typeof Ionicons.glyphMap; description: string }> = {
   dining: { name: 'The Foodie', emoji: '\uD83C\uDF7D\uFE0F', icon: 'restaurant', description: 'You love dining out and exploring restaurants' },
@@ -29,14 +30,22 @@ const PERSONALITY_MAP: Record<string, { name: string; emoji: string; icon: keyof
 export function InsightsInsights() {
   const { transactions, recurringTransactions } = useTransactionStore();
   const { totalBudget, totalSpent, budgets } = useBudgetStore();
+  const selectedMonth = useInsightsMonthStore((s) => s.selectedMonth);
   const [wizardVisible, setWizardVisible] = useState(false);
 
-  const categoryMoM = useMemo(() => getCategoryMoM(transactions), [transactions]);
+  const isCurrent = isCurrentMonth(selectedMonth);
+
+  const refDate = useMemo(
+    () => new Date(selectedMonth.year, selectedMonth.month, 1),
+    [selectedMonth.year, selectedMonth.month],
+  );
+
+  const categoryMoM = useMemo(() => getCategoryMoM(transactions, refDate), [transactions, refDate]);
 
   // ---------- Anomaly Detection (using predictive store function) ----------
-  const anomalies = useMemo(() => detectAnomalies(transactions), [transactions]);
+  const anomalies = useMemo(() => detectAnomalies(transactions, refDate), [transactions, refDate]);
 
-  // ---------- Predicted Bills ----------
+  // ---------- Predicted Bills (always current) ----------
   const predictedBills = useMemo(
     () => predictBills(recurringTransactions),
     [recurringTransactions],
@@ -44,8 +53,8 @@ export function InsightsInsights() {
 
   // ---------- Smart Budget Suggestions ----------
   const budgetSuggestions = useMemo(
-    () => suggestCategoryBudgets(transactions, budgets),
-    [transactions, budgets],
+    () => suggestCategoryBudgets(transactions, budgets, refDate),
+    [transactions, budgets, refDate],
   );
 
   // ---------- Account Split Analysis ----------
@@ -152,13 +161,17 @@ export function InsightsInsights() {
 
   return (
     <View>
-      {/* Financial Optimizer */}
-      <Text style={styles.sectionTitle}>Financial Optimizer</Text>
-      <SpendableBudgetCard onSetUp={() => setWizardVisible(true)} />
-      <FinancialProfileWizard
-        visible={wizardVisible}
-        onClose={() => setWizardVisible(false)}
-      />
+      {/* Financial Optimizer — only for current month */}
+      {isCurrent && (
+        <>
+          <Text style={styles.sectionTitle}>Financial Optimizer</Text>
+          <SpendableBudgetCard onSetUp={() => setWizardVisible(true)} />
+          <FinancialProfileWizard
+            visible={wizardVisible}
+            onClose={() => setWizardVisible(false)}
+          />
+        </>
+      )}
 
       {/* Anomaly Detection */}
       <Text style={styles.sectionTitle}>Anomaly Detection</Text>
@@ -262,8 +275,8 @@ export function InsightsInsights() {
         />
       )}
 
-      {/* Upcoming Bills Calendar */}
-      {predictedBills.length > 0 && (
+      {/* Upcoming Bills Calendar — always current */}
+      {isCurrent && predictedBills.length > 0 && (
         <>
           <Text style={styles.sectionTitle}>Bill Calendar</Text>
           <Card>
