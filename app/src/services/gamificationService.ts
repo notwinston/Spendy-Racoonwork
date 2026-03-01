@@ -895,6 +895,22 @@ export async function getLeaderboard(options?: {
         level: 1,
         rank: 3,
       },
+      {
+        user_id: 'demo-friend-3',
+        display_name: 'Riley',
+        avatar_url: null,
+        xp: 200,
+        level: 3,
+        rank: 4,
+      },
+      {
+        user_id: 'demo-friend-4',
+        display_name: 'Morgan',
+        avatar_url: null,
+        xp: 50,
+        level: 1,
+        rank: 5,
+      },
     ];
 
     // Filter to friends scope if requested

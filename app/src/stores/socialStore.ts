@@ -194,6 +194,9 @@ export const useSocialStore = create<SocialState>((set, get) => ({
         friends: state.friends.filter(
           (f) => f.profile.id !== friendId,
         ),
+        pendingRequests: state.pendingRequests.filter(
+          (r) => !(r.user_id === friendId || r.friend_id === friendId),
+        ),
       }));
     } catch (err) {
       set({

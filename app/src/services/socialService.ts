@@ -5,6 +5,7 @@
  * Supports both live Supabase mode and offline demo mode.
  */
 import { supabase, isDemoMode } from '../lib/supabase';
+import { getDemoChallenges, getDemoParticipants } from './gamificationService';
 import type {
   Friendship,
   FriendCircle,
@@ -16,6 +17,7 @@ import type {
   NotificationPriority,
   FriendWithProfile,
   Challenge,
+  ChallengeParticipant,
 } from '../types';
 
 // ============================================================
@@ -84,6 +86,38 @@ const demoProfiles: Record<string, Profile> = {
     streak_count: 0,
     longest_streak: 0,
     financial_health_score: null,
+    privacy_level: 'friends_only',
+    timezone: 'America/Vancouver',
+    created_at: now,
+    updated_at: now,
+  },
+  'demo-friend-3': {
+    id: 'demo-friend-3',
+    display_name: 'Riley',
+    avatar_url: null,
+    friend_code: 'RILY7890',
+    monthly_income: null,
+    xp: 200,
+    level: 3,
+    streak_count: 8,
+    longest_streak: 15,
+    financial_health_score: 81,
+    privacy_level: 'friends_only',
+    timezone: 'America/Vancouver',
+    created_at: now,
+    updated_at: now,
+  },
+  'demo-friend-4': {
+    id: 'demo-friend-4',
+    display_name: 'Morgan',
+    avatar_url: null,
+    friend_code: 'MORG4567',
+    monthly_income: null,
+    xp: 50,
+    level: 1,
+    streak_count: 2,
+    longest_streak: 4,
+    financial_health_score: 60,
     privacy_level: 'friends_only',
     timezone: 'America/Vancouver',
     created_at: now,
@@ -468,6 +502,22 @@ export async function createFriendChallenge(
       ends_at: endsAt,
       created_at: startsAt,
     };
+
+    // Persist to shared demo state so getActiveChallenges() finds it
+    getDemoChallenges().push(challenge);
+
+    const participantBase: Omit<ChallengeParticipant, 'id' | 'user_id'> = {
+      challenge_id: challenge.id,
+      progress: { days_completed: 0 },
+      status: 'active',
+      joined_at: startsAt,
+      completed_at: null,
+    };
+    getDemoParticipants().push(
+      { ...participantBase, id: `cp-fc-${Date.now()}-1`, user_id: userId },
+      { ...participantBase, id: `cp-fc-${Date.now()}-2`, user_id: friendId },
+    );
+
     return challenge;
   }
 
@@ -716,7 +766,7 @@ export async function leaveCircle(userId: string, circleId: string): Promise<voi
 
 /**
  * Send a nudge to another user.
- * Rate limited: max 3 nudges per sender->recipient pair per day.
+ * Rate limited: max 10 nudges per sender->recipient pair per day.
  */
 export async function sendNudge(
   senderId: string,
@@ -734,8 +784,8 @@ export async function sendNudge(
         n.created_at >= oneDayAgo,
     ).length;
 
-    if (recentCount >= 3) {
-      throw new Error('Rate limit: max 3 nudges per recipient per day');
+    if (recentCount >= 10) {
+      throw new Error('Rate limit: max 10 nudges per recipient per day');
     }
 
     const nudge: SocialNudge = {
@@ -762,8 +812,8 @@ export async function sendNudge(
     .gte('created_at', oneDayAgo);
 
   if (countErr) throw new Error(`sendNudge rate check failed: ${countErr.message}`);
-  if ((count ?? 0) >= 3) {
-    throw new Error('Rate limit: max 3 nudges per recipient per day');
+  if ((count ?? 0) >= 10) {
+    throw new Error('Rate limit: max 10 nudges per recipient per day');
   }
 
   const { data, error } = await supabase
