@@ -8,7 +8,7 @@ import {
   Dimensions,
   ActivityIndicator,
 } from 'react-native';
-import Animated, { FadeIn, useSharedValue, useAnimatedStyle, withSpring, withTiming } from 'react-native-reanimated';
+import Animated, { FadeIn } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Typography, Spacing } from '../../src/constants';
 import { AtmosphericBackground } from '../../src/components/ui/AtmosphericBackground';

@@ -1,26 +1,31 @@
 import React from 'react';
-import { SafeAreaView, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Colors, Typography, Spacing } from '../../src/constants';
+import { AtmosphericBackground } from '../../src/components/ui/AtmosphericBackground';
+import { GlassCard } from '../../src/components/ui/GlassCard';
 
 export default function CircleDetailScreen() {
   const router = useRouter();
   return (
-    <SafeAreaView style={styles.container}>
-      <TouchableOpacity onPress={() => router.back()}>
+    <AtmosphericBackground variant="arena">
+      <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
         <Text style={styles.back}>← Back</Text>
       </TouchableOpacity>
-      <Text style={styles.title}>Circle Detail</Text>
-      <Text style={styles.subtitle}>Coming Soon</Text>
-    </SafeAreaView>
+      <GlassCard style={styles.card}>
+        <Text style={styles.title}>Circle Detail</Text>
+        <Text style={styles.subtitle}>Coming Soon</Text>
+      </GlassCard>
+    </AtmosphericBackground>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.background,
+  backButton: {
     padding: Spacing.lg,
+  },
+  card: {
+    marginHorizontal: Spacing.lg,
   },
   back: {
     fontSize: Typography.sizes.md,

@@ -149,7 +149,6 @@ const styles = StyleSheet.create({
   },
   accentLine: {
     width: 2,
-    height: '100%',
     backgroundColor: Colors.glowTeal,
     opacity: 0.3,
     position: 'absolute',

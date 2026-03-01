@@ -38,9 +38,16 @@ export function PodiumDisplay({ top3 }: PodiumDisplayProps) {
       {ordered.map((entry, index) => {
         if (!entry) return <View key={index} style={styles.podiumSlot} />;
         const config = PODIUM_CONFIG[entry.rank] || PODIUM_CONFIG[3];
+        // 2nd enters first (delay 100), 3rd next (delay 200), 1st enters last for drama (delay 400)
+        const delays = [100, 400, 200];
+        const delay = delays[index] ?? 100;
 
         return (
-          <View key={entry.rank} style={styles.podiumSlot}>
+          <Animated.View
+            key={entry.rank}
+            style={styles.podiumSlot}
+            entering={FadeIn.delay(delay).duration(400)}
+          >
             {/* Avatar */}
             <View style={[styles.avatarCircle, { borderColor: config.color }]}>
               <Ionicons name="person" size={24} color={config.color} />
@@ -69,7 +76,7 @@ export function PodiumDisplay({ top3 }: PodiumDisplayProps) {
                 {config.label}
               </Text>
             </View>
-          </View>
+          </Animated.View>
         );
       })}
     </View>

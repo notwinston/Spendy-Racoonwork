@@ -1,13 +1,39 @@
 ---
 task_type: feature
 workflow: feature-development
-current_phase: F3
-completed_phases: [F1, F2]
+current_phase: F6
+completed_phases: [F1, F2, F3, F5]
 uat_fast_forward: false
 session_name: friend-accountability-system
-decomposed: false
-context_pressure: null
-context_budget: null
+decomposed: true
+context_pressure: low
+context_budget:
+  wave1:
+    peak_iteration_tokens: 57040
+    pressure_pct: 28.5
+    estimated_cost_range: "$3-8"
+    file_count: 7
+  wave2:
+    peak_iteration_tokens: 50780
+    pressure_pct: 25.4
+    estimated_cost_range: "$5-12"
+    file_count: 5
+sub_workflows:
+  - name: friend-system-bugfixes
+    type: bugfix
+    wave: 1
+    current_phase: F6
+    completed_phases: [F5]
+    context_pressure: low
+  - name: accountability-buddy-features
+    type: feature
+    wave: 2
+    current_phase: F6
+    completed_phases: [F5]
+    context_pressure: low
+git_config:
+  commits: after_each_phase
+  push: false
 ---
 
 ## F1: Discovery Decisions

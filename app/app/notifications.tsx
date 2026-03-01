@@ -7,10 +7,12 @@ import {
   StyleSheet,
   ActivityIndicator,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import Animated, { FadeIn } from 'react-native-reanimated';
 import { Colors, Typography, Spacing } from '../src/constants';
+import { AtmosphericBackground } from '../src/components/ui/AtmosphericBackground';
+import { GlassCard } from '../src/components/ui/GlassCard';
 import { useNotificationStore } from '../src/stores/notificationStore';
 import { useAuthStore } from '../src/stores/authStore';
 import type { Notification } from '../src/types';
@@ -49,6 +51,21 @@ function getCategoryColor(category: string | null): string {
   }
 }
 
+function getNotificationAccentColor(category: string | null): string {
+  switch (category) {
+    case 'spending_alert':
+    case 'budget_warning':
+      return '#F59E0B'; // amber/warning
+    case 'social_nudge':
+      return '#2563EB'; // blue/info
+    case 'challenge_update':
+    case 'streak_reminder':
+      return '#00D09C'; // green/success
+    default:
+      return '#2563EB'; // blue default
+  }
+}
+
 function formatTimestamp(dateString: string): string {
   const date = new Date(dateString);
   const now = new Date();
@@ -69,43 +86,46 @@ interface NotificationItemProps {
   onPress: () => void;
 }
 
-function NotificationItem({ notification, onPress }: NotificationItemProps) {
+function NotificationItem({ notification, onPress, index }: NotificationItemProps & { index: number }) {
   const icon = getCategoryIcon(notification.category);
   const iconColor = getCategoryColor(notification.category);
+  const accentColor = getNotificationAccentColor(notification.category);
 
   return (
-    <TouchableOpacity
-      style={[
-        styles.notificationItem,
-        !notification.is_read && styles.unreadItem,
-      ]}
-      onPress={onPress}
-      activeOpacity={0.7}
-    >
-      <View style={[styles.iconContainer, { backgroundColor: iconColor + '20' }]}>
-        <Ionicons name={icon} size={20} color={iconColor} />
-      </View>
-      <View style={styles.notificationContent}>
-        <View style={styles.notificationHeader}>
-          <Text
-            style={[
-              styles.notificationTitle,
-              !notification.is_read && styles.unreadTitle,
-            ]}
-            numberOfLines={1}
-          >
-            {notification.title}
-          </Text>
-          {!notification.is_read && <View style={styles.unreadDot} />}
+    <Animated.View entering={FadeIn.delay(index * 60)} style={!notification.is_read ? styles.unreadItem : undefined}>
+      <GlassCard
+        accentEdge="left"
+        accentColor={accentColor}
+        onPress={onPress}
+        style={styles.notificationItem}
+      >
+        <View style={styles.notificationRow}>
+          <View style={[styles.iconContainer, { backgroundColor: iconColor + '20' }]}>
+            <Ionicons name={icon} size={20} color={iconColor} />
+          </View>
+          <View style={styles.notificationContent}>
+            <View style={styles.notificationHeader}>
+              <Text
+                style={[
+                  styles.notificationTitle,
+                  !notification.is_read && styles.unreadTitle,
+                ]}
+                numberOfLines={1}
+              >
+                {notification.title}
+              </Text>
+              {!notification.is_read && <View style={styles.unreadDot} />}
+            </View>
+            <Text style={styles.notificationBody} numberOfLines={2}>
+              {notification.body}
+            </Text>
+            <Text style={styles.notificationTimestamp}>
+              {formatTimestamp(notification.sent_at)}
+            </Text>
+          </View>
         </View>
-        <Text style={styles.notificationBody} numberOfLines={2}>
-          {notification.body}
-        </Text>
-        <Text style={styles.notificationTimestamp}>
-          {formatTimestamp(notification.sent_at)}
-        </Text>
-      </View>
-    </TouchableOpacity>
+      </GlassCard>
+    </Animated.View>
   );
 }
 
@@ -133,7 +153,7 @@ export default function NotificationsScreen() {
   const unreadCount = notifications.filter((n) => !n.is_read).length;
 
   return (
-    <SafeAreaView style={styles.container}>
+    <AtmosphericBackground variant="default">
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
           <Ionicons name="close" size={24} color={Colors.textPrimary} />
@@ -171,10 +191,11 @@ export default function NotificationsScreen() {
               {unreadCount} unread
             </Text>
           )}
-          {sortedNotifications.map((notification) => (
+          {sortedNotifications.map((notification, index) => (
             <NotificationItem
               key={notification.id}
               notification={notification}
+              index={index}
               onPress={() => {
                 if (!notification.is_read) {
                   markRead(notification.id);
@@ -184,14 +205,13 @@ export default function NotificationsScreen() {
           ))}
         </ScrollView>
       )}
-    </SafeAreaView>
+    </AtmosphericBackground>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.background,
+  notificationRow: {
+    flexDirection: 'row',
   },
   header: {
     flexDirection: 'row',
@@ -246,18 +266,11 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   notificationItem: {
-    flexDirection: 'row',
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.md,
     marginBottom: Spacing.sm,
-    borderRadius: 12,
-    backgroundColor: Colors.card,
-    borderWidth: 1,
-    borderColor: Colors.cardBorder,
+    padding: 0,
   },
   unreadItem: {
-    borderColor: Colors.accent + '40',
-    backgroundColor: Colors.card,
+    backgroundColor: 'rgba(0, 208, 156, 0.05)',
   },
   iconContainer: {
     width: 40,

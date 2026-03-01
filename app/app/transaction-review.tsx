@@ -448,7 +448,7 @@ export default function TransactionReviewScreen() {
                   </Text>
                 </TouchableOpacity>
               </View>
-            </Card>
+            </GlassCard>
           );
         }}
       />
@@ -521,15 +521,11 @@ export default function TransactionReviewScreen() {
           </View>
         </View>
       </Modal>
-    </SafeAreaView>
+    </AtmosphericBackground>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.background,
-  },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',

@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Colors, Typography, Spacing } from '../constants';
-import { Card } from './ui/Card';
+import { GlassCard } from './ui/GlassCard';
 import { RANK_TIERS, calculateRankTier } from '../stores/gamificationStore';
 
 interface RankCardProps {
@@ -20,7 +20,7 @@ export function RankCard({ savingsRate }: RankCardProps) {
   const progressInTier = tierRange > 0 ? ((savingsRate - tier.minRate) / tierRange) * 100 : 100;
 
   return (
-    <Card style={styles.card}>
+    <GlassCard style={styles.card} accentEdge="left" accentColor={tier.color}>
       <View style={styles.tierRow}>
         <Text style={styles.tierBadge}>{tier.badge}</Text>
         <View style={styles.tierInfo}>
@@ -63,7 +63,7 @@ export function RankCard({ savingsRate }: RankCardProps) {
           You have reached the highest tier!
         </Text>
       )}
-    </Card>
+    </GlassCard>
   );
 }
 

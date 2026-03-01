@@ -377,11 +377,11 @@ const styles = StyleSheet.create({
   },
   sheet: {
     height: SHEET_HEIGHT,
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.glassBg,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     borderTopWidth: 1,
-    borderColor: Colors.cardBorder,
+    borderColor: Colors.glassBorderLight,
     overflow: 'hidden',
   },
   handleContainer: {
@@ -402,7 +402,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.divider,
+    borderBottomColor: Colors.glassBorderLight,
   },
   headerLeft: {
     flexDirection: 'row',
@@ -464,21 +464,21 @@ const styles = StyleSheet.create({
     borderRadius: 16,
   },
   bubbleUser: {
-    backgroundColor: Colors.accent,
+    backgroundColor: 'rgba(0, 208, 156, 0.12)',
     borderBottomRightRadius: 4,
   },
   bubbleAssistant: {
-    backgroundColor: Colors.card,
+    backgroundColor: Colors.glassBg,
     borderBottomLeftRadius: 4,
     borderWidth: 1,
-    borderColor: Colors.cardBorder,
+    borderColor: Colors.glassBorder,
   },
   bubbleText: {
     fontSize: Typography.sizes.md,
     lineHeight: Typography.sizes.md * Typography.lineHeights.normal,
   },
   bubbleTextUser: {
-    color: Colors.bgCard,
+    color: Colors.textPrimary,
   },
   bubbleTextAssistant: {
     color: Colors.textPrimary,
@@ -488,7 +488,7 @@ const styles = StyleSheet.create({
     marginTop: Spacing.xs,
   },
   timestampUser: {
-    color: 'rgba(10, 22, 40, 0.6)',
+    color: Colors.textMuted,
     textAlign: 'right',
   },
   timestampAssistant: {
@@ -510,7 +510,7 @@ const styles = StyleSheet.create({
   chipsContainer: {
     maxHeight: 48,
     borderTopWidth: 1,
-    borderTopColor: Colors.divider,
+    borderTopColor: Colors.glassBorderLight,
   },
   chipsContent: {
     paddingHorizontal: Spacing.lg,
@@ -523,9 +523,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.sm,
     borderRadius: 20,
-    backgroundColor: Colors.card,
+    backgroundColor: Colors.glassBg,
     borderWidth: 1,
-    borderColor: Colors.accent,
+    borderColor: Colors.glassBorderLight,
   },
   chipText: {
     fontSize: Typography.sizes.sm,
@@ -538,19 +538,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.md,
     borderTopWidth: 1,
-    borderTopColor: Colors.divider,
+    borderTopColor: Colors.glassBorderLight,
     gap: Spacing.sm,
   },
   textInput: {
     flex: 1,
     height: 44,
-    backgroundColor: Colors.card,
+    backgroundColor: Colors.glassBg,
     borderRadius: 22,
     paddingHorizontal: Spacing.lg,
     fontSize: Typography.sizes.md,
     color: Colors.textPrimary,
     borderWidth: 1,
-    borderColor: Colors.cardBorder,
+    borderColor: Colors.glassBorderLight,
   },
   sendButton: {
     width: 44,
@@ -561,8 +561,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   sendButtonDisabled: {
-    backgroundColor: Colors.card,
+    backgroundColor: Colors.glassBg,
     borderWidth: 1,
-    borderColor: Colors.cardBorder,
+    borderColor: Colors.glassBorderLight,
   },
 });

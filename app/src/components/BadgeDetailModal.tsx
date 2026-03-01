@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   StyleSheet,
 } from 'react-native';
+import Animated, { ZoomIn, FadeIn } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../constants/colors';
 import { Typography } from '../constants/typography';
@@ -83,9 +84,12 @@ export function BadgeDetailModal({ badge, earned, visible, onClose }: BadgeDetai
       >
         <TouchableOpacity activeOpacity={1} style={[styles.content, { borderColor: tierColor }]}>
           {/* Badge icon */}
-          <View style={[styles.iconContainer, { borderColor: tierColor }]}>
+          <Animated.View
+            entering={ZoomIn.springify().duration(400)}
+            style={[styles.iconContainer, { borderColor: tierColor }]}
+          >
             <Ionicons name={iconName} size={60} color={tierColor} />
-          </View>
+          </Animated.View>
 
           {/* Badge name */}
           <Text style={styles.badgeName}>{badge.name}</Text>
@@ -98,7 +102,9 @@ export function BadgeDetailModal({ badge, earned, visible, onClose }: BadgeDetai
           </View>
 
           {/* Description */}
-          <Text style={styles.description}>{badge.description}</Text>
+          <Animated.View entering={FadeIn.delay(200).duration(300)}>
+            <Text style={styles.description}>{badge.description}</Text>
+          </Animated.View>
 
           {/* Earned status */}
           {earned ? (
@@ -126,7 +132,7 @@ export function BadgeDetailModal({ badge, earned, visible, onClose }: BadgeDetai
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: Colors.overlay,
+    backgroundColor: 'rgba(0,0,0,0.7)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: Spacing['2xl'],
