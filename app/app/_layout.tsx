@@ -1,9 +1,26 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { ActivityIndicator, View, StyleSheet } from 'react-native';
 import { Colors } from '../src/constants';
+import { useAuthStore } from '../src/stores/authStore';
 
 export default function RootLayout() {
+  const { isLoading, initialize } = useAuthStore();
+
+  useEffect(() => {
+    initialize();
+  }, []);
+
+  if (isLoading) {
+    return (
+      <View style={styles.loading}>
+        <StatusBar style="light" />
+        <ActivityIndicator size="large" color={Colors.accent} />
+      </View>
+    );
+  }
+
   return (
     <>
       <StatusBar style="light" />
@@ -40,3 +57,12 @@ export default function RootLayout() {
     </>
   );
 }
+
+const styles = StyleSheet.create({
+  loading: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: Colors.background,
+  },
+});

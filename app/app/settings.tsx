@@ -28,10 +28,10 @@ function SettingsRow({ icon, label, value, onPress }: SettingsRowProps) {
 
 export default function SettingsScreen() {
   const router = useRouter();
-  const signOut = useAuthStore((s) => s.signOut);
+  const { user, signOut } = useAuthStore();
 
-  const handleSignOut = () => {
-    signOut();
+  const handleSignOut = async () => {
+    await signOut();
     router.replace('/(auth)/login');
   };
 
@@ -50,8 +50,11 @@ export default function SettingsScreen() {
           <View style={styles.avatar}>
             <Ionicons name="person" size={32} color={Colors.textPrimary} />
           </View>
-          <Text style={styles.profileName}>User Name</Text>
-          <Text style={styles.profileEmail}>user@example.com</Text>
+          <Text style={styles.profileName}>{user?.displayName || 'User'}</Text>
+          <Text style={styles.profileEmail}>{user?.email || ''}</Text>
+          {user?.friendCode ? (
+            <Text style={styles.friendCode}>Friend Code: {user.friendCode}</Text>
+          ) : null}
         </View>
 
         <Text style={styles.sectionTitle}>Connected Accounts</Text>
@@ -127,6 +130,12 @@ const styles = StyleSheet.create({
     fontSize: Typography.sizes.md,
     color: Colors.textSecondary,
     marginTop: Spacing.xs,
+  },
+  friendCode: {
+    fontSize: Typography.sizes.sm,
+    color: Colors.accent,
+    marginTop: Spacing.xs,
+    fontWeight: Typography.weights.medium,
   },
   sectionTitle: {
     fontSize: Typography.sizes.lg,
