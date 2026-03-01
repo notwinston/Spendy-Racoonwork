@@ -412,7 +412,7 @@ export async function getPendingRequests(userId: string): Promise<FriendWithProf
 
   const { data, error } = await supabase
     .from('friendships')
-    .select('*, profiles!friendships_user_id_fkey(id, display_name, avatar_url, friend_code, xp, level, streak_count, longest_streak, financial_health_score, privacy_level, timezone, created_at, updated_at)')
+    .select('*, profiles!friendships_requested_by_fkey(id, display_name, avatar_url, friend_code, xp, level, streak_count, longest_streak, financial_health_score, privacy_level, timezone, created_at, updated_at)')
     .eq('status', 'pending')
     .or(`user_id.eq.${userId},friend_id.eq.${userId}`)
     .neq('requested_by', userId);
