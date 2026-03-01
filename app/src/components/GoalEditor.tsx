@@ -7,7 +7,6 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  Alert,
   Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -18,6 +17,8 @@ import { Card } from './ui/Card';
 import { useBudgetStore } from '../stores/budgetStore';
 import { useTransactionStore, getMonthlyTotals } from '../stores/transactionStore';
 import type { SavingsGoal } from '../types';
+import { ThemedAlert } from './ui/ThemedAlert';
+import { useThemedAlert } from '../hooks/useThemedAlert';
 
 interface GoalEditorProps {
   visible: boolean;
@@ -26,6 +27,7 @@ interface GoalEditorProps {
 }
 
 export function GoalEditor({ visible, onClose, editingGoal }: GoalEditorProps) {
+  const alert = useThemedAlert();
   const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(1);
 
   // Step 1 state
@@ -99,14 +101,14 @@ export function GoalEditor({ visible, onClose, editingGoal }: GoalEditorProps) {
   const handleNext = useCallback(() => {
     if (currentStep === 1) {
       if (parsedBudget <= 0) {
-        Alert.alert('Invalid Budget', 'Please enter a budget amount greater than $0.');
+        alert.error('Invalid Budget', 'Please enter a budget amount greater than $0.');
         return;
       }
       initializeAllocations();
       setCurrentStep(2);
     } else if (currentStep === 2) {
       if (!canProceedFromStep2) {
-        Alert.alert('Over Budget', 'Total allocation exceeds 100%. Please adjust your categories.');
+        alert.error('Over Budget', 'Total allocation exceeds 100%. Please adjust your categories.');
         return;
       }
       initializeGoals();
@@ -185,14 +187,11 @@ export function GoalEditor({ visible, onClose, editingGoal }: GoalEditorProps) {
   }, []);
 
   const deleteLocalGoal = useCallback((id: string) => {
-    Alert.alert('Delete Goal', 'Are you sure you want to delete this goal?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: () => setLocalGoals((prev) => prev.filter((g) => g.id !== id)),
-      },
-    ]);
+    alert.confirm('Delete Goal', 'Are you sure you want to delete this goal?', {
+      confirmText: 'Delete',
+      destructive: true,
+      onConfirm: () => setLocalGoals((prev) => prev.filter((g) => g.id !== id)),
+    });
   }, []);
 
   const reorderLocalGoal = useCallback((id: string, direction: 'up' | 'down') => {
@@ -242,7 +241,7 @@ export function GoalEditor({ visible, onClose, editingGoal }: GoalEditorProps) {
           <TouchableOpacity
             onPress={handleClose}
             style={styles.closeButton}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
           >
             <Ionicons name="close" size={24} color={Colors.textPrimary} />
           </TouchableOpacity>
@@ -552,6 +551,7 @@ export function GoalEditor({ visible, onClose, editingGoal }: GoalEditorProps) {
             <Button title="Save" onPress={handleSave} variant="primary" />
           )}
         </View>
+        <ThemedAlert {...alert.alertProps} />
       </SafeAreaView>
     </Modal>
   );

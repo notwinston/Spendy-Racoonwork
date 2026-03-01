@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   Pressable,
   TextInput,
-  Alert,
   Switch,
   StyleSheet,
 } from 'react-native';
@@ -42,8 +41,11 @@ import {
 } from '../../src/stores/gamificationStore';
 import { useSocialStore } from '../../src/stores/socialStore';
 import { useBudgetStore } from '../../src/stores/budgetStore';
+import { TomodachiTab } from '../../src/components/TomodachiTab';
+import { ThemedAlert } from '../../src/components/ui/ThemedAlert';
+import { useThemedAlert } from '../../src/hooks/useThemedAlert';
 
-const TABS = ['My Progress', 'Challenges', 'Leaderboard', 'Friends'];
+const TABS = ['Tomodachi', 'My Progress', 'Challenges', 'Leaderboard', 'Friends'];
 
 const BADGE_TIER_COLORS: Record<string, string> = {
   bronze: Colors.badgeBronze,
@@ -52,7 +54,7 @@ const BADGE_TIER_COLORS: Record<string, string> = {
   diamond: Colors.badgeDiamond,
 };
 
-type LeaderboardScope = 'global' | 'friends' | 'circle';
+type LeaderboardScope = 'global' | 'friends';
 
 const NUDGE_CONFIG: { type: NudgeType; icon: keyof typeof Ionicons.glyphMap; label: string; content: string }[] = [
   { type: 'encouragement', icon: 'heart-outline', label: 'Encourage', content: 'Keep up the great work!' },
@@ -62,6 +64,7 @@ const NUDGE_CONFIG: { type: NudgeType; icon: keyof typeof Ionicons.glyphMap; lab
 ];
 
 export default function ArenaScreen() {
+  const alert = useThemedAlert();
   const [activeTab, setActiveTab] = useState(0);
   const [friendCodeInput, setFriendCodeInput] = useState('');
   const [leaderboardScope, setLeaderboardScope] = useState<LeaderboardScope>('global');
@@ -69,6 +72,7 @@ export default function ArenaScreen() {
   const [selectedBadgeEarned, setSelectedBadgeEarned] = useState(false);
   const [showBadgeModal, setShowBadgeModal] = useState(false);
   const [joinedTemplateIds, setJoinedTemplateIds] = useState<Set<string>>(new Set());
+  const [joiningId, setJoiningId] = useState<string | null>(null);
   const [joinedMessage, setJoinedMessage] = useState<string | null>(null);
   const [expandedFriendId, setExpandedFriendId] = useState<string | null>(null);
   const user = useAuthStore((s) => s.user);
@@ -99,12 +103,17 @@ export default function ArenaScreen() {
 
   const { totalBudget, totalSpent } = useBudgetStore();
 
-  // Compute a demo savings rate based on budget data
+  // Compute savings rate from income if available, otherwise budget-based
+  const monthlyIncome = user?.monthlyIncome ?? null;
   const savingsRate = useMemo(() => {
+    if (monthlyIncome && monthlyIncome > 0) {
+      const rate = ((monthlyIncome - totalSpent) / monthlyIncome) * 100;
+      return Math.round(Math.max(0, rate) * 10) / 10;
+    }
     if (totalBudget <= 0) return 12; // demo fallback
     const saved = Math.max(0, totalBudget - totalSpent);
     return Math.round((saved / totalBudget) * 100 * 10) / 10;
-  }, [totalBudget, totalSpent]);
+  }, [monthlyIncome, totalBudget, totalSpent]);
 
   const {
     friends,
@@ -147,7 +156,7 @@ export default function ArenaScreen() {
   const handleCheckin = useCallback(async () => {
     const result = await performCheckin(userId);
     if (result) {
-      Alert.alert(
+      alert.success(
         'Daily Check-in!',
         `+${result.xp_earned} XP! Streak: ${result.streak_count} days${
           result.badges_earned.length > 0
@@ -163,9 +172,9 @@ export default function ArenaScreen() {
     try {
       await sendFriendRequest(userId, friendCodeInput.trim());
       setFriendCodeInput('');
-      Alert.alert('Success', 'Friend request sent!');
+      alert.success('Success', 'Friend request sent!');
     } catch (err) {
-      Alert.alert('Error', err instanceof Error ? err.message : 'Failed to send request');
+      alert.error('Error', err instanceof Error ? err.message : 'Failed to send request');
     }
   }, [userId, friendCodeInput]);
 
@@ -189,7 +198,7 @@ export default function ArenaScreen() {
 
   return (
     <AtmosphericBackground variant="arena">
-      <Header title="Arena" />
+      <Header title="Financial Friend" />
 
       <View style={styles.tabBar}>
         {TABS.map((tab, index) => (
@@ -206,8 +215,19 @@ export default function ArenaScreen() {
       </View>
 
       <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
-        {/* My Progress Tab */}
+        {/* Tomodachi Tab */}
         {activeTab === 0 && (
+          <TomodachiTab
+            profile={profile}
+            savingsRate={savingsRate}
+            earnedBadges={earnedBadges}
+            activeChallenges={activeChallenges}
+            rankName={calculateRankTier(savingsRate).name}
+          />
+        )}
+
+        {/* My Progress Tab */}
+        {activeTab === 1 && (
           <>
             {/* Rank Card */}
             <RankCard savingsRate={savingsRate} />
@@ -306,7 +326,7 @@ export default function ArenaScreen() {
         )}
 
         {/* Challenges Tab */}
-        {activeTab === 1 && (
+        {activeTab === 2 && (
           <>
             <Text style={styles.sectionTitle}>Active Challenges</Text>
             {activeChallenges.length === 0 && (
@@ -345,12 +365,18 @@ export default function ArenaScreen() {
                   <Button
                     title={joinedTemplateIds.has(tmpl.id) ? 'Joined' : 'Join'}
                     variant={joinedTemplateIds.has(tmpl.id) ? 'secondary' : 'outline'}
-                    disabled={joinedTemplateIds.has(tmpl.id)}
+                    loading={joiningId === tmpl.id}
+                    disabled={joinedTemplateIds.has(tmpl.id) || joiningId !== null}
                     onPress={async () => {
-                      await createFromTemplate(tmpl.id, userId);
-                      setJoinedTemplateIds((prev) => new Set([...prev, tmpl.id]));
-                      setJoinedMessage(`Joined "${tmpl.title}"!`);
-                      setTimeout(() => setJoinedMessage(null), 3000);
+                      setJoiningId(tmpl.id);
+                      try {
+                        await createFromTemplate(tmpl.id, userId);
+                        setJoinedTemplateIds((prev) => new Set([...prev, tmpl.id]));
+                        setJoinedMessage(`Joined "${tmpl.title}"!`);
+                        setTimeout(() => setJoinedMessage(null), 3000);
+                      } finally {
+                        setJoiningId(null);
+                      }
                     }}
                   />
                 </View>
@@ -360,11 +386,11 @@ export default function ArenaScreen() {
         )}
 
         {/* Leaderboard Tab */}
-        {activeTab === 2 && (
+        {activeTab === 3 && (
           <>
             {/* Scope selector */}
             <View style={styles.scopeSelector}>
-              {(['global', 'friends', 'circle'] as LeaderboardScope[]).map((scope) => (
+              {(['global', 'friends'] as LeaderboardScope[]).map((scope) => (
                 <TouchableOpacity
                   key={scope}
                   style={[
@@ -379,7 +405,7 @@ export default function ArenaScreen() {
                       leaderboardScope === scope && styles.scopePillTextActive,
                     ]}
                   >
-                    {scope === 'global' ? 'Global' : scope === 'friends' ? 'Friends' : 'Circle'}
+                    {scope === 'global' ? 'Global' : 'Friends'}
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -433,7 +459,7 @@ export default function ArenaScreen() {
         )}
 
         {/* Friends Tab */}
-        {activeTab === 3 && (
+        {activeTab === 4 && (
           <>
             {/* Social Privacy Toggles */}
             <Card style={styles.socialTogglesCard}>
@@ -474,7 +500,7 @@ export default function ArenaScreen() {
             <Pressable
               onPress={() => {
                 Clipboard.setStringAsync(user?.friendCode || '');
-                Alert.alert('Copied!', 'Friend code copied to clipboard');
+                alert.success('Copied!', 'Friend code copied to clipboard');
               }}
             >
               <Card style={styles.friendCodeCard}>
@@ -589,9 +615,9 @@ export default function ArenaScreen() {
                                 onPress={async () => {
                                   try {
                                     await sendNudge(userId, f.profile.id, nudge.type, nudge.content);
-                                    Alert.alert('Sent!', `Nudge sent to ${f.profile?.display_name || 'friend'}`);
+                                    alert.success('Sent!', `Nudge sent to ${f.profile?.display_name || 'friend'}`);
                                   } catch (err) {
-                                    Alert.alert('Error', err instanceof Error ? err.message : 'Failed to send nudge');
+                                    alert.error('Error', err instanceof Error ? err.message : 'Failed to send nudge');
                                   }
                                 }}
                               >
@@ -619,9 +645,9 @@ export default function ArenaScreen() {
                             onPress={async () => {
                               try {
                                 await createFriendChallenge(userId, f.profile.id, tmpl.id);
-                                Alert.alert('Challenge Created!', `"${tmpl.title}" started with ${f.profile?.display_name || 'friend'}`);
+                                alert.success('Challenge Created!', `"${tmpl.title}" started with ${f.profile?.display_name || 'friend'}`);
                               } catch (err) {
-                                Alert.alert('Error', err instanceof Error ? err.message : 'Failed to create challenge');
+                                alert.error('Error', err instanceof Error ? err.message : 'Failed to create challenge');
                               }
                             }}
                           >
@@ -661,6 +687,7 @@ export default function ArenaScreen() {
         )}
       </ScrollView>
       <FloatingChatButton />
+      <ThemedAlert {...alert.alertProps} />
     </AtmosphericBackground>
   );
 }

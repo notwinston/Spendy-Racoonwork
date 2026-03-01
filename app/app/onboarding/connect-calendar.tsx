@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Alert } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Typography, Spacing } from '../../src/constants';
@@ -8,8 +8,11 @@ import { AtmosphericBackground } from '../../src/components/ui/AtmosphericBackgr
 import { GlassCard } from '../../src/components/ui/GlassCard';
 import { useCalendarStore } from '../../src/stores/calendarStore';
 import { useAuthStore } from '../../src/stores/authStore';
+import { ThemedAlert } from '../../src/components/ui/ThemedAlert';
+import { useThemedAlert } from '../../src/hooks/useThemedAlert';
 
 export default function ConnectCalendarScreen() {
+  const alert = useThemedAlert();
   const router = useRouter();
   const { loadDemoData, connectAppleCalendar, isLoading, events } =
     useCalendarStore();
@@ -27,55 +30,32 @@ export default function ConnectCalendarScreen() {
       const message =
         err instanceof Error ? err.message : 'Unknown error';
       if (message.includes('permission denied')) {
-        Alert.alert(
+        alert.warning(
           'Permission Required',
           'Please allow calendar access in Settings to connect your Apple Calendar.',
         );
       } else {
-        Alert.alert('Error', `Failed to connect Apple Calendar: ${message}`);
+        alert.error('Error', `Failed to connect Apple Calendar: ${message}`);
       }
     }
   };
 
   const handleGoogleCalendar = async () => {
-    Alert.alert(
-      'Google Calendar',
-      'Real Google OAuth requires an EAS build. Connecting with demo data for now.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'OK',
-          onPress: async () => {
-            try {
-              await loadDemoData(userId);
-              setIsConnected(true);
-            } catch {
-              Alert.alert('Error', 'Failed to load calendar data. Please try again.');
-            }
-          },
-        },
-      ],
-    );
+    try {
+      await loadDemoData(userId);
+      setIsConnected(true);
+    } catch {
+      alert.error('Error', 'Failed to load calendar data. Please try again.');
+    }
   };
 
-  const handleICSUpload = () => {
-    Alert.alert(
-      'Upload .ics File',
-      'File picker requires expo-document-picker to be configured. Connecting with demo data for now.',
-      [
-        {
-          text: 'OK',
-          onPress: async () => {
-            try {
-              await loadDemoData(userId);
-              setIsConnected(true);
-            } catch {
-              Alert.alert('Error', 'Failed to load calendar data. Please try again.');
-            }
-          },
-        },
-      ],
-    );
+  const handleICSUpload = async () => {
+    try {
+      await loadDemoData(userId);
+      setIsConnected(true);
+    } catch {
+      alert.error('Error', 'Failed to load calendar data. Please try again.');
+    }
   };
 
   const handleContinue = async () => {
@@ -126,6 +106,7 @@ export default function ConnectCalendarScreen() {
 
           <Button title="Continue" variant="gradient" onPress={handleContinue} />
         </View>
+        <ThemedAlert {...alert.alertProps} />
       </AtmosphericBackground>
     );
   }
@@ -181,6 +162,7 @@ export default function ConnectCalendarScreen() {
           onPress={handleContinue}
         />
       </View>
+      <ThemedAlert {...alert.alertProps} />
     </AtmosphericBackground>
   );
 }

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Alert } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Typography, Spacing } from '../../src/constants';
@@ -8,8 +8,11 @@ import { AtmosphericBackground } from '../../src/components/ui/AtmosphericBackgr
 import { GlassCard } from '../../src/components/ui/GlassCard';
 import { useTransactionStore } from '../../src/stores/transactionStore';
 import { useAuthStore } from '../../src/stores/authStore';
+import { ThemedAlert } from '../../src/components/ui/ThemedAlert';
+import { useThemedAlert } from '../../src/hooks/useThemedAlert';
 
 export default function ConnectBankScreen() {
+  const alert = useThemedAlert();
   const router = useRouter();
   const {
     loadDemoData,
@@ -27,7 +30,7 @@ export default function ConnectBankScreen() {
   const handleConnectBank = async () => {
     try {
       await connectBank(userId);
-      Alert.alert(
+      alert.custom(
         'Bank Connected (Simulated)',
         'In production, this would open Plaid Link. Loading demo transactions to showcase the app.',
         [
@@ -36,9 +39,10 @@ export default function ConnectBankScreen() {
             onPress: handleDemoData,
           },
         ],
+        'success',
       );
     } catch {
-      Alert.alert('Error', 'Failed to connect bank. Please try again.');
+      alert.error('Error', 'Failed to connect bank. Please try again.');
     }
   };
 
@@ -47,7 +51,7 @@ export default function ConnectBankScreen() {
       await loadDemoData(userId);
       setIsConnected(true);
     } catch {
-      Alert.alert('Error', 'Failed to load demo data. Please try again.');
+      alert.error('Error', 'Failed to load demo data. Please try again.');
     }
   };
 
@@ -94,6 +98,7 @@ export default function ConnectBankScreen() {
 
           <Button title="Continue" variant="gradient" onPress={handleContinue} />
         </View>
+        <ThemedAlert {...alert.alertProps} />
       </AtmosphericBackground>
     );
   }
@@ -162,6 +167,7 @@ export default function ConnectBankScreen() {
           onPress={handleContinue}
         />
       </View>
+      <ThemedAlert {...alert.alertProps} />
     </AtmosphericBackground>
   );
 }

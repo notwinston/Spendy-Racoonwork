@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -7,7 +7,6 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  Alert,
   TouchableOpacity,
 } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -23,6 +22,8 @@ import { useBudgetStore } from '../../src/stores/budgetStore';
 import { useGamificationStore } from '../../src/stores/gamificationStore';
 import { useSocialStore } from '../../src/stores/socialStore';
 import { usePredictionStore } from '../../src/stores/predictionStore';
+import { ThemedAlert } from '../../src/components/ui/ThemedAlert';
+import { useThemedAlert } from '../../src/hooks/useThemedAlert';
 
 interface Persona {
   name: string;
@@ -59,6 +60,7 @@ const PERSONAS: Persona[] = [
 ];
 
 export default function LoginScreen() {
+  const alert = useThemedAlert();
   const router = useRouter();
   const { signIn, setUser, setOnboarded, isLoading, error, setError, setLoading } = useAuthStore();
   const { loadDemoData: loadCalendar } = useCalendarStore();
@@ -73,18 +75,18 @@ export default function LoginScreen() {
 
   const handleSignIn = async () => {
     if (!email.trim() || !password.trim()) {
-      Alert.alert('Missing Fields', 'Please enter both email and password.');
+      alert.error('Missing Fields', 'Please enter both email and password.');
       return;
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email.trim())) {
-      Alert.alert('Invalid Email', 'Please enter a valid email address.');
+      alert.error('Invalid Email', 'Please enter a valid email address.');
       return;
     }
 
     if (password.length < 6) {
-      Alert.alert('Weak Password', 'Password must be at least 6 characters.');
+      alert.error('Weak Password', 'Password must be at least 6 characters.');
       return;
     }
 
@@ -94,7 +96,11 @@ export default function LoginScreen() {
     }
   };
 
+  const personaLoginInProgress = useRef(false);
+
   const handlePersonaLogin = async (persona: Persona) => {
+    if (personaLoginInProgress.current) return;
+    personaLoginInProgress.current = true;
     setLoading(true);
     try {
       const userId = `demo-${persona.persona}`;
@@ -138,8 +144,10 @@ export default function LoginScreen() {
       setLoading(false);
       router.replace('/(tabs)/dashboard');
     } catch (err) {
+      alert.error('Error', 'Failed to load demo data. Please try again.');
+    } finally {
       setLoading(false);
-      Alert.alert('Error', 'Failed to load demo data. Please try again.');
+      personaLoginInProgress.current = false;
     }
   };
 
@@ -249,6 +257,7 @@ export default function LoginScreen() {
           </Card>
         </ScrollView>
       </KeyboardAvoidingView>
+      <ThemedAlert {...alert.alertProps} />
     </SafeAreaView>
   );
 }

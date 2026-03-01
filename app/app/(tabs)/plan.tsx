@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   Switch,
   ActivityIndicator,
-  Alert,
 } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { useRouter } from 'expo-router';
@@ -38,6 +37,8 @@ import type {
   EventCategory,
   ParsedReceipt,
 } from '../../src/types';
+import { ThemedAlert } from '../../src/components/ui/ThemedAlert';
+import { useThemedAlert } from '../../src/hooks/useThemedAlert';
 
 const CATEGORY_ICONS: Record<EventCategory, string> = {
   dining: 'restaurant',
@@ -102,6 +103,7 @@ function formatCurrency(amount: number): string {
 }
 
 export default function PlanScreen() {
+  const alert = useThemedAlert();
   const router = useRouter();
   const user = useAuthStore((s) => s.user);
 
@@ -160,7 +162,7 @@ export default function PlanScreen() {
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Unknown error';
       if (message !== 'Cancelled') {
-        Alert.alert('Scan Error', message);
+        alert.error('Scan Error', message);
       }
     } finally {
       setIsScanning(false);
@@ -178,9 +180,9 @@ export default function PlanScreen() {
         parsedReceipt,
       );
       setParsedReceipt(null);
-      Alert.alert('Saved', 'Transaction created from receipt.');
+      alert.success('Saved', 'Transaction created from receipt.');
     } catch {
-      Alert.alert('Error', 'Failed to save receipt transaction.');
+      alert.error('Error', 'Failed to save receipt transaction.');
     } finally {
       setIsSavingReceipt(false);
     }
@@ -565,6 +567,7 @@ export default function PlanScreen() {
         onClose={() => setGoalEditorVisible(false)}
       />
       <FloatingChatButton />
+      <ThemedAlert {...alert.alertProps} />
     </AtmosphericBackground>
   );
 }

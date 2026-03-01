@@ -7,7 +7,6 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  Alert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -15,8 +14,11 @@ import { Colors, Typography, Spacing } from '../../src/constants';
 import { Button } from '../../src/components/ui/Button';
 import { Card } from '../../src/components/ui/Card';
 import { useAuthStore } from '../../src/stores/authStore';
+import { ThemedAlert } from '../../src/components/ui/ThemedAlert';
+import { useThemedAlert } from '../../src/hooks/useThemedAlert';
 
 export default function SignupScreen() {
+  const alert = useThemedAlert();
   const router = useRouter();
   const { signUp, isLoading, error, setError } = useAuthStore();
   const [displayName, setDisplayName] = useState('');
@@ -26,17 +28,17 @@ export default function SignupScreen() {
 
   const handleSignUp = async () => {
     if (!displayName.trim() || !email.trim() || !password.trim()) {
-      Alert.alert('Missing Fields', 'Please fill in all fields.');
+      alert.error('Missing Fields', 'Please fill in all fields.');
       return;
     }
 
     if (password !== confirmPassword) {
-      Alert.alert('Password Mismatch', 'Passwords do not match.');
+      alert.error('Password Mismatch', 'Passwords do not match.');
       return;
     }
 
     if (password.length < 6) {
-      Alert.alert('Weak Password', 'Password must be at least 6 characters.');
+      alert.error('Weak Password', 'Password must be at least 6 characters.');
       return;
     }
 
@@ -141,6 +143,7 @@ export default function SignupScreen() {
           </Card>
         </ScrollView>
       </KeyboardAvoidingView>
+      <ThemedAlert {...alert.alertProps} />
     </SafeAreaView>
   );
 }

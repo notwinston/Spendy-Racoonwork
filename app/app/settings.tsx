@@ -7,7 +7,6 @@ import {
   Switch,
   TextInput,
   StyleSheet,
-  Alert,
   Modal,
 } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -26,6 +25,8 @@ import {
   type ProfileVisibility,
   type NotificationPreferences,
 } from '../src/stores/notificationStore';
+import { ThemedAlert } from '../src/components/ui/ThemedAlert';
+import { useThemedAlert } from '../src/hooks/useThemedAlert';
 
 // ---------------------------------------------------------------------------
 // Reusable row components
@@ -137,6 +138,7 @@ function VisibilitySelector({ value, onChange }: VisibilitySelectorProps) {
 // ---------------------------------------------------------------------------
 
 export default function SettingsScreen() {
+  const alert = useThemedAlert();
   const router = useRouter();
   const { user, setUser, signOut } = useAuthStore();
   const { connections: calendarConnections } = useCalendarStore();
@@ -205,32 +207,28 @@ export default function SettingsScreen() {
 
   const handleCalendarPress = () => {
     if (calendarConnected) {
-      Alert.alert(
+      alert.info(
         'Google Calendar',
         'Your Google Calendar is connected.',
-        [{ text: 'OK' }],
       );
     } else {
-      Alert.alert(
+      alert.info(
         'Connect Google Calendar',
         'Calendar sync will be available when you connect your Google account.',
-        [{ text: 'OK' }],
       );
     }
   };
 
   const handleBankPress = () => {
     if (bankConnected) {
-      Alert.alert(
+      alert.info(
         'Bank Account',
         'Your bank account is connected.',
-        [{ text: 'OK' }],
       );
     } else {
-      Alert.alert(
+      alert.info(
         'Connect Bank Account',
         'Bank account connection will be available through Plaid integration.',
-        [{ text: 'OK' }],
       );
     }
   };
@@ -491,7 +489,7 @@ export default function SettingsScreen() {
                     if (deleteConfirmText === 'DELETE') {
                       setShowDeleteModal(false);
                       setDeleteConfirmText('');
-                      Alert.alert('Account Deleted', 'Your account has been scheduled for deletion.');
+                      alert.info('Account Deleted', 'Your account has been scheduled for deletion.');
                       handleSignOut();
                     }
                   }}
@@ -504,6 +502,7 @@ export default function SettingsScreen() {
           </View>
         </Modal>
       </ScrollView>
+      <ThemedAlert {...alert.alertProps} />
     </AtmosphericBackground>
   );
 }
