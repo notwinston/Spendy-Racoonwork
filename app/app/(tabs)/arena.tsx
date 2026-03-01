@@ -4,6 +4,7 @@ import {
   Text,
   ScrollView,
   TouchableOpacity,
+  Pressable,
   TextInput,
   Alert,
   Switch,
@@ -19,6 +20,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
+import * as Clipboard from 'expo-clipboard';
 import { Colors, Typography, Spacing } from '../../src/constants';
 import { AtmosphericBackground } from '../../src/components/ui/AtmosphericBackground';
 import { GlassCard } from '../../src/components/ui/GlassCard';
@@ -98,6 +100,7 @@ export default function ArenaScreen() {
     circles,
     sendFriendRequest,
     acceptRequest,
+    removeFriend,
     fetchFriends,
     fetchPendingRequests,
     fetchCircles,
@@ -113,6 +116,15 @@ export default function ArenaScreen() {
     fetchPendingRequests(userId);
     fetchCircles(userId);
   }, [userId]);
+
+  // Re-fetch leaderboard when scope changes
+  useEffect(() => {
+    if (leaderboardScope === 'friends') {
+      fetchLeaderboard({ scope: 'friends', friendIds: friends.map((f) => f.profile.id) });
+    } else {
+      fetchLeaderboard();
+    }
+  }, [leaderboardScope, friends]);
 
   const handleCheckin = useCallback(async () => {
     const result = await performCheckin(userId);
@@ -441,11 +453,18 @@ export default function ArenaScreen() {
             </Card>
 
             {/* Friend Code */}
-            <Card style={styles.friendCodeCard}>
-              <Text style={styles.friendCodeLabel}>Your Friend Code</Text>
-              <Text style={styles.friendCode}>{user?.friendCode || 'XXXXXXXX'}</Text>
-              <Text style={styles.friendCodeHint}>Share this code with friends</Text>
-            </Card>
+            <Pressable
+              onPress={() => {
+                Clipboard.setStringAsync(user?.friendCode || '');
+                Alert.alert('Copied!', 'Friend code copied to clipboard');
+              }}
+            >
+              <Card style={styles.friendCodeCard}>
+                <Text style={styles.friendCodeLabel}>Your Friend Code</Text>
+                <Text style={styles.friendCode}>{user?.friendCode || 'XXXXXXXX'}</Text>
+                <Text style={styles.friendCodeHint}>Tap to copy</Text>
+              </Card>
+            </Pressable>
 
             {/* Add Friend */}
             <Card>
@@ -472,11 +491,16 @@ export default function ArenaScreen() {
                     <View style={styles.friendAvatar}>
                       <Ionicons name="person-add" size={18} color={Colors.warning} />
                     </View>
-                    <Text style={styles.friendName}>Friend Request</Text>
+                    <Text style={styles.friendName}>{req.profile?.display_name || 'Someone'}</Text>
                     <Button
                       title="Accept"
                       variant="outline"
                       onPress={() => acceptRequest(userId, req.id)}
+                    />
+                    <Button
+                      title="Decline"
+                      variant="outline"
+                      onPress={() => removeFriend(userId, req.user_id === userId ? req.friend_id : req.user_id)}
                     />
                   </Card>
                 ))}
