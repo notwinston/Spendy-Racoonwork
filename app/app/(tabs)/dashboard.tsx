@@ -17,6 +17,7 @@ import { DailyBriefCard } from '../../src/components/DailyBriefCard';
 import { FloatingChatButton } from '../../src/components/FloatingChatButton';
 import { SpendingTrajectoryChart } from '../../src/components/SpendingTrajectoryChart';
 import { RankWidget } from '../../src/components/RankWidget';
+import WrappedWidget from '../../src/components/wrapped/WrappedWidget';
 import { ProgressRing } from '@/components/ui/ProgressRing';
 import { MetricCard } from '@/components/ui/MetricCard';
 import { HealthScoreRing } from '@/components/charts';
@@ -256,6 +257,9 @@ export default function DashboardScreen() {
       <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
         {/* Daily Brief */}
         <DailyBriefCard />
+
+        {/* Monthly Wrapped Flashback Widget */}
+        <WrappedWidget />
 
         {/* Hero Budget Card */}
         <Card style={styles.heroCard}>
