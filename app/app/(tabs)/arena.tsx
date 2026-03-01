@@ -546,4 +546,11 @@ const styles = StyleSheet.create({
   scopePillText: { fontSize: Typography.sizes.sm, color: Colors.textMuted, fontWeight: Typography.weights.medium },
   scopePillTextActive: { color: Colors.accent },
   podiumCard: { paddingBottom: Spacing.lg },
+  socialTogglesCard: { marginBottom: Spacing.md },
+  socialToggleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  socialToggleInfo: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.md, flex: 1, marginRight: Spacing.md },
+  socialToggleTextWrap: { flex: 1 },
+  socialToggleLabel: { fontSize: Typography.sizes.md, fontWeight: Typography.weights.medium, color: Colors.textPrimary },
+  socialToggleDesc: { fontSize: Typography.sizes.sm, color: Colors.textMuted, marginTop: 2 },
+  socialDivider: { height: 1, backgroundColor: Colors.borderSubtle, marginVertical: Spacing.md },
 });
