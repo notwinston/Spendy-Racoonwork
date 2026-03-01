@@ -42,6 +42,13 @@ export default function RootLayout() {
           }}
         />
         <Stack.Screen
+          name="notifications"
+          options={{
+            presentation: 'modal',
+            animation: 'slide_from_bottom',
+          }}
+        />
+        <Stack.Screen
           name="budget-detail"
           options={{
             animation: 'slide_from_right',
