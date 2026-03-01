@@ -42,7 +42,7 @@ function getModelVersion(): string {
     case 'claude':
       return 'claude-sonnet-4-20250514';
     case 'gemini':
-      return 'gemini-2.0-flash';
+      return 'gemini-2.5-flash';
     case 'mock':
     default:
       return 'mock-v1';

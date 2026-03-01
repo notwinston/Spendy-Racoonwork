@@ -48,10 +48,10 @@ function GlowingLogo() {
     <View style={styles.logoContainer}>
       {/* Shadow layer for glow effect */}
       <Animated.Text style={[styles.logo, styles.logoGlow, animatedGlow]}>
-        FutureSpend
+        Spendy
       </Animated.Text>
       {/* Foreground text */}
-      <Text style={styles.logo}>FutureSpend</Text>
+      <Text style={styles.logo}>Spendy</Text>
     </View>
   );
 }

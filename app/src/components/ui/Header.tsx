@@ -17,7 +17,7 @@ export function Header({ title }: HeaderProps) {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title} numberOfLines={1}>{title ?? 'FutureSpend'}</Text>
+      <Text style={styles.title} numberOfLines={1}>{title ?? 'Spendy'}</Text>
       <View style={styles.rightSection}>
         <NotificationBell count={unreadCount} onPress={() => router.push('/settings')} />
         <TouchableOpacity

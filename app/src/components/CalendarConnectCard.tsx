@@ -73,7 +73,7 @@ export default function CalendarConnectCard({ userId }: CalendarConnectCardProps
       }
     } else {
       alert.confirm(
-        '"FutureSpend" Would Like to Access Your Calendar',
+        '"Spendy" Would Like to Access Your Calendar',
         'This will import your upcoming events to predict spending.',
         {
           cancelText: "Don't Allow",

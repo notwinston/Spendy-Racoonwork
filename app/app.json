@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "FutureSpend",
+    "name": "Spendy",
     "slug": "futurespend",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -35,14 +35,14 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "FutureSpend needs access to your photos to scan receipts.",
-          "cameraPermission": "FutureSpend needs access to your camera to scan receipts."
+          "photosPermission": "Spendy needs access to your photos to scan receipts.",
+          "cameraPermission": "Spendy needs access to your camera to scan receipts."
         }
       ],
       [
         "expo-calendar",
         {
-          "calendarPermission": "FutureSpend needs access to your calendar to predict spending from upcoming events."
+          "calendarPermission": "Spendy needs access to your calendar to predict spending from upcoming events."
         }
       ],
       "expo-notifications"

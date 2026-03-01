@@ -163,7 +163,7 @@ export default function LoginScreen() {
           keyboardShouldPersistTaps="handled"
         >
           <View style={styles.header}>
-            <Text style={styles.logo}>FutureSpend</Text>
+            <Text style={styles.logo}>Spendy</Text>
             <Text style={styles.tagline}>See Tomorrow, Save Today</Text>
           </View>
 

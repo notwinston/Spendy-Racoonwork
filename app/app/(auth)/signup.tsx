@@ -59,7 +59,7 @@ export default function SignupScreen() {
           keyboardShouldPersistTaps="handled"
         >
           <View style={styles.header}>
-            <Text style={styles.logo}>FutureSpend</Text>
+            <Text style={styles.logo}>Spendy</Text>
             <Text style={styles.tagline}>Join the future of finance</Text>
           </View>
 

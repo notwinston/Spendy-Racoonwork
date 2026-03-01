@@ -1,5 +1,5 @@
 /**
- * Financial calculation utilities for FutureSpend insights and projections.
+ * Financial calculation utilities for Spendy insights and projections.
  */
 
 /**

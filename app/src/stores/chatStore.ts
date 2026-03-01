@@ -22,7 +22,7 @@ interface ChatState {
 
 /** Build a system prompt with financial context for the AI assistant. */
 function buildSystemPrompt(currentScreen: string): string {
-  return `You are a helpful, concise, and friendly AI financial assistant for FutureSpend — an app that predicts future spending based on calendar events. Keep responses brief (2-3 sentences) and actionable.
+  return `You are a helpful, concise, and friendly AI financial assistant for Spendy — an app that predicts future spending based on calendar events. Keep responses brief (2-3 sentences) and actionable.
 
 Current context:
 - The user is viewing the "${currentScreen}" screen.
