@@ -25,7 +25,7 @@ interface CalendarState {
     accessToken: string,
     connectionId?: string,
   ) => Promise<void>;
-  loadDemoData: (userId: string) => Promise<void>;
+  loadDemoData: (userId: string, persona?: 'sarah' | 'marcus') => Promise<void>;
   importICSEvents: (userId: string, content: string) => Promise<void>;
   clearEvents: () => void;
 }
@@ -122,10 +122,10 @@ export const useCalendarStore = create<CalendarState>((set, get) => ({
     }
   },
 
-  loadDemoData: async (userId: string) => {
+  loadDemoData: async (userId: string, persona?: 'sarah' | 'marcus') => {
     set({ isLoading: true });
     try {
-      const events = await loadDemoCalendarData(userId);
+      const events = await loadDemoCalendarData(userId, persona);
       set({ events });
     } catch (err) {
       console.warn('loadDemoData error:', err);

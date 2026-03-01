@@ -8,17 +8,66 @@ import {
   Platform,
   ScrollView,
   Alert,
+  TouchableOpacity,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { Colors, Typography, Spacing } from '../../src/constants';
 import { Button } from '../../src/components/ui/Button';
 import { Card } from '../../src/components/ui/Card';
 import { useAuthStore } from '../../src/stores/authStore';
+import { useCalendarStore } from '../../src/stores/calendarStore';
+import { useTransactionStore } from '../../src/stores/transactionStore';
+import { useBudgetStore } from '../../src/stores/budgetStore';
+import { useGamificationStore } from '../../src/stores/gamificationStore';
+import { useSocialStore } from '../../src/stores/socialStore';
+import { usePredictionStore } from '../../src/stores/predictionStore';
+
+interface Persona {
+  name: string;
+  email: string;
+  description: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  persona: 'sarah' | 'marcus';
+  xp: number;
+  level: number;
+  streak: number;
+}
+
+const PERSONAS: Persona[] = [
+  {
+    name: 'Sarah Chen',
+    email: 'sarah@futurespend.app',
+    description: 'UX Designer, 28 | Balanced spender with fitness & dining habits',
+    icon: 'woman',
+    persona: 'sarah',
+    xp: 450,
+    level: 5,
+    streak: 7,
+  },
+  {
+    name: 'Marcus Thompson',
+    email: 'marcus@futurespend.app',
+    description: 'Software Engineer, 32 | Tech-savvy with travel & entertainment spending',
+    icon: 'man',
+    persona: 'marcus',
+    xp: 280,
+    level: 3,
+    streak: 3,
+  },
+];
 
 export default function LoginScreen() {
   const router = useRouter();
-  const { signIn, isLoading, error, setError } = useAuthStore();
+  const { signIn, setUser, setOnboarded, isLoading, error, setError, setLoading } = useAuthStore();
+  const { loadDemoData: loadCalendar } = useCalendarStore();
+  const { loadDemoData: loadTransactions } = useTransactionStore();
+  const { fetchBudgets, computeFromTransactions } = useBudgetStore();
+  const { loadProfile } = useGamificationStore();
+  const { fetchFriends, fetchCircles, fetchNotifications } = useSocialStore();
+  const { generatePredictions } = usePredictionStore();
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
@@ -34,10 +83,52 @@ export default function LoginScreen() {
     }
   };
 
-  const handleDemoLogin = async () => {
-    const success = await signIn('demo@futurespend.app', 'demo123');
-    if (success) {
+  const handlePersonaLogin = async (persona: Persona) => {
+    setLoading(true);
+    try {
+      const userId = `demo-${persona.persona}`;
+
+      // Set user profile
+      setUser({
+        id: userId,
+        email: persona.email,
+        displayName: persona.name,
+        friendCode: persona.persona === 'sarah' ? 'SARAH2026' : 'MARC2026',
+        xp: persona.xp,
+        level: persona.level,
+        streakCount: persona.streak,
+      });
+
+      // Load all demo data for this persona
+      await loadCalendar(userId, persona.persona);
+      await loadTransactions(userId, persona.persona);
+      await fetchBudgets(userId);
+      await loadProfile(userId);
+      await fetchFriends(userId);
+      await fetchCircles(userId);
+      await fetchNotifications(userId);
+
+      // Generate predictions from loaded calendar events
+      const events = useCalendarStore.getState().events;
+      await generatePredictions(events, userId);
+
+      // Compute budget metrics from loaded transactions + predictions
+      const txns = useTransactionStore.getState().transactions;
+      const preds = usePredictionStore.getState().predictions;
+      computeFromTransactions(
+        txns,
+        preds.map((p) => ({
+          category: p.predicted_category,
+          predicted_amount: p.predicted_amount,
+        })),
+      );
+
+      setOnboarded(true);
+      setLoading(false);
       router.replace('/(tabs)/dashboard');
+    } catch (err) {
+      setLoading(false);
+      Alert.alert('Error', 'Failed to load demo data. Please try again.');
     }
   };
 
@@ -56,9 +147,44 @@ export default function LoginScreen() {
             <Text style={styles.tagline}>See Tomorrow, Save Today</Text>
           </View>
 
-          <Card style={styles.card}>
-            <Text style={styles.cardTitle}>Welcome Back</Text>
+          {/* Demo Persona Switcher */}
+          <Text style={styles.demoTitle}>Try a Demo Persona</Text>
+          <View style={styles.personaRow}>
+            {PERSONAS.map((persona) => (
+              <TouchableOpacity
+                key={persona.persona}
+                style={styles.personaCard}
+                onPress={() => handlePersonaLogin(persona)}
+                disabled={isLoading}
+                activeOpacity={0.7}
+              >
+                <View style={styles.personaAvatar}>
+                  <Ionicons name={persona.icon} size={28} color={Colors.accent} />
+                </View>
+                <Text style={styles.personaName}>{persona.name}</Text>
+                <Text style={styles.personaDesc} numberOfLines={2}>
+                  {persona.description}
+                </Text>
+                <View style={styles.personaStats}>
+                  <Text style={styles.personaStat}>Lv.{persona.level}</Text>
+                  <Text style={styles.personaStat}>{persona.xp} XP</Text>
+                  <View style={styles.streakBadge}>
+                    <Ionicons name="flame" size={10} color={Colors.warning} />
+                    <Text style={styles.personaStat}>{persona.streak}</Text>
+                  </View>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </View>
 
+          {/* Divider */}
+          <View style={styles.divider}>
+            <View style={styles.dividerLine} />
+            <Text style={styles.dividerText}>or sign in</Text>
+            <View style={styles.dividerLine} />
+          </View>
+
+          <Card style={styles.card}>
             {error ? (
               <Text style={styles.errorText}>{error}</Text>
             ) : null}
@@ -110,13 +236,6 @@ export default function LoginScreen() {
               style={styles.button}
             />
           </Card>
-
-          <Button
-            title="Try Demo Mode"
-            variant="secondary"
-            onPress={handleDemoLogin}
-            style={styles.demoButton}
-          />
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -139,7 +258,7 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: 'center',
-    marginBottom: Spacing['3xl'],
+    marginBottom: Spacing['2xl'],
   },
   logo: {
     fontSize: Typography.sizes['4xl'],
@@ -151,14 +270,84 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     marginTop: Spacing.sm,
   },
-  card: {
-    gap: Spacing.lg,
-  },
-  cardTitle: {
-    fontSize: Typography.sizes.xl,
+  demoTitle: {
+    fontSize: Typography.sizes.lg,
     fontWeight: Typography.weights.semibold,
     color: Colors.textPrimary,
     textAlign: 'center',
+    marginBottom: Spacing.md,
+  },
+  personaRow: {
+    flexDirection: 'row',
+    gap: Spacing.md,
+    marginBottom: Spacing.xl,
+  },
+  personaCard: {
+    flex: 1,
+    backgroundColor: Colors.card,
+    borderRadius: 16,
+    padding: Spacing.lg,
+    borderWidth: 1,
+    borderColor: Colors.cardBorder,
+    alignItems: 'center',
+  },
+  personaAvatar: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: Colors.background,
+    borderWidth: 2,
+    borderColor: Colors.accent,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: Spacing.sm,
+  },
+  personaName: {
+    fontSize: Typography.sizes.md,
+    fontWeight: Typography.weights.bold,
+    color: Colors.textPrimary,
+    textAlign: 'center',
+  },
+  personaDesc: {
+    fontSize: Typography.sizes.xs,
+    color: Colors.textMuted,
+    textAlign: 'center',
+    marginTop: Spacing.xs,
+    lineHeight: Typography.sizes.xs * Typography.lineHeights.relaxed,
+  },
+  personaStats: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+    marginTop: Spacing.sm,
+    alignItems: 'center',
+  },
+  personaStat: {
+    fontSize: Typography.sizes.xs,
+    color: Colors.accent,
+    fontWeight: Typography.weights.medium,
+  },
+  streakBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+  },
+  divider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: Spacing.xl,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: Colors.border,
+  },
+  dividerText: {
+    fontSize: Typography.sizes.sm,
+    color: Colors.textMuted,
+    paddingHorizontal: Spacing.md,
+  },
+  card: {
+    gap: Spacing.lg,
   },
   errorText: {
     fontSize: Typography.sizes.sm,
@@ -185,8 +374,5 @@ const styles = StyleSheet.create({
   },
   button: {
     marginTop: Spacing.sm,
-  },
-  demoButton: {
-    marginTop: Spacing.xl,
   },
 });

@@ -23,7 +23,7 @@ interface TransactionState {
   // Actions
   fetchTransactions: (userId: string) => Promise<void>;
   connectBank: (userId: string) => Promise<void>;
-  loadDemoData: (userId: string) => Promise<void>;
+  loadDemoData: (userId: string, persona?: 'sarah' | 'marcus') => Promise<void>;
   detectRecurring: (userId: string) => void;
   syncBankTransactions: (connectionId: string) => Promise<void>;
   clearTransactions: () => void;
@@ -87,11 +87,11 @@ export const useTransactionStore = create<TransactionState>((set, get) => ({
     }
   },
 
-  loadDemoData: async (userId: string) => {
+  loadDemoData: async (userId: string, persona?: 'sarah' | 'marcus') => {
     set({ isLoading: true });
     try {
       const { transactions, account, connection } =
-        await loadDemoTransactions(userId);
+        await loadDemoTransactions(userId, persona);
       set({
         transactions,
         plaidConnections: [...get().plaidConnections, connection],
