@@ -4,6 +4,7 @@ import {
   Text,
   ScrollView,
   TouchableOpacity,
+  TextInput,
   StyleSheet,
   Modal,
   ActivityIndicator,
@@ -16,6 +17,7 @@ import { Card } from '../src/components/ui/Card';
 import { Button } from '../src/components/ui/Button';
 import { useTransactionStore } from '../src/stores/transactionStore';
 import { useAuthStore } from '../src/stores/authStore';
+import { useCalendarStore } from '../src/stores/calendarStore';
 import type { Transaction, EventCategory } from '../src/types';
 
 const CATEGORIES: EventCategory[] = [

@@ -19,7 +19,7 @@ import { useChatStore } from '../stores/chatStore';
 import type { ChatMessage } from '../stores/chatStore';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
-const SHEET_HEIGHT = SCREEN_HEIGHT * 0.7;
+const SHEET_HEIGHT = SCREEN_HEIGHT * 0.8;
 const DISMISS_THRESHOLD = 100;
 
 /** Suggested quick-action chips per screen. */
@@ -267,7 +267,10 @@ export function ChatSheet() {
           <View style={styles.header}>
             <View style={styles.headerLeft}>
               <Ionicons name="sparkles" size={20} color={Colors.accent} />
-              <Text style={styles.headerTitle}>AI Assistant</Text>
+              <View>
+                <Text style={styles.headerTitle}>AI Assistant</Text>
+                <Text style={styles.headerSubtitle}>Powered by Gemini</Text>
+              </View>
             </View>
             <TouchableOpacity onPress={closeSheet} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
               <Ionicons name="close" size={24} color={Colors.textSecondary} />
@@ -410,6 +413,11 @@ const styles = StyleSheet.create({
     fontSize: Typography.sizes.lg,
     fontWeight: Typography.weights.semibold,
     color: Colors.textPrimary,
+  },
+  headerSubtitle: {
+    fontSize: Typography.sizes.xs,
+    color: Colors.textMuted,
+    marginTop: 1,
   },
   messageList: {
     flex: 1,
