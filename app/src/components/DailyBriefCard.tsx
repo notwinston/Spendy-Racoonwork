@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Typography, Spacing } from '../constants';
-import { Card } from './ui/Card';
+import { GlassCard } from './ui/GlassCard';
 import { HiddenCostBreakdown } from './HiddenCostBreakdown';
 import { usePredictionStore } from '../stores/predictionStore';
 import type { EventCategory } from '../types';
@@ -48,7 +48,7 @@ export function DailyBriefCard() {
   });
 
   return (
-    <Card style={styles.container}>
+    <GlassCard style={styles.container}>
       {/* Header */}
       <View style={styles.headerRow}>
         <View style={styles.headerLeft}>
@@ -66,18 +66,22 @@ export function DailyBriefCard() {
 
       {/* Warning */}
       {dailyBrief.top_warning && (
-        <View style={styles.warningRow}>
-          <Ionicons name="warning" size={16} color={Colors.warning} />
-          <Text style={styles.warningText}>{dailyBrief.top_warning}</Text>
-        </View>
+        <GlassCard intensity="subtle" accentEdge="left" accentColor={Colors.warning} style={styles.warningRow}>
+          <View style={styles.warningRowInner}>
+            <Ionicons name="warning" size={16} color={Colors.warning} />
+            <Text style={styles.warningText}>{dailyBrief.top_warning}</Text>
+          </View>
+        </GlassCard>
       )}
 
       {/* Savings Tip */}
       {dailyBrief.savings_opportunity && (
-        <View style={styles.tipRow}>
-          <Ionicons name="bulb" size={16} color={Colors.positive} />
-          <Text style={styles.tipText}>{dailyBrief.savings_opportunity}</Text>
-        </View>
+        <GlassCard intensity="subtle" accentEdge="left" accentColor={Colors.positive} style={styles.tipRow}>
+          <View style={styles.tipRowInner}>
+            <Ionicons name="bulb" size={16} color={Colors.positive} />
+            <Text style={styles.tipText}>{dailyBrief.savings_opportunity}</Text>
+          </View>
+        </GlassCard>
       )}
 
       {/* Event List */}
@@ -133,7 +137,7 @@ export function DailyBriefCard() {
         <Text style={styles.linkText}>View Full Breakdown</Text>
         <Ionicons name="chevron-forward" size={14} color={Colors.accent} />
       </TouchableOpacity>
-    </Card>
+    </GlassCard>
   );
 }
 
@@ -167,13 +171,12 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.sm,
   },
   warningRow: {
+    marginBottom: Spacing.xs,
+  },
+  warningRowInner: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
-    backgroundColor: 'rgba(255,217,61,0.1)',
-    borderRadius: 8,
-    padding: Spacing.sm,
-    marginBottom: Spacing.xs,
   },
   warningText: {
     fontSize: Typography.sizes.sm,
@@ -181,13 +184,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   tipRow: {
+    marginBottom: Spacing.xs,
+  },
+  tipRowInner: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
-    backgroundColor: 'rgba(34,197,94,0.1)',
-    borderRadius: 8,
-    padding: Spacing.sm,
-    marginBottom: Spacing.xs,
   },
   tipText: {
     fontSize: Typography.sizes.sm,

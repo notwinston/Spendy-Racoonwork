@@ -2,6 +2,8 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Typography, Spacing } from '../constants';
+import { GlassCard } from './ui/GlassCard';
+import { AnimatedNumber } from './ui/AnimatedNumber';
 
 interface CategoryData {
   name: string;
@@ -80,33 +82,33 @@ export function MonthComparison({ thisMonth, lastMonth }: MonthComparisonProps) 
     <View style={styles.container}>
       {/* Side-by-side totals */}
       <View style={styles.totalsRow}>
-        <View style={styles.totalCard}>
+        <GlassCard intensity="subtle" style={styles.totalCard}>
           <Text style={styles.totalLabel}>This Month</Text>
           <Text style={styles.totalAmount}>
             ${thisMonth.total.toFixed(0)}
           </Text>
-        </View>
+        </GlassCard>
         <View style={styles.changeContainer}>
           <Ionicons
             name={totalChange <= 0 ? 'arrow-down' : 'arrow-up'}
             size={16}
             color={totalChange <= 0 ? Colors.positive : Colors.danger}
           />
-          <Text
-            style={[
-              styles.changePct,
-              { color: totalChange <= 0 ? Colors.positive : Colors.danger },
-            ]}
-          >
-            {Math.abs(totalChange).toFixed(1)}%
-          </Text>
+          <AnimatedNumber
+            value={Math.round(Math.abs(totalChange) * 10) / 10}
+            suffix="%"
+            style={{
+              ...styles.changePct,
+              color: totalChange <= 0 ? Colors.positive : Colors.danger,
+            }}
+          />
         </View>
-        <View style={styles.totalCard}>
+        <GlassCard intensity="subtle" style={styles.totalCard}>
           <Text style={styles.totalLabel}>Last Month</Text>
           <Text style={styles.totalAmount}>
             ${lastMonth.total.toFixed(0)}
           </Text>
-        </View>
+        </GlassCard>
       </View>
 
       {/* Best Improvement */}

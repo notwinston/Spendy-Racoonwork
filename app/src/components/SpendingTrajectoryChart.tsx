@@ -280,6 +280,19 @@ export function SpendingTrajectoryChart({
           />
         ) : null}
 
+        {/* Actual spending curve glow layer (4x stroke, 20% opacity) */}
+        {chartData.actualPath ? (
+          <Path
+            d={chartData.actualPath}
+            stroke={Colors.accentBright}
+            strokeWidth={10}
+            fill="none"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            opacity={0.2}
+          />
+        ) : null}
+
         {/* Actual spending curve (solid accent line) */}
         {chartData.actualPath ? (
           <Path
@@ -305,6 +318,14 @@ export function SpendingTrajectoryChart({
           />
         ) : null}
 
+        {/* "You are here" marker glow */}
+        <Circle
+          cx={chartData.markerX}
+          cy={chartData.markerY}
+          r={12}
+          fill={Colors.accentBright}
+          opacity={0.2}
+        />
         {/* "You are here" marker */}
         <Circle
           cx={chartData.markerX}

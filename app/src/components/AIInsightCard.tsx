@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Typography, Spacing } from '../constants';
+import { GlassCard } from './ui/GlassCard';
 
 export interface AIInsightCardProps {
   type: 'warning' | 'opportunity' | 'win' | 'budget';
@@ -31,7 +32,7 @@ export function AIInsightCard({
   const config = TYPE_CONFIG[type];
 
   return (
-    <View style={[styles.card, { borderLeftColor: config.color }]}>
+    <GlassCard accentEdge="left" accentColor={config.color} style={styles.card}>
       <View style={styles.header}>
         <Ionicons name={config.icon} size={20} color={config.color} />
         <Text style={[styles.title, { color: config.color }]}>{title}</Text>
@@ -42,18 +43,12 @@ export function AIInsightCard({
           <Text style={styles.actionText}>{actionLabel}</Text>
         </Pressable>
       )}
-    </View>
+    </GlassCard>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: Colors.card,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: Colors.cardBorder,
-    borderLeftWidth: 4,
-    padding: Spacing.lg,
     marginBottom: Spacing.md,
   },
   header: {

@@ -1,7 +1,8 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Colors, Typography, Spacing } from '../constants';
-import { Card } from './ui/Card';
+import { GlassCard } from './ui/GlassCard';
 
 interface RankWidgetProps {
   percentile?: number;
@@ -17,7 +18,7 @@ export function RankWidget({
   comparisonPercentage = 18,
 }: RankWidgetProps) {
   return (
-    <Card style={styles.card}>
+    <GlassCard style={styles.card}>
       {/* Percentile */}
       <View style={styles.section}>
         <Text style={styles.sectionLabel}>YOUR RANKING</Text>
@@ -30,7 +31,10 @@ export function RankWidget({
         {/* Percentile bar */}
         <View style={styles.barContainer}>
           <View style={styles.barTrack}>
-            <View
+            <LinearGradient
+              colors={['#00D09C', Colors.accentBright]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
               style={[
                 styles.barFill,
                 { width: `${100 - percentile}%` },
@@ -67,7 +71,7 @@ export function RankWidget({
         <Text style={styles.comparisonValue}>{comparisonPercentage}% lower</Text>
         {' '}than similar users
       </Text>
-    </Card>
+    </GlassCard>
   );
 }
 
@@ -104,7 +108,6 @@ const styles = StyleSheet.create({
   },
   barFill: {
     height: 8,
-    backgroundColor: Colors.accentBright,
     borderRadius: 4,
   },
   barMarker: {

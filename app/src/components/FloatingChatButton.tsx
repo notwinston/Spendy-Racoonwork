@@ -1,5 +1,5 @@
 import React, { useRef, useEffect } from 'react';
-import { TouchableOpacity, StyleSheet, Animated } from 'react-native';
+import { View, TouchableOpacity, StyleSheet, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../constants';
 import { useChatStore } from '../stores/chatStore';
@@ -8,6 +8,7 @@ import { ChatSheet } from './ChatSheet';
 export function FloatingChatButton() {
   const { isOpen, setOpen } = useChatStore();
   const pulseAnim = useRef(new Animated.Value(1)).current;
+  const glowAnim = useRef(new Animated.Value(0.3)).current;
 
   useEffect(() => {
     const pulse = Animated.loop(
@@ -25,13 +26,35 @@ export function FloatingChatButton() {
       ]),
     );
     pulse.start();
-    return () => pulse.stop();
-  }, [pulseAnim]);
+
+    const glow = Animated.loop(
+      Animated.sequence([
+        Animated.timing(glowAnim, {
+          toValue: 0.6,
+          duration: 2000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(glowAnim, {
+          toValue: 0.3,
+          duration: 2000,
+          useNativeDriver: true,
+        }),
+      ]),
+    );
+    glow.start();
+
+    return () => {
+      pulse.stop();
+      glow.stop();
+    };
+  }, [pulseAnim, glowAnim]);
 
   return (
     <>
       {!isOpen && (
         <Animated.View style={[styles.pulseWrapper, { transform: [{ scale: pulseAnim }] }]}>
+          {/* Breathing glow ring */}
+          <Animated.View style={[styles.glowRing, { opacity: glowAnim }]} />
           <TouchableOpacity
             style={styles.button}
             onPress={() => setOpen(true)}
@@ -52,6 +75,15 @@ const styles = StyleSheet.create({
     bottom: 90,
     right: 20,
     zIndex: 999,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  glowRing: {
+    position: 'absolute',
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: Colors.accentBright,
   },
   button: {
     width: 56,
@@ -61,9 +93,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     elevation: 8,
-    shadowColor: Colors.accent,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
+    shadowColor: Colors.glowTeal,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
   },
 });
