@@ -25,6 +25,8 @@ import {
   calculateHealthScoreV2,
   calculateSpendingStability,
   calculateBudgetAdherenceMVP,
+  calculateSurpriseSpendRatio,
+  calculateEventCostVariance,
   getHealthGrade,
 } from '../../src/stores/budgetStore';
 import {
@@ -72,9 +74,9 @@ const ACCURACY_COLORS: Record<string, string> = {
 
 export default function InsightsScreen() {
   const user = useAuthStore((s) => s.user);
-  const { transactions, loadDemoData: loadTxns } = useTransactionStore();
+  const { transactions, recurringTransactions, loadDemoData: loadTxns } = useTransactionStore();
   const { totalBudget, totalSpent, budgets } = useBudgetStore();
-  const { predictions } = usePredictionStore();
+  const { predictions, hiddenCosts } = usePredictionStore();
   const gamification = useGamificationStore((s) => s.profile);
 
   const userId = user?.id ?? 'demo-user';
@@ -121,6 +123,22 @@ export default function InsightsScreen() {
   );
   const cciPercent = Math.round(cciRaw * 100);
 
+  const surpriseRatio = useMemo(
+    () => calculateSurpriseSpendRatio(transactions, predictions, recurringTransactions),
+    [transactions, predictions, recurringTransactions],
+  );
+
+  const costVariance = useMemo(
+    () => calculateEventCostVariance(transactions, predictions),
+    [transactions, predictions],
+  );
+
+  const hiddenCostAwareness = useMemo(() => {
+    if (hiddenCosts.length === 0) return 0;
+    const dismissed = hiddenCosts.filter((c) => c.is_dismissed).length;
+    return Math.min(100, ((hiddenCosts.length - dismissed) / hiddenCosts.length) * 100);
+  }, [hiddenCosts]);
+
   const savingsRate = useMemo(() => {
     if (totalBudget <= 0) return 50;
     const saved = Math.max(0, totalBudget - totalSpent);
@@ -145,13 +163,14 @@ export default function InsightsScreen() {
 
   const breakdownBars = useMemo(
     () => [
-      { label: 'Budget Adherence', score: budgetAdherence, weight: 0.30, maxPoints: 30 },
-      { label: 'Savings Rate', score: savingsRate, weight: 0.25, maxPoints: 25 },
+      { label: 'Budget Adherence', score: budgetAdherence, weight: 0.25, maxPoints: 25 },
+      { label: 'Savings Rate', score: savingsRate, weight: 0.20, maxPoints: 20 },
       { label: 'Spending Stability', score: spendingStability, weight: 0.20, maxPoints: 20 },
       { label: 'Calendar Correlation', score: cciPercent, weight: 0.15, maxPoints: 15 },
       { label: 'Streak Bonus', score: streakBonus, weight: 0.10, maxPoints: 10 },
+      { label: 'Hidden Cost Awareness', score: hiddenCostAwareness, weight: 0.10, maxPoints: 10 },
     ],
-    [budgetAdherence, savingsRate, spendingStability, cciPercent, streakBonus],
+    [budgetAdherence, savingsRate, spendingStability, cciPercent, streakBonus, hiddenCostAwareness],
   );
 
   // Week-over-week trend
@@ -476,6 +495,69 @@ export default function InsightsScreen() {
             </Text>
           )}
         </Card>
+
+        {/* ======== SECTION 3b: Surprise Spend & Variance ======== */}
+        <View style={styles.twinRow}>
+          {/* Surprise Spend Ratio */}
+          <Card style={styles.twinCard}>
+            <Text style={styles.twinLabel}>Surprise Spend</Text>
+            <Text style={styles.velocityBig}>
+              {Math.round(surpriseRatio * 100)}%
+            </Text>
+            <Text style={styles.velocityUnit}>of total spending</Text>
+            <View style={[styles.velocityTrendRow, { justifyContent: 'center' }]}>
+              <Ionicons
+                name={surpriseRatio <= 0.3 ? 'checkmark-circle' : 'alert-circle'}
+                size={14}
+                color={surpriseRatio <= 0.3 ? Colors.positive : surpriseRatio <= 0.5 ? Colors.warning : Colors.danger}
+              />
+              <Text
+                style={[
+                  styles.velocityTrendText,
+                  { color: surpriseRatio <= 0.3 ? Colors.positive : surpriseRatio <= 0.5 ? Colors.warning : Colors.danger },
+                ]}
+              >
+                {surpriseRatio <= 0.3 ? 'Low' : surpriseRatio <= 0.5 ? 'Moderate' : 'High'}
+              </Text>
+            </View>
+          </Card>
+
+          {/* Event Cost Variance */}
+          <Card style={styles.twinCard}>
+            <Text style={styles.twinLabel}>Cost Variance</Text>
+            <View style={styles.varianceList}>
+              {Object.entries(costVariance)
+                .sort(([, a], [, b]) => b.cv - a.cv)
+                .slice(0, 4)
+                .map(([cat, data]) => (
+                  <View key={cat} style={styles.varianceRow}>
+                    <View
+                      style={[
+                        styles.varianceDot,
+                        {
+                          backgroundColor:
+                            data.rating === 'low'
+                              ? Colors.positive
+                              : data.rating === 'medium'
+                              ? Colors.warning
+                              : Colors.danger,
+                        },
+                      ]}
+                    />
+                    <Text style={styles.varianceCat} numberOfLines={1}>
+                      {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                    </Text>
+                    <Text style={styles.varianceCv}>
+                      {(data.cv * 100).toFixed(0)}%
+                    </Text>
+                  </View>
+                ))}
+              {Object.keys(costVariance).length === 0 && (
+                <Text style={styles.emptyText}>No variance data</Text>
+              )}
+            </View>
+          </Card>
+        </View>
 
         {/* ======== SECTION 4: Spending Trends ======== */}
         <Text style={styles.sectionTitle}>Spending Trends</Text>
@@ -951,6 +1033,33 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     textAlign: 'center',
     marginTop: Spacing.md,
+  },
+
+  // Variance
+  varianceList: {
+    width: '100%',
+    marginTop: Spacing.sm,
+  },
+  varianceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 3,
+    gap: Spacing.xs,
+  },
+  varianceDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  varianceCat: {
+    flex: 1,
+    fontSize: Typography.sizes.xs,
+    color: Colors.textPrimary,
+  },
+  varianceCv: {
+    fontSize: Typography.sizes.xs,
+    color: Colors.textSecondary,
+    fontWeight: Typography.weights.medium,
   },
 
   // Shared
