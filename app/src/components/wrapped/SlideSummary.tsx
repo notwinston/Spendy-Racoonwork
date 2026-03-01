@@ -1,10 +1,12 @@
 import React, { useRef } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Dimensions, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
 import ViewShot from 'react-native-view-shot';
 import * as Sharing from 'expo-sharing';
 import { FadeUp, RollIn, ScaleIn } from './animations';
 import SlideBackgroundView from './SlideBackground';
 import type { SummarySlide } from '../../hooks/useWrappedData';
+import { ThemedAlert } from '../ui/ThemedAlert';
+import { useThemedAlert } from '../../hooks/useThemedAlert';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -15,6 +17,7 @@ interface Props {
 }
 
 export default function SlideSummary({ data, isActive, accent }: Props) {
+  const alert = useThemedAlert();
   const viewShotRef = useRef<ViewShot>(null);
 
   const handleShare = async () => {
@@ -24,7 +27,7 @@ export default function SlideSummary({ data, isActive, accent }: Props) {
         await Sharing.shareAsync(uri);
       }
     } catch {
-      Alert.alert('Share', 'Unable to share at this time.');
+      alert.info('Share', 'Unable to share at this time.');
     }
   };
 
@@ -75,6 +78,7 @@ export default function SlideSummary({ data, isActive, accent }: Props) {
           <Text style={styles.shareText}>Share My Wrapped ↗</Text>
         </TouchableOpacity>
       </FadeUp>
+      <ThemedAlert {...alert.alertProps} />
     </View>
   );
 }

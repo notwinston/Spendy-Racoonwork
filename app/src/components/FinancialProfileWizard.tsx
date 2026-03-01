@@ -7,7 +7,6 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -16,6 +15,8 @@ import { Button } from './ui/Button';
 import { Card } from './ui/Card';
 import { useOptimizerStore } from '../stores/optimizerStore';
 import type { FinancialProfile, IncomeFrequency, FixedBill, EventCategory } from '../types';
+import { ThemedAlert } from './ui/ThemedAlert';
+import { useThemedAlert } from '../hooks/useThemedAlert';
 
 interface FinancialProfileWizardProps {
   visible: boolean;
@@ -29,6 +30,7 @@ const FREQUENCY_OPTIONS: { label: string; value: IncomeFrequency }[] = [
 ];
 
 export function FinancialProfileWizard({ visible, onClose }: FinancialProfileWizardProps) {
+  const alert = useThemedAlert();
   const { profile, setProfile } = useOptimizerStore();
   const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(1);
 
@@ -58,11 +60,11 @@ export function FinancialProfileWizard({ visible, onClose }: FinancialProfileWiz
   const handleNext = useCallback(() => {
     if (currentStep === 1) {
       if (parsedIncome <= 0) {
-        Alert.alert('Invalid Income', 'Please enter your income amount.');
+        alert.error('Invalid Income', 'Please enter your income amount.');
         return;
       }
       if (!nextPayDate) {
-        Alert.alert('Missing Pay Date', 'Please enter your next pay date (YYYY-MM-DD).');
+        alert.error('Missing Pay Date', 'Please enter your next pay date (YYYY-MM-DD).');
         return;
       }
       setCurrentStep(2);
@@ -356,6 +358,7 @@ export function FinancialProfileWizard({ visible, onClose }: FinancialProfileWiz
             <Button title="Save Profile" onPress={handleSave} variant="primary" />
           )}
         </View>
+        <ThemedAlert {...alert.alertProps} />
       </SafeAreaView>
     </Modal>
   );

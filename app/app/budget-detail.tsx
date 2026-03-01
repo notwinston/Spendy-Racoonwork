@@ -5,7 +5,6 @@ import {
   ScrollView,
   TouchableOpacity,
   StyleSheet,
-  Alert,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -19,6 +18,8 @@ import { AdjustBudgetFAB } from '../src/components/AdjustBudgetFAB';
 import { useBudgetStore, getBurnRateColor } from '../src/stores/budgetStore';
 import { useTransactionStore } from '../src/stores/transactionStore';
 import type { EventCategory } from '../src/types';
+import { ThemedAlert } from '../src/components/ui/ThemedAlert';
+import { useThemedAlert } from '../src/hooks/useThemedAlert';
 
 type SortOption = 'newest' | 'largest';
 
@@ -40,6 +41,7 @@ const CATEGORY_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
 };
 
 export default function BudgetDetailScreen() {
+  const alert = useThemedAlert();
   const router = useRouter();
   const { category } = useLocalSearchParams<{ category: string }>();
   const budgets = useBudgetStore((s) => s.budgets);
@@ -210,7 +212,8 @@ export default function BudgetDetailScreen() {
           )}
         </GlassCard>
       </ScrollView>
-      <AdjustBudgetFAB onPress={() => Alert.alert('Adjust Budget', 'Budget adjustment coming soon!')} />
+      <AdjustBudgetFAB onPress={() => alert.info('Adjust Budget', 'Budget adjustment coming soon!')} />
+      <ThemedAlert {...alert.alertProps} />
     </AtmosphericBackground>
   );
 }

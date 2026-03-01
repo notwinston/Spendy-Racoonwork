@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import Constants from 'expo-constants';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Typography, Spacing } from '../constants';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
 import { useCalendarStore } from '../stores/calendarStore';
+import { ThemedAlert } from './ui/ThemedAlert';
+import { useThemedAlert } from '../hooks/useThemedAlert';
 
 interface CalendarConnectCardProps {
   userId: string;
@@ -16,6 +18,7 @@ function isEASBuild(): boolean {
 }
 
 export default function CalendarConnectCard({ userId }: CalendarConnectCardProps) {
+  const alert = useThemedAlert();
   const [status, setStatus] = useState<'idle' | 'loading' | 'connected' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const hasAutoDetected = useRef(false);
@@ -69,22 +72,17 @@ export default function CalendarConnectCard({ userId }: CalendarConnectCardProps
         setStatus('error');
       }
     } else {
-      Alert.alert(
+      alert.confirm(
         '"FutureSpend" Would Like to Access Your Calendar',
         'This will import your upcoming events to predict spending.',
-        [
-          {
-            text: "Don't Allow",
-            style: 'cancel',
-            onPress: () => setStatus('idle'),
+        {
+          cancelText: "Don't Allow",
+          confirmText: 'Allow',
+          onCancel: () => setStatus('idle'),
+          onConfirm: () => {
+            handleMockImport();
           },
-          {
-            text: 'Allow',
-            onPress: () => {
-              handleMockImport();
-            },
-          },
-        ],
+        },
       );
     }
   };
@@ -96,56 +94,68 @@ export default function CalendarConnectCard({ userId }: CalendarConnectCardProps
   // --- Connected state ---
   if (status === 'connected') {
     return (
-      <Card style={styles.card}>
-        <View style={styles.row}>
-          <Ionicons name="checkmark-circle" size={20} color={Colors.positive} />
-          <Text style={styles.connectedLabel}>Connected</Text>
-          <Text style={styles.eventCountText}>
-            {eventCount} event{eventCount !== 1 ? 's' : ''} imported
-          </Text>
-          <Button title="Sync" variant="ghost" onPress={handleResync} />
-        </View>
-      </Card>
+      <>
+        <Card style={styles.card}>
+          <View style={styles.row}>
+            <Ionicons name="checkmark-circle" size={20} color={Colors.positive} />
+            <Text style={styles.connectedLabel}>Connected</Text>
+            <Text style={styles.eventCountText}>
+              {eventCount} event{eventCount !== 1 ? 's' : ''} imported
+            </Text>
+            <Button title="Sync" variant="ghost" onPress={handleResync} />
+          </View>
+        </Card>
+        <ThemedAlert {...alert.alertProps} />
+      </>
     );
   }
 
   // --- Loading state ---
   if (status === 'loading') {
     return (
-      <Card style={styles.card}>
-        <View style={styles.row}>
-          <ActivityIndicator size="small" color={Colors.accentBright} />
-          <Text style={styles.loadingText}>Importing calendar events...</Text>
-        </View>
-      </Card>
+      <>
+        <Card style={styles.card}>
+          <View style={styles.row}>
+            <ActivityIndicator size="small" color={Colors.accentBright} />
+            <Text style={styles.loadingText}>Importing calendar events...</Text>
+          </View>
+        </Card>
+        <ThemedAlert {...alert.alertProps} />
+      </>
     );
   }
 
   // --- Error state ---
   if (status === 'error') {
     return (
-      <Card style={styles.card}>
-        <View style={styles.row}>
-          <Ionicons name="alert-circle" size={20} color={Colors.danger} />
-          <Text style={styles.errorText}>{errorMessage}</Text>
-        </View>
-        <Button title="Retry" variant="secondary" onPress={handleConnect} />
-      </Card>
+      <>
+        <Card style={styles.card}>
+          <View style={styles.row}>
+            <Ionicons name="alert-circle" size={20} color={Colors.danger} />
+            <Text style={styles.errorText}>{errorMessage}</Text>
+          </View>
+          <Button title="Retry" variant="secondary" onPress={handleConnect} />
+        </Card>
+        <ThemedAlert {...alert.alertProps} />
+      </>
     );
   }
 
   // --- Idle state ---
   return (
-    <Card style={styles.card}>
-      <View style={styles.row}>
-        <Ionicons name="calendar-outline" size={24} color={Colors.accentBright} />
-        <View style={styles.textGroup}>
-          <Text style={styles.title}>Apple Calendar</Text>
-          <Text style={styles.subtitle}>Import your events to predict spending</Text>
+    <>
+      <Card style={styles.card}>
+        <View style={styles.row}>
+          <Ionicons name="calendar-outline" size={24} color={Colors.accentBright} />
+          <View style={styles.textGroup}>
+            <Text style={styles.title}>Apple Calendar</Text>
+            <Text style={styles.subtitle}>Import your events to predict spending</Text>
+          </View>
+          <Button title="Connect" variant="primary" onPress={handleConnect} />
         </View>
-        <Button title="Connect" variant="primary" onPress={handleConnect} />
-      </View>
-    </Card>
+      </Card>
+      <ThemedAlert {...alert.alertProps} />
+    </>
   );
 }
 
