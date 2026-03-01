@@ -144,6 +144,25 @@ export interface Account {
   created_at: string;
 }
 
+export interface ParsedReceiptItem {
+  name: string;
+  quantity: number;
+  price: number;
+}
+
+export interface ParsedReceipt {
+  merchant_name: string;
+  date: string;
+  total: number;
+  subtotal: number | null;
+  tax: number | null;
+  tip: number | null;
+  currency: string;
+  items: ParsedReceiptItem[];
+  category: EventCategory;
+  payment_method: string | null;
+}
+
 export interface Transaction {
   id: string;
   user_id: string;
@@ -160,6 +179,9 @@ export interface Transaction {
   recurring_group_id: string | null;
   reviewed: boolean;
   notes: string | null;
+  source?: string;
+  receipt_data?: ParsedReceipt | null;
+  receipt_image_url?: string | null;
   created_at: string;
 }
 
