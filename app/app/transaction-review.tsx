@@ -88,9 +88,13 @@ export default function TransactionReviewScreen() {
   const router = useRouter();
   const user = useAuthStore((s) => s.user);
   const { transactions, loadDemoData, isLoading } = useTransactionStore();
+  const { events } = useCalendarStore();
 
   // Local state for category picker
   const [categoryPickerTxnId, setCategoryPickerTxnId] = useState<string | null>(null);
+
+  // Local state for notes per transaction
+  const [txnNotes, setTxnNotes] = useState<Record<string, string>>({});
 
   // Local optimistic state for transactions being modified
   const [localUpdates, setLocalUpdates] = useState<
@@ -286,6 +290,35 @@ export default function TransactionReviewScreen() {
                     </View>
                   )}
                 </View>
+
+                {/* Notes Input */}
+                <TextInput
+                  style={styles.notesInput}
+                  placeholder="Add a note..."
+                  placeholderTextColor={Colors.textMuted}
+                  value={txnNotes[txn.id] ?? ''}
+                  onChangeText={(text) =>
+                    setTxnNotes((prev) => ({ ...prev, [txn.id]: text }))
+                  }
+                  multiline
+                />
+
+                {/* Event Link */}
+                {(() => {
+                  const txnDate = new Date(txn.date).toDateString();
+                  const linkedEvent = events.find(
+                    (e) => new Date(e.start_time).toDateString() === txnDate
+                  );
+                  if (!linkedEvent) return null;
+                  return (
+                    <View style={styles.eventLinkRow}>
+                      <Ionicons name="calendar-outline" size={14} color={Colors.info} />
+                      <Text style={styles.eventLinkText}>
+                        Related Event: {linkedEvent.title}
+                      </Text>
+                    </View>
+                  );
+                })()}
 
                 {/* Action Buttons */}
                 <View style={styles.actionRow}>
@@ -517,7 +550,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   txnMerchant: {
-    fontSize: Typography.sizes.lg,
+    fontSize: 24,
     fontWeight: Typography.weights.semibold,
     color: Colors.textPrimary,
   },
@@ -527,7 +560,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   txnAmount: {
-    fontSize: Typography.sizes.xl,
+    fontSize: 40,
     fontWeight: Typography.weights.bold,
     color: Colors.danger,
   },
@@ -565,6 +598,38 @@ const styles = StyleSheet.create({
     fontSize: Typography.sizes.sm,
     color: Colors.info,
     fontWeight: Typography.weights.medium,
+  },
+  // Notes Input
+  notesInput: {
+    backgroundColor: Colors.background,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: Colors.cardBorder,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    fontSize: Typography.sizes.md,
+    color: Colors.textPrimary,
+    marginTop: Spacing.md,
+    minHeight: 40,
+  },
+  // Event Link
+  eventLinkRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    marginTop: Spacing.md,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    backgroundColor: Colors.info + '10',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: Colors.info + '22',
+  },
+  eventLinkText: {
+    fontSize: Typography.sizes.sm,
+    color: Colors.info,
+    fontWeight: Typography.weights.medium,
+    flex: 1,
   },
   // Action Row
   actionRow: {
