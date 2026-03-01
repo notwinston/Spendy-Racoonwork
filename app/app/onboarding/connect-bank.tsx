@@ -1,13 +1,101 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Typography, Spacing } from '../../src/constants';
 import { Button } from '../../src/components/ui/Button';
+import { useTransactionStore } from '../../src/stores/transactionStore';
+import { useAuthStore } from '../../src/stores/authStore';
 
 export default function ConnectBankScreen() {
   const router = useRouter();
+  const {
+    loadDemoData,
+    connectBank,
+    isLoading,
+    transactions,
+    recurringTransactions,
+    plaidConnections,
+  } = useTransactionStore();
+  const user = useAuthStore((s) => s.user);
+  const [isConnected, setIsConnected] = useState(false);
+
+  const userId = user?.id ?? 'demo-user';
+
+  const handleConnectBank = async () => {
+    try {
+      await connectBank(userId);
+      Alert.alert(
+        'Bank Connected (Simulated)',
+        'In production, this would open Plaid Link. Loading demo transactions to showcase the app.',
+        [
+          {
+            text: 'Load Demo Transactions',
+            onPress: handleDemoData,
+          },
+        ],
+      );
+    } catch {
+      Alert.alert('Error', 'Failed to connect bank. Please try again.');
+    }
+  };
+
+  const handleDemoData = async () => {
+    try {
+      await loadDemoData(userId);
+      setIsConnected(true);
+    } catch {
+      Alert.alert('Error', 'Failed to load demo data. Please try again.');
+    }
+  };
+
+  const handleContinue = () => {
+    router.push('/onboarding/set-budget');
+  };
+
+  if (isConnected) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.content}>
+          <Ionicons
+            name="checkmark-circle"
+            size={64}
+            color={Colors.positive}
+            style={styles.icon}
+          />
+          <Text style={styles.title}>Bank Connected!</Text>
+          <Text style={styles.subtitle}>
+            {transactions.length} transactions loaded and analyzed.
+          </Text>
+
+          <View style={styles.statsContainer}>
+            <View style={styles.statCard}>
+              <Text style={styles.statNumber}>{transactions.length}</Text>
+              <Text style={styles.statLabel}>Transactions</Text>
+            </View>
+            <View style={styles.statCard}>
+              <Text style={styles.statNumber}>{recurringTransactions.length}</Text>
+              <Text style={styles.statLabel}>Recurring</Text>
+            </View>
+            <View style={styles.statCard}>
+              <Text style={styles.statNumber}>{plaidConnections.length}</Text>
+              <Text style={styles.statLabel}>Accounts</Text>
+            </View>
+          </View>
+
+          <View style={styles.dots}>
+            <View style={styles.dot} />
+            <View style={styles.dot} />
+            <View style={[styles.dot, styles.dotActive]} />
+            <View style={styles.dot} />
+          </View>
+
+          <Button title="Continue" onPress={handleContinue} />
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -31,7 +119,16 @@ export default function ConnectBankScreen() {
 
         <Button
           title="Connect Your Bank"
-          onPress={() => router.push('/onboarding/set-budget')}
+          onPress={handleConnectBank}
+          loading={isLoading}
+          style={styles.button}
+        />
+
+        <Button
+          title="Use Demo Data"
+          variant="secondary"
+          onPress={handleDemoData}
+          loading={isLoading}
           style={styles.button}
         />
 
@@ -45,7 +142,7 @@ export default function ConnectBankScreen() {
         <Button
           title="Skip for now"
           variant="outline"
-          onPress={() => router.push('/onboarding/set-budget')}
+          onPress={handleContinue}
         />
       </View>
     </SafeAreaView>
@@ -95,7 +192,31 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
   },
   button: {
+    marginBottom: Spacing.md,
+  },
+  statsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
     marginBottom: Spacing['2xl'],
+  },
+  statCard: {
+    alignItems: 'center',
+    backgroundColor: Colors.card,
+    borderRadius: 12,
+    paddingVertical: Spacing.lg,
+    paddingHorizontal: Spacing.xl,
+    borderWidth: 1,
+    borderColor: Colors.cardBorder,
+  },
+  statNumber: {
+    fontSize: Typography.sizes['2xl'],
+    fontWeight: Typography.weights.bold,
+    color: Colors.accent,
+  },
+  statLabel: {
+    fontSize: Typography.sizes.sm,
+    color: Colors.textSecondary,
+    marginTop: Spacing.xs,
   },
   dots: {
     flexDirection: 'row',
