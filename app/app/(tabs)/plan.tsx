@@ -26,7 +26,6 @@ import {
   parseReceiptWithGemini,
   parseReceiptMock,
 } from '../../src/services/receiptService';
-import { resolveProvider } from '../../src/services/llm/adapter';
 import type {
   CalendarEvent,
   SpendingPrediction,
@@ -117,11 +116,11 @@ export default function PlanScreen() {
         ? await pickReceiptFromGallery()
         : await captureReceipt();
 
-      const provider = resolveProvider();
       let receipt: ParsedReceipt;
-      if (provider === 'gemini') {
+      try {
         receipt = await parseReceiptWithGemini(base64);
-      } else {
+      } catch (parseError) {
+        console.warn('Gemini receipt parsing failed, falling back to mock:', parseError);
         receipt = parseReceiptMock();
       }
       setParsedReceipt(receipt);
