@@ -532,35 +532,22 @@ export default function PlanScreen() {
             </View>
           </Card>
         ) : (
-          activeRecurring.map((recurring) => (
-            <Card key={recurring.id} style={styles.recurringCard}>
-              <View style={styles.recurringRow}>
-                <View style={styles.recurringIconWrap}>
-                  <Ionicons
-                    name={
-                      (CATEGORY_ICONS[recurring.category] ?? 'ellipsis-horizontal') as keyof typeof Ionicons.glyphMap
-                    }
-                    size={18}
-                    color={Colors.accent}
-                  />
-                </View>
-                <View style={styles.recurringInfo}>
-                  <Text style={styles.recurringMerchant} numberOfLines={1}>
-                    {recurring.merchant_name}
-                  </Text>
-                  <Text style={styles.recurringFrequency}>
-                    {FREQUENCY_LABELS[recurring.frequency]}
-                    {recurring.next_expected_date
-                      ? ` \u00B7 Next: ${formatDate(recurring.next_expected_date)}`
-                      : ''}
-                  </Text>
-                </View>
-                <Text style={styles.recurringAmount}>
-                  {formatCurrency(recurring.avg_amount)}
-                </Text>
-              </View>
-            </Card>
-          ))
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.recurringChipScroll}
+          >
+            {activeRecurring.map((recurring) => (
+              <RecurringChip
+                key={recurring.id}
+                merchant={recurring.merchant_name}
+                amount={recurring.avg_amount}
+                frequency={FREQUENCY_LABELS[recurring.frequency]}
+                nextDate={recurring.next_expected_date ? formatDate(recurring.next_expected_date) : ''}
+                onPress={() => {}}
+              />
+            ))}
+          </ScrollView>
         )}
 
         {/* --- Transaction Review Queue --- */}
@@ -611,12 +598,27 @@ const styles = StyleSheet.create({
     padding: Spacing.lg,
     paddingBottom: 120,
   },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: Spacing.lg,
+    marginBottom: Spacing.md,
+  },
   sectionTitle: {
     fontSize: Typography.sizes.xl,
     fontWeight: Typography.weights.semibold,
     color: Colors.textPrimary,
     marginTop: Spacing.lg,
     marginBottom: Spacing.md,
+  },
+  seeAllLink: {
+    fontSize: Typography.sizes.sm,
+    color: Colors.accent,
+    fontWeight: Typography.weights.medium,
+  },
+  recurringChipScroll: {
+    paddingVertical: Spacing.sm,
   },
   // Summary Card
   summaryCard: {
