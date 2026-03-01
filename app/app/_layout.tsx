@@ -15,6 +15,7 @@ import {
   DMSans_600SemiBold,
   DMSans_700Bold,
 } from '@expo-google-fonts/dm-sans';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Colors } from '../src/constants';
 import { useAuthStore } from '../src/stores/authStore';
 import { useNotificationStore } from '../src/stores/notificationStore';
@@ -58,7 +59,7 @@ export default function RootLayout() {
   }
 
   return (
-    <>
+    <GestureHandlerRootView style={{ flex: 1 }}>
       <StatusBar style="light" />
       {isLoading && (
         <View style={styles.loading}>
@@ -122,7 +123,7 @@ export default function RootLayout() {
           }}
         />
       </Stack>
-    </>
+    </GestureHandlerRootView>
   );
 }
 
