@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   TextInput,
   Alert,
+  Switch,
   StyleSheet,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -17,9 +18,14 @@ import { Button } from '../../src/components/ui/Button';
 import { FloatingChatButton } from '../../src/components/FloatingChatButton';
 import { PodiumDisplay } from '../../src/components/PodiumDisplay';
 import { BadgeDetailModal, type BadgeInfo } from '../../src/components/BadgeDetailModal';
+import { RankCard } from '../../src/components/RankCard';
 import { useAuthStore } from '../../src/stores/authStore';
-import { useGamificationStore } from '../../src/stores/gamificationStore';
+import {
+  useGamificationStore,
+  calculateRankTier,
+} from '../../src/stores/gamificationStore';
 import { useSocialStore } from '../../src/stores/socialStore';
+import { useBudgetStore } from '../../src/stores/budgetStore';
 
 const TABS = ['My Progress', 'Challenges', 'Leaderboard', 'Friends'];
 
@@ -50,6 +56,10 @@ export default function ArenaScreen() {
     activeChallenges,
     leaderboard,
     dailyCheckinDone,
+    socialOptIn,
+    anonymousMode,
+    setSocialOptIn,
+    setAnonymousMode,
     xpForNextLevel,
     xpProgress,
     loadProfile,
@@ -60,6 +70,15 @@ export default function ArenaScreen() {
     createFromTemplate,
     joinChallenge,
   } = useGamificationStore();
+
+  const { totalBudget, totalSpent } = useBudgetStore();
+
+  // Compute a demo savings rate based on budget data
+  const savingsRate = useMemo(() => {
+    if (totalBudget <= 0) return 12; // demo fallback
+    const saved = Math.max(0, totalBudget - totalSpent);
+    return Math.round((saved / totalBudget) * 100 * 10) / 10;
+  }, [totalBudget, totalSpent]);
 
   const {
     friends,
@@ -132,6 +151,9 @@ export default function ArenaScreen() {
         {/* My Progress Tab */}
         {activeTab === 0 && (
           <>
+            {/* Rank Card */}
+            <RankCard savingsRate={savingsRate} />
+
             <Card style={styles.progressCard}>
               <Text style={styles.level}>Level {profile.level}</Text>
               <Text style={styles.xpText}>
@@ -303,21 +325,31 @@ export default function ArenaScreen() {
             )}
 
             <Text style={styles.sectionTitle}>Top Players</Text>
-            {leaderboard.slice(leaderboard.length >= 3 ? 3 : 0).map((entry, i) => (
-              <Card key={entry.user_id} style={styles.leaderRow}>
-                <Text style={[styles.rank, entry.rank <= 3 && { color: Colors.accent }]}>
-                  #{entry.rank}
-                </Text>
-                <View style={styles.leaderAvatar}>
-                  <Ionicons name="person" size={18} color={Colors.textPrimary} />
-                </View>
-                <View style={styles.leaderInfo}>
-                  <Text style={styles.leaderName}>{entry.display_name}</Text>
-                  <Text style={styles.leaderLevel}>Level {entry.level}</Text>
-                </View>
-                <Text style={styles.leaderXP}>{entry.xp.toLocaleString()} XP</Text>
-              </Card>
-            ))}
+            {leaderboard.slice(leaderboard.length >= 3 ? 3 : 0).map((entry) => {
+              // Derive a demo savings rate from XP for display
+              const entrySavingsRate = Math.min(50, Math.round((entry.xp / 100) * 10) / 10);
+              const entryTier = calculateRankTier(entrySavingsRate);
+              return (
+                <Card key={entry.user_id} style={styles.leaderRow}>
+                  <Text style={[styles.rank, entry.rank <= 3 && { color: Colors.accent }]}>
+                    #{entry.rank}
+                  </Text>
+                  <View style={styles.leaderAvatar}>
+                    <Ionicons name="person" size={18} color={Colors.textPrimary} />
+                  </View>
+                  <View style={styles.leaderInfo}>
+                    <Text style={styles.leaderName}>{entry.display_name}</Text>
+                    <View style={styles.leaderMeta}>
+                      <Text style={styles.leaderLevel}>Level {entry.level}</Text>
+                      <Text style={styles.leaderTierBadge}>
+                        {entryTier.badge} {entrySavingsRate}%
+                      </Text>
+                    </View>
+                  </View>
+                  <Text style={styles.leaderXP}>{entry.xp.toLocaleString()} XP</Text>
+                </Card>
+              );
+            })}
             {leaderboard.length === 0 && (
               <Card>
                 <Text style={styles.emptyText}>Add friends to see the leaderboard!</Text>
@@ -329,6 +361,41 @@ export default function ArenaScreen() {
         {/* Friends Tab */}
         {activeTab === 3 && (
           <>
+            {/* Social Privacy Toggles */}
+            <Card style={styles.socialTogglesCard}>
+              <View style={styles.socialToggleRow}>
+                <View style={styles.socialToggleInfo}>
+                  <Ionicons name="share-social-outline" size={20} color={Colors.textSecondary} />
+                  <View style={styles.socialToggleTextWrap}>
+                    <Text style={styles.socialToggleLabel}>Share my rank</Text>
+                    <Text style={styles.socialToggleDesc}>Let friends see your tier and progress</Text>
+                  </View>
+                </View>
+                <Switch
+                  value={socialOptIn}
+                  onValueChange={setSocialOptIn}
+                  trackColor={{ false: Colors.borderSubtle, true: Colors.accentBright + '66' }}
+                  thumbColor={socialOptIn ? Colors.accentBright : Colors.textMuted}
+                />
+              </View>
+              <View style={styles.socialDivider} />
+              <View style={styles.socialToggleRow}>
+                <View style={styles.socialToggleInfo}>
+                  <Ionicons name="eye-off-outline" size={20} color={Colors.textSecondary} />
+                  <View style={styles.socialToggleTextWrap}>
+                    <Text style={styles.socialToggleLabel}>Anonymous mode</Text>
+                    <Text style={styles.socialToggleDesc}>Hide your name on leaderboards</Text>
+                  </View>
+                </View>
+                <Switch
+                  value={anonymousMode}
+                  onValueChange={setAnonymousMode}
+                  trackColor={{ false: Colors.borderSubtle, true: Colors.accentBright + '66' }}
+                  thumbColor={anonymousMode ? Colors.accentBright : Colors.textMuted}
+                />
+              </View>
+            </Card>
+
             {/* Friend Code */}
             <Card style={styles.friendCodeCard}>
               <Text style={styles.friendCodeLabel}>Your Friend Code</Text>
@@ -452,7 +519,9 @@ const styles = StyleSheet.create({
   leaderAvatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: Colors.cardBorder, justifyContent: 'center', alignItems: 'center' },
   leaderInfo: { flex: 1 },
   leaderName: { fontSize: Typography.sizes.md, fontWeight: Typography.weights.medium, color: Colors.textPrimary },
+  leaderMeta: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, marginTop: 2 },
   leaderLevel: { fontSize: Typography.sizes.xs, color: Colors.textMuted },
+  leaderTierBadge: { fontFamily: 'DMMono_500Medium', fontSize: 11, fontWeight: '500', color: Colors.textSecondary },
   leaderXP: { fontSize: Typography.sizes.md, fontWeight: Typography.weights.bold, color: Colors.accent },
   friendCodeCard: { alignItems: 'center' },
   friendCodeLabel: { fontSize: Typography.sizes.md, color: Colors.textSecondary },

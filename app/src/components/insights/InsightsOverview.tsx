@@ -16,6 +16,7 @@ import {
 } from '../../stores/budgetStore';
 import {
   calculateCCI,
+  forecastMonthEnd,
 } from '../../stores/predictionStore';
 import { usePredictionStore } from '../../stores/predictionStore';
 import { useGamificationStore } from '../../stores/gamificationStore';
@@ -105,7 +106,11 @@ export function InsightsOverview() {
   const totalExpenses = totalSpent > 0 ? totalSpent : 0;
   const net = totalIncome - totalExpenses;
 
-  // ---------- Days Until Budget Runs Out ----------
+  // ---------- Days Until Budget Runs Out (using predictive forecast) ----------
+  const forecast = useMemo(
+    () => forecastMonthEnd(totalSpent, dayOfMonth, daysInMonth, totalBudget),
+    [totalSpent, dayOfMonth, daysInMonth, totalBudget],
+  );
   const dailySpendingRate = dayOfMonth > 0 ? totalSpent / dayOfMonth : 0;
   const remainingBudget = Math.max(0, totalBudget - totalSpent);
   const daysUntilBudgetRunsOut = dailySpendingRate > 0
@@ -196,11 +201,29 @@ export function InsightsOverview() {
       </View>
 
       {/* Days Until Budget Runs Out */}
-      <View style={styles.budgetChip}>
-        <Ionicons name="alert-circle" size={16} color={Colors.warning} />
-        <Text style={styles.budgetChipText}>
-          <Text style={styles.budgetChipDays}>{daysUntilBudgetRunsOut}</Text> days until budget runs out
-        </Text>
+      <View style={[styles.budgetChip, forecast.isOverBudget && styles.budgetChipDanger]}>
+        <Ionicons
+          name={forecast.isOverBudget ? 'warning' : 'alert-circle'}
+          size={16}
+          color={forecast.isOverBudget ? Colors.negative : Colors.warning}
+        />
+        <View style={styles.budgetChipContent}>
+          <Text style={[styles.budgetChipText, forecast.isOverBudget && styles.budgetChipTextDanger]}>
+            <Text style={[styles.budgetChipDays, forecast.isOverBudget && { color: Colors.negative }]}>
+              {daysUntilBudgetRunsOut}
+            </Text> days until budget runs out
+          </Text>
+          <Text style={styles.budgetChipForecast}>
+            Projected month-end:{' '}
+            <Text style={styles.budgetChipForecastValue}>
+              ${forecast.projected.toLocaleString()}
+            </Text>
+            {' '}({forecast.isOverBudget ? 'over by ' : 'under by '}
+            <Text style={{ color: forecast.isOverBudget ? Colors.negative : Colors.positive }}>
+              ${Math.abs(forecast.surplus).toLocaleString()}
+            </Text>)
+          </Text>
+        </View>
       </View>
     </View>
   );
@@ -296,7 +319,7 @@ const styles = StyleSheet.create({
   },
   budgetChip: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: Spacing.sm,
     marginTop: Spacing.md,
     backgroundColor: 'rgba(245, 158, 11, 0.1)',
@@ -304,12 +327,30 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
   },
+  budgetChipDanger: {
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+  },
+  budgetChipContent: {
+    flex: 1,
+  },
   budgetChipText: {
     ...Typography.body.small,
     color: Colors.warning,
   },
+  budgetChipTextDanger: {
+    color: Colors.negative,
+  },
   budgetChipDays: {
     ...Typography.numeric.inlineValue,
     color: Colors.warning,
+  },
+  budgetChipForecast: {
+    ...Typography.caption.meta,
+    color: Colors.textMuted,
+    marginTop: 2,
+  },
+  budgetChipForecastValue: {
+    ...Typography.numeric.chartAxis,
+    color: Colors.textSecondary,
   },
 });

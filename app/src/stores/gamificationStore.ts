@@ -115,6 +115,10 @@ export const useGamificationStore = create<GamificationState>((set, get) => ({
   activeChallenges: [],
   leaderboard: [],
   dailyCheckinDone: false,
+  socialOptIn: true,
+  anonymousMode: false,
+  setSocialOptIn: (v: boolean) => set({ socialOptIn: v }),
+  setAnonymousMode: (v: boolean) => set({ anonymousMode: v }),
   isLoading: false,
   error: null,
 

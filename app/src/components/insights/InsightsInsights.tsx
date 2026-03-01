@@ -4,8 +4,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { Colors, Typography, Spacing } from '../../constants';
 import { Card } from '../ui/Card';
 import { AIInsightCard } from '../AIInsightCard';
+import { AnomalyBanner } from '../AnomalyBanner';
+import { BillCalendarView } from '../BillCalendarView';
+import { SmartBudgetSuggestion } from '../SmartBudgetSuggestion';
 import { useTransactionStore, getCategoryMoM } from '../../stores/transactionStore';
-import { useBudgetStore } from '../../stores/budgetStore';
+import { useBudgetStore, suggestCategoryBudgets } from '../../stores/budgetStore';
+import { detectAnomalies, predictBills } from '../../stores/predictionStore';
 
 const PERSONALITY_MAP: Record<string, { name: string; emoji: string; description: string }> = {
   dining: { name: 'The Foodie', emoji: '\uD83C\uDF7D\uFE0F', description: 'You love dining out and exploring restaurants' },
@@ -26,44 +30,20 @@ export function InsightsInsights() {
 
   const categoryMoM = useMemo(() => getCategoryMoM(transactions), [transactions]);
 
-  // ---------- Anomaly Detection ----------
-  const anomalies = useMemo(() => {
-    // Compute average spending per category over past 3 months
-    const now = new Date();
-    const threeMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 3, 1);
-    const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  // ---------- Anomaly Detection (using predictive store function) ----------
+  const anomalies = useMemo(() => detectAnomalies(transactions), [transactions]);
 
-    const historicalByCategory: Record<string, number[]> = {};
-    const currentByCategory: Record<string, number> = {};
+  // ---------- Predicted Bills ----------
+  const predictedBills = useMemo(
+    () => predictBills(recurringTransactions),
+    [recurringTransactions],
+  );
 
-    transactions.forEach((t) => {
-      const d = new Date(t.date);
-      const amount = Math.abs(t.amount);
-      if (d >= thisMonthStart && d <= now) {
-        currentByCategory[t.category] = (currentByCategory[t.category] || 0) + amount;
-      } else if (d >= threeMonthsAgo && d < thisMonthStart) {
-        if (!historicalByCategory[t.category]) historicalByCategory[t.category] = [];
-        historicalByCategory[t.category].push(amount);
-      }
-    });
-
-    const results: { category: string; amount: number; average: number; multiplier: number }[] = [];
-
-    Object.entries(currentByCategory).forEach(([cat, amount]) => {
-      const historical = historicalByCategory[cat];
-      if (historical && historical.length > 0) {
-        const avg = historical.reduce((a, b) => a + b, 0) / Math.max(1, 3);
-        if (avg > 0) {
-          const multiplier = amount / avg;
-          if (multiplier >= 2) {
-            results.push({ category: cat, amount, average: avg, multiplier });
-          }
-        }
-      }
-    });
-
-    return results.sort((a, b) => b.multiplier - a.multiplier).slice(0, 3);
-  }, [transactions]);
+  // ---------- Smart Budget Suggestions ----------
+  const budgetSuggestions = useMemo(
+    () => suggestCategoryBudgets(transactions, budgets),
+    [transactions, budgets],
+  );
 
   // ---------- Account Split Analysis ----------
   const accountSpend = useMemo(() => {
@@ -170,23 +150,8 @@ export function InsightsInsights() {
     <View>
       {/* Anomaly Detection */}
       <Text style={styles.sectionTitle}>Anomaly Detection</Text>
-      {anomalies.length > 0 ? (
-        anomalies.map((anomaly) => (
-          <Card key={anomaly.category} style={styles.anomalyCard}>
-            <View style={styles.anomalyHeader}>
-              <Ionicons name="warning" size={18} color={Colors.warning} />
-              <Text style={styles.anomalyTitle}>Unusual Spending</Text>
-            </View>
-            <Text style={styles.anomalyBody}>
-              Your {anomaly.category} spend this month is{' '}
-              <Text style={styles.anomalyHighlight}>{anomaly.multiplier.toFixed(1)}x</Text> your
-              average. You've spent{' '}
-              <Text style={styles.anomalyAmount}>${anomaly.amount.toFixed(0)}</Text> vs your
-              typical <Text style={styles.anomalyAmount}>${anomaly.average.toFixed(0)}</Text>.
-            </Text>
-          </Card>
-        ))
-      ) : (
+      <AnomalyBanner anomalies={anomalies} />
+      {anomalies.length === 0 && (
         <Card>
           <View style={styles.emptyRow}>
             <Ionicons name="checkmark-circle" size={20} color={Colors.positive} />
@@ -246,6 +211,22 @@ export function InsightsInsights() {
         )}
       </Card>
 
+      {/* Smart Budget Suggestions */}
+      {budgetSuggestions.length > 0 && (
+        <>
+          <Text style={styles.sectionTitle}>Budget Suggestions</Text>
+          {budgetSuggestions.slice(0, 3).map((suggestion) => (
+            <SmartBudgetSuggestion
+              key={suggestion.category}
+              category={suggestion.category}
+              currentBudget={suggestion.currentBudget}
+              suggestedBudget={suggestion.suggestedBudget}
+              reason={suggestion.reason}
+            />
+          ))}
+        </>
+      )}
+
       {/* Improvement Suggestions */}
       <Text style={styles.sectionTitle}>Suggestions</Text>
       {suggestions.length > 0 ? (
@@ -263,6 +244,16 @@ export function InsightsInsights() {
           title="Looking Good"
           body="No specific suggestions right now. Your spending patterns are healthy!"
         />
+      )}
+
+      {/* Upcoming Bills Calendar */}
+      {predictedBills.length > 0 && (
+        <>
+          <Text style={styles.sectionTitle}>Bill Calendar</Text>
+          <Card>
+            <BillCalendarView bills={predictedBills} />
+          </Card>
+        </>
       )}
 
       {/* Recurring Expenses */}
@@ -302,33 +293,6 @@ const styles = StyleSheet.create({
     color: Colors.textPrimary,
     marginTop: Spacing['2xl'],
     marginBottom: Spacing.md,
-  },
-  anomalyCard: {
-    marginBottom: Spacing.sm,
-    borderLeftWidth: 3,
-    borderLeftColor: Colors.warning,
-  },
-  anomalyHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    marginBottom: Spacing.sm,
-  },
-  anomalyTitle: {
-    ...Typography.heading.h3,
-    color: Colors.warning,
-  },
-  anomalyBody: {
-    ...Typography.body.small,
-    color: Colors.textSecondary,
-    lineHeight: 20,
-  },
-  anomalyHighlight: {
-    ...Typography.numeric.inlineValue,
-    color: Colors.warning,
-  },
-  anomalyAmount: {
-    ...Typography.numeric.inlineValue,
   },
   accountRow: {
     flexDirection: 'row',
