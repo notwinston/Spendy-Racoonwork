@@ -105,7 +105,7 @@ interface SocialState {
   ) => Promise<void>;
 
   // Actions - Leaderboard
-  fetchLeaderboard: (challengeId?: string) => Promise<void>;
+  fetchLeaderboard: (options?: { challengeId?: string; scope?: 'global' | 'friends'; friendIds?: string[] }) => Promise<void>;
 }
 
 export const useSocialStore = create<SocialState>((set, get) => ({
@@ -422,10 +422,10 @@ export const useSocialStore = create<SocialState>((set, get) => ({
 
   // ---- Leaderboard ----
 
-  fetchLeaderboard: async (challengeId?: string) => {
+  fetchLeaderboard: async (options?: { challengeId?: string; scope?: 'global' | 'friends'; friendIds?: string[] }) => {
     set({ isLoading: true, error: null });
     try {
-      const entries = await svcGetLeaderboard(challengeId);
+      const entries = await svcGetLeaderboard(options);
       set({ leaderboard: entries, isLoading: false });
     } catch (err) {
       set({

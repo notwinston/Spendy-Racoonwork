@@ -852,7 +852,13 @@ export async function getActiveChallenges(
 /**
  * Global or challenge-specific leaderboard.
  */
-export async function getLeaderboard(challengeId?: string): Promise<LeaderboardEntry[]> {
+export async function getLeaderboard(options?: {
+  challengeId?: string;
+  scope?: 'global' | 'friends';
+  friendIds?: string[];
+}): Promise<LeaderboardEntry[]> {
+  const { challengeId, scope, friendIds } = options ?? {};
+
   if (isDemoMode()) {
     const entries: LeaderboardEntry[] = [
       {
@@ -880,10 +886,16 @@ export async function getLeaderboard(challengeId?: string): Promise<LeaderboardE
         rank: 3,
       },
     ];
+
+    // Filter to friends scope if requested
+    const filtered = scope === 'friends' && friendIds
+      ? entries.filter((e) => friendIds.includes(e.user_id) || e.user_id === 'demo-user')
+      : entries;
+
     // Sort by XP descending and reassign ranks
-    entries.sort((a, b) => b.xp - a.xp);
-    entries.forEach((e, i) => (e.rank = i + 1));
-    return entries;
+    filtered.sort((a, b) => b.xp - a.xp);
+    filtered.forEach((e, i) => (e.rank = i + 1));
+    return filtered;
   }
 
   if (challengeId) {
@@ -909,6 +921,30 @@ export async function getLeaderboard(challengeId?: string): Promise<LeaderboardE
         };
       },
     );
+
+    entries.sort((a, b) => b.xp - a.xp);
+    entries.forEach((e, i) => (e.rank = i + 1));
+    return entries;
+  }
+
+  // Friends-scoped leaderboard
+  if (scope === 'friends' && friendIds && friendIds.length > 0) {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('id, display_name, avatar_url, xp, level')
+      .in('id', friendIds)
+      .order('xp', { ascending: false });
+
+    if (error) throw new Error(`getLeaderboard failed: ${error.message}`);
+
+    const entries: LeaderboardEntry[] = (data ?? []).map((row: Record<string, unknown>, index: number) => ({
+      user_id: row.id as string,
+      display_name: (row.display_name as string) ?? 'Unknown',
+      avatar_url: (row.avatar_url as string | null) ?? null,
+      xp: (row.xp as number) ?? 0,
+      level: (row.level as number) ?? 1,
+      rank: index + 1,
+    }));
 
     entries.sort((a, b) => b.xp - a.xp);
     entries.forEach((e, i) => (e.rank = i + 1));

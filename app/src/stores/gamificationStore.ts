@@ -96,7 +96,7 @@ interface GamificationState {
     userId: string,
     startsAt?: string,
   ) => Promise<Challenge>;
-  fetchLeaderboard: (challengeId?: string) => Promise<void>;
+  fetchLeaderboard: (options?: { challengeId?: string; scope?: 'global' | 'friends'; friendIds?: string[] }) => Promise<void>;
   fetchXpHistory: (userId: string) => Promise<void>;
 }
 
@@ -324,10 +324,10 @@ export const useGamificationStore = create<GamificationState>((set, get) => ({
     }
   },
 
-  fetchLeaderboard: async (challengeId?: string) => {
+  fetchLeaderboard: async (options?: { challengeId?: string; scope?: 'global' | 'friends'; friendIds?: string[] }) => {
     set({ isLoading: true, error: null });
     try {
-      const entries = await svcGetLeaderboard(challengeId);
+      const entries = await svcGetLeaderboard(options);
       set({ leaderboard: entries, isLoading: false });
     } catch (err) {
       set({
