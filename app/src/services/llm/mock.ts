@@ -1,5 +1,9 @@
 import type { LLMAdapter } from './adapter';
-import type { EventCategory, LLMPredictionItem } from '../../types';
+import type { EventCategory, LLMPredictionItem, HiddenCostTier } from '../../types';
+
+// ---- Hidden cost prompt detection marker ----
+
+const HIDDEN_COST_PROMPT_MARKER = '### Hidden Cost Analysis';
 
 // ---- Keyword-to-category mapping with typical dollar ranges ----
 
@@ -8,6 +12,112 @@ interface CategoryRule {
   min: number;
   max: number;
 }
+
+// ---- Hidden cost rules ----
+
+interface HiddenCostTemplate {
+  label: string;
+  tier: HiddenCostTier;
+  category: EventCategory;
+  min: number;
+  max: number;
+}
+
+const HIDDEN_COST_RULES: Record<string, HiddenCostTemplate[]> = {
+  dinner: [
+    { label: 'Drinks after', tier: 'likely', category: 'dining', min: 15, max: 40 },
+    { label: 'Uber home', tier: 'possible', category: 'transport', min: 12, max: 35 },
+    { label: 'Parking', tier: 'possible', category: 'transport', min: 5, max: 15 },
+  ],
+  restaurant: [
+    { label: 'Drinks after', tier: 'likely', category: 'dining', min: 15, max: 40 },
+    { label: 'Uber home', tier: 'possible', category: 'transport', min: 12, max: 35 },
+    { label: 'Parking', tier: 'possible', category: 'transport', min: 5, max: 15 },
+  ],
+  earls: [
+    { label: 'Drinks after', tier: 'likely', category: 'dining', min: 15, max: 40 },
+    { label: 'Uber home', tier: 'possible', category: 'transport', min: 12, max: 35 },
+    { label: 'Parking', tier: 'possible', category: 'transport', min: 5, max: 15 },
+  ],
+  lunch: [
+    { label: 'Coffee after', tier: 'likely', category: 'dining', min: 4, max: 8 },
+    { label: 'Dessert', tier: 'possible', category: 'dining', min: 5, max: 12 },
+  ],
+  'team lunch': [
+    { label: 'Coffee after', tier: 'likely', category: 'dining', min: 4, max: 8 },
+    { label: 'Dessert', tier: 'possible', category: 'dining', min: 5, max: 12 },
+  ],
+  nuba: [
+    { label: 'Coffee after', tier: 'likely', category: 'dining', min: 4, max: 8 },
+    { label: 'Dessert', tier: 'possible', category: 'dining', min: 5, max: 12 },
+  ],
+  gym: [
+    { label: 'Post-workout smoothie', tier: 'likely', category: 'fitness', min: 6, max: 12 },
+    { label: 'Parking', tier: 'possible', category: 'transport', min: 3, max: 10 },
+  ],
+  workout: [
+    { label: 'Post-workout smoothie', tier: 'likely', category: 'fitness', min: 6, max: 12 },
+    { label: 'Parking', tier: 'possible', category: 'transport', min: 3, max: 10 },
+  ],
+  equinox: [
+    { label: 'Post-workout smoothie', tier: 'likely', category: 'fitness', min: 6, max: 12 },
+    { label: 'Parking', tier: 'possible', category: 'transport', min: 3, max: 10 },
+  ],
+  trip: [
+    { label: 'Gas', tier: 'likely', category: 'transport', min: 30, max: 70 },
+    { label: 'Meals', tier: 'likely', category: 'dining', min: 20, max: 50 },
+    { label: 'Emergency supplies', tier: 'unlikely_costly', category: 'shopping', min: 20, max: 80 },
+  ],
+  weekend: [
+    { label: 'Gas', tier: 'likely', category: 'transport', min: 30, max: 70 },
+    { label: 'Meals', tier: 'likely', category: 'dining', min: 20, max: 50 },
+    { label: 'Emergency supplies', tier: 'unlikely_costly', category: 'shopping', min: 20, max: 80 },
+  ],
+  whistler: [
+    { label: 'Gas', tier: 'likely', category: 'transport', min: 30, max: 70 },
+    { label: 'Meals', tier: 'likely', category: 'dining', min: 20, max: 50 },
+    { label: 'Emergency supplies', tier: 'unlikely_costly', category: 'shopping', min: 20, max: 80 },
+  ],
+  birthday: [
+    { label: 'Gift', tier: 'likely', category: 'shopping', min: 20, max: 60 },
+    { label: 'Drinks', tier: 'possible', category: 'dining', min: 15, max: 45 },
+  ],
+  party: [
+    { label: 'Gift', tier: 'likely', category: 'shopping', min: 20, max: 60 },
+    { label: 'Drinks', tier: 'possible', category: 'dining', min: 15, max: 45 },
+  ],
+  concert: [
+    { label: 'Drinks', tier: 'likely', category: 'dining', min: 15, max: 40 },
+    { label: 'Merch', tier: 'possible', category: 'shopping', min: 20, max: 60 },
+    { label: 'Uber', tier: 'possible', category: 'transport', min: 12, max: 30 },
+  ],
+  show: [
+    { label: 'Drinks', tier: 'likely', category: 'dining', min: 15, max: 40 },
+    { label: 'Merch', tier: 'possible', category: 'shopping', min: 20, max: 60 },
+    { label: 'Uber', tier: 'possible', category: 'transport', min: 12, max: 30 },
+  ],
+  coffee: [
+    { label: 'Pastry/snack', tier: 'possible', category: 'dining', min: 3, max: 8 },
+  ],
+  cafe: [
+    { label: 'Pastry/snack', tier: 'possible', category: 'dining', min: 3, max: 8 },
+  ],
+  starbucks: [
+    { label: 'Pastry/snack', tier: 'possible', category: 'dining', min: 3, max: 8 },
+  ],
+  date: [
+    { label: 'Activity after', tier: 'possible', category: 'entertainment', min: 15, max: 45 },
+    { label: 'Flowers/gift', tier: 'possible', category: 'shopping', min: 15, max: 30 },
+  ],
+  conference: [
+    { label: 'Coffee', tier: 'likely', category: 'dining', min: 4, max: 7 },
+    { label: 'Lunch', tier: 'possible', category: 'dining', min: 12, max: 25 },
+  ],
+  meeting: [
+    { label: 'Coffee', tier: 'likely', category: 'dining', min: 4, max: 7 },
+    { label: 'Lunch', tier: 'possible', category: 'dining', min: 12, max: 25 },
+  ],
+};
 
 const KEYWORD_RULES: Record<string, CategoryRule> = {
   // Dining
@@ -179,6 +289,55 @@ function buildMockResponse(prompt: string): string {
   return JSON.stringify({ predictions }, null, 2);
 }
 
+// ---- Hidden cost mock response ----
+
+function hiddenCostConfidence(tier: HiddenCostTier): number {
+  switch (tier) {
+    case 'likely': return randomBetween(0.75, 0.95);
+    case 'possible': return randomBetween(0.35, 0.65);
+    case 'unlikely_costly': return randomBetween(0.10, 0.25);
+  }
+}
+
+function buildMockHiddenCostResponse(prompt: string): string {
+  const titleMatch = prompt.match(/Title:\s*(.+?)(?:\n|$)/i);
+  const title = titleMatch ? titleMatch[1].trim().toLowerCase() : '';
+
+  const hiddenCosts: {
+    label: string;
+    description: string;
+    predicted_amount: number;
+    amount_low: number;
+    amount_high: number;
+    confidence: number;
+    category: string;
+    signal_source: string;
+  }[] = [];
+
+  const signalSources = ['historical', 'metadata', 'social', 'seasonal'] as const;
+
+  for (const [keyword, templates] of Object.entries(HIDDEN_COST_RULES)) {
+    if (title.includes(keyword.toLowerCase())) {
+      for (const tpl of templates) {
+        const amount = randomBetween(tpl.min, tpl.max);
+        hiddenCosts.push({
+          label: tpl.label,
+          description: `${tpl.label} is ${tpl.tier} when attending "${titleMatch ? titleMatch[1].trim() : 'event'}"`,
+          predicted_amount: amount,
+          amount_low: Math.round(tpl.min * 100) / 100,
+          amount_high: Math.round(tpl.max * 100) / 100,
+          confidence: Math.round(hiddenCostConfidence(tpl.tier) * 100) / 100,
+          category: tpl.category,
+          signal_source: signalSources[Math.floor(Math.random() * signalSources.length)],
+        });
+      }
+      break;
+    }
+  }
+
+  return JSON.stringify({ hidden_costs: hiddenCosts }, null, 2);
+}
+
 /**
  * Mock adapter that returns realistic predictions without calling any API.
  *
@@ -188,6 +347,12 @@ export class MockAdapter implements LLMAdapter {
   async predict(prompt: string): Promise<string> {
     // Simulate network latency
     await delay(300 + Math.random() * 400);
+
+    // Check for hidden cost prompt
+    if (prompt.includes(HIDDEN_COST_PROMPT_MARKER)) {
+      return buildMockHiddenCostResponse(prompt);
+    }
+
     return buildMockResponse(prompt);
   }
 

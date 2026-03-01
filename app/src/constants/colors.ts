@@ -1,8 +1,8 @@
 export const Colors = {
   // Primary backgrounds
   background: '#0A1628',
-  card: '#132039',
-  cardBorder: '#1E3054',
+  card: '#0F2847',
+  cardBorder: '#1A3A5C',
 
   // Accent colors
   accent: '#00D09C',
@@ -10,8 +10,8 @@ export const Colors = {
 
   // Status colors
   positive: '#22C55E',
-  warning: '#FFB020',
-  danger: '#FF4757',
+  warning: '#FFD93D',
+  danger: '#FF6B6B',
   info: '#3B82F6',
 
   // Burn rate colors
@@ -22,7 +22,7 @@ export const Colors = {
 
   // Text
   textPrimary: '#FFFFFF',
-  textSecondary: '#94A3B8',
+  textSecondary: '#8899AA',
   textMuted: '#64748B',
 
   // Borders and dividers
@@ -48,6 +48,12 @@ export const Colors = {
   gradeC: '#FACC15',
   gradeD: '#F97316',
   gradeF: '#EF4444',
+
+  // Chart & insight colors
+  warningYellow: '#FFD93D',
+  destructiveRed: '#FF6B6B',
+  chartPredictionDashed: '#00D09C',
+  chartConfidenceFill: 'rgba(0,208,156,0.15)',
 
   // Overlays
   overlay: 'rgba(10, 22, 40, 0.8)',

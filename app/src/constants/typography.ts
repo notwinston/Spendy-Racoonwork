@@ -1,4 +1,5 @@
 export const Typography = {
+  fontFamily: 'System',
   sizes: {
     xs: 10,
     sm: 12,
