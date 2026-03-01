@@ -33,6 +33,7 @@ interface TransactionState {
   ) => Promise<void>;
   detectRecurring: (userId: string) => void;
   syncBankTransactions: (connectionId: string) => Promise<void>;
+  updateTransaction: (txnId: string, updates: Partial<Transaction>) => Promise<void>;
   clearTransactions: () => void;
 }
 
@@ -164,6 +165,24 @@ export const useTransactionStore = create<TransactionState>((set, get) => ({
       console.warn('syncBankTransactions error:', err);
     } finally {
       set({ isLoading: false });
+    }
+  },
+
+  updateTransaction: async (txnId: string, updates: Partial<Transaction>) => {
+    const { transactions } = get();
+    const updated = transactions.map((t) =>
+      t.id === txnId ? { ...t, ...updates } : t
+    );
+    set({ transactions: updated });
+
+    if (isSupabaseConfigured) {
+      const { error } = await supabase
+        .from('transactions')
+        .update(updates)
+        .eq('id', txnId);
+      if (error) {
+        console.warn('updateTransaction error:', error.message);
+      }
     }
   },
 

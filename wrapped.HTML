@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Money Wrapped 2025</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{
+  width:100%;height:100%;background:#0a0a0a;
+  display:flex;align-items:center;justify-content:center;
+  overflow:hidden;touch-action:none;user-select:none;
+  font-family:'Syne',sans-serif;color:#fff;
+}
+
+/* Phone shell — JS sets exact px width/height */
+#phone{
+  position:relative;
+  background:#060606;
+  border-radius:40px;
+  overflow:hidden;
+  box-shadow:0 40px 100px rgba(0,0,0,.85),0 0 0 1px rgba(255,255,255,.07);
+  flex-shrink:0;
+}
+
+/* Blobs */
+#morph-bg{position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:0}
+.blob{position:absolute;border-radius:50%;filter:blur(60px);opacity:.5;
+  transition:background 1s ease,top 1.1s cubic-bezier(.4,0,.2,1),left 1.1s cubic-bezier(.4,0,.2,1),bottom 1.1s cubic-bezier(.4,0,.2,1),right 1.1s cubic-bezier(.4,0,.2,1)}
+#b1{width:120%;height:70%;top:-25%;left:-25%}
+#b2{width:90%;height:60%;bottom:-20%;right:-20%}
+#b3{width:70%;height:50%;opacity:.35}
+
+/* Progress bars */
+#bars{position:absolute;top:0;left:0;right:0;z-index:100;display:flex;gap:3px}
+.bar{flex:1;height:2px;background:rgba(255,255,255,.18);border-radius:2px;overflow:hidden}
+.bar-fill{height:100%;background:#fff;width:0%;border-radius:2px;transition:width .1s linear}
+
+/* Tap zones */
+#tap-prev{position:absolute;top:0;left:0;right:0;height:50%;z-index:90;cursor:pointer}
+#tap-next{position:absolute;bottom:0;left:0;right:0;height:50%;z-index:90;cursor:pointer}
+
+/* Stage */
+#stage{position:absolute;inset:0;overflow:hidden;z-index:1}
+#track{position:absolute;top:0;left:0;width:100%;display:flex;flex-direction:column;will-change:transform}
+#track.sliding{transition:transform .72s cubic-bezier(.77,0,.18,1)}
+
+/* Slides — JS sets height */
+.slide{width:100%;flex-shrink:0;position:relative;overflow:hidden}
+canvas.bg{position:absolute;inset:0;width:100%;height:100%}
+
+/* ─── SLIDE INNER ───────────────────────────────────────────
+   Each slide has a single .inner div that is a flex column.
+   JS sets its exact padding so content is never at the top.
+   No absolute positioning of content — pure flexbox flow.
+─────────────────────────────────────────────────────────── */
+.inner{
+  position:absolute;
+  inset:0;
+  display:flex;
+  flex-direction:column;
+  z-index:2;
+  overflow:hidden;
+}
+
+/* Vertical position helpers */
+.inner.pos-center{justify-content:center;align-items:center;text-align:center}
+.inner.pos-bottom{justify-content:flex-end;align-items:flex-start;text-align:left}
+.inner.pos-bottom-right{justify-content:flex-end;align-items:flex-end;text-align:right}
+.inner.pos-top{justify-content:flex-start;align-items:flex-start;text-align:left}
+.inner.pos-split{justify-content:space-between;align-items:flex-start;text-align:left}
+
+/* Ghost stinger — absolutely positioned by JS */
+.stinger{
+  position:absolute;font-family:'Syne',sans-serif;font-weight:800;
+  letter-spacing:-.06em;line-height:1;opacity:.06;
+  pointer-events:none;z-index:0;white-space:nowrap;color:#fff;
+}
+
+/* ─── TYPOGRAPHY ─── */
+.eyebrow{
+  font-family:'DM Mono',monospace;letter-spacing:.26em;
+  text-transform:uppercase;color:rgba(255,255,255,.42);
+}
+.headline{font-weight:800;line-height:1.04;letter-spacing:-.035em}
+.sub{
+  font-family:'DM Mono',monospace;line-height:1.7;
+  color:rgba(255,255,255,.45);
+}
+.bignum{font-weight:800;letter-spacing:-.06em;line-height:.88}
+.mednum{font-weight:800;letter-spacing:-.05em;line-height:.9;color:rgba(255,255,255,.18)}
+.sep-line{border-radius:2px;opacity:.65;flex-shrink:0}
+.chip{
+  display:inline-flex;align-items:center;
+  border-radius:100px;border:1px solid rgba(255,255,255,.2);
+  font-family:'DM Mono',monospace;letter-spacing:.14em;text-transform:uppercase;
+  opacity:0;align-self:center;
+}
+
+/* ─── CATEGORY BARS ─── */
+.mbar-row{display:flex;align-items:center;width:100%}
+.mbar-label{font-family:'DM Mono',monospace;opacity:.38;flex-shrink:0}
+.mbar-track{flex:1;height:3px;background:rgba(255,255,255,.07);border-radius:2px;overflow:hidden;margin:0 8px}
+.mbar-fill{height:100%;border-radius:2px;transform:scaleX(0);transform-origin:left;transition:transform 1.1s cubic-bezier(.16,1,.3,1)}
+.mbar-pct{font-family:'DM Mono',monospace;opacity:.3;flex-shrink:0}
+
+/* ─── MONTH GRID ─── */
+.month-grid{display:grid;grid-template-columns:repeat(6,1fr);width:100%}
+.month-cell{
+  aspect-ratio:1;border-radius:7px;display:flex;align-items:center;
+  justify-content:center;font-family:'DM Mono',monospace;
+  transform:scale(0);opacity:0;
+  transition:transform .38s cubic-bezier(.34,1.56,.64,1),opacity .2s ease;
+}
+.month-cell.hit{background:rgba(255,255,255,.14)}
+.month-cell.miss{background:rgba(255,255,255,.04);color:rgba(255,255,255,.22)}
+
+/* ─── RECEIPT CARD ─── */
+.receipt{
+  width:100%;background:rgba(255,255,255,.04);
+  border:1px solid rgba(255,255,255,.1);border-radius:14px;
+  opacity:0;transform:translateY(14px);
+  transition:opacity .6s ease,transform .6s cubic-bezier(.16,1,.3,1);
+}
+.receipt-row{
+  display:flex;justify-content:space-between;align-items:center;
+  border-bottom:1px solid rgba(255,255,255,.06);
+  font-family:'DM Mono',monospace;
+}
+.receipt-row:last-child{border-bottom:none}
+.receipt-label{opacity:.3}
+
+/* ─── SUMMARY GRID ─── */
+.sum-grid{display:grid;grid-template-columns:1fr 1fr;width:100%;
+  opacity:0;transform:translateY(12px);
+  transition:opacity .5s ease .45s,transform .5s cubic-bezier(.16,1,.3,1) .45s}
+.sum-cell{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.09);border-radius:12px}
+.sum-label{font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.1em;opacity:.28}
+.sum-val{font-weight:800;letter-spacing:-.03em}
+
+.share-btn{
+  background:#fff;color:#000;border:none;border-radius:100px;
+  font-family:'Syne',sans-serif;font-weight:800;cursor:pointer;
+  opacity:0;transform:translateY(12px);
+  transition:opacity .45s ease .8s,transform .45s cubic-bezier(.16,1,.3,1) .8s;
+  pointer-events:none;align-self:center;
+}
+.share-btn:active{scale:.97}
+
+/* ─── SLIDE-IN ANIMS ─── */
+.slide-in .chip     {animation:fadeUp .4s cubic-bezier(.16,1,.3,1) .05s both}
+.slide-in .eyebrow  {animation:fadeUp .45s cubic-bezier(.16,1,.3,1) .1s both}
+.slide-in .sep-line {animation:fadeUp .35s cubic-bezier(.16,1,.3,1) .02s both}
+.slide-in .headline {animation:fadeUp .55s cubic-bezier(.16,1,.3,1) .2s both}
+.slide-in .bignum   {animation:rollIn .65s cubic-bezier(.34,1.2,.64,1) .12s both}
+.slide-in .mednum   {animation:fadeUp .5s cubic-bezier(.16,1,.3,1) .28s both}
+.slide-in .sub      {animation:fadeUp .45s cubic-bezier(.16,1,.3,1) .35s both}
+.slide-in .stinger  {animation:fadeIn .8s ease .2s both}
+
+.slide-in .mbar-fill{transform:scaleX(1)!important}
+.slide-in .mbar-row:nth-child(1) .mbar-fill{transition-delay:.45s}
+.slide-in .mbar-row:nth-child(2) .mbar-fill{transition-delay:.58s}
+.slide-in .mbar-row:nth-child(3) .mbar-fill{transition-delay:.71s}
+.slide-in .mbar-row:nth-child(4) .mbar-fill{transition-delay:.84s}
+.slide-in .mbar-row:nth-child(5) .mbar-fill{transition-delay:.97s}
+
+.slide-in .month-cell{transform:scale(1)!important;opacity:1!important}
+.slide-in .month-cell:nth-child(1){transition-delay:.42s}.slide-in .month-cell:nth-child(2){transition-delay:.48s}
+.slide-in .month-cell:nth-child(3){transition-delay:.54s}.slide-in .month-cell:nth-child(4){transition-delay:.60s}
+.slide-in .month-cell:nth-child(5){transition-delay:.66s}.slide-in .month-cell:nth-child(6){transition-delay:.72s}
+.slide-in .month-cell:nth-child(7){transition-delay:.78s}.slide-in .month-cell:nth-child(8){transition-delay:.84s}
+.slide-in .month-cell:nth-child(9){transition-delay:.90s}.slide-in .month-cell:nth-child(10){transition-delay:.96s}
+.slide-in .month-cell:nth-child(11){transition-delay:1.02s}.slide-in .month-cell:nth-child(12){transition-delay:1.08s}
+
+.slide-in .receipt{opacity:1!important;transform:translateY(0)!important}
+.slide-in .sum-grid{opacity:1!important;transform:translateY(0)!important}
+.slide-in .share-btn{opacity:1!important;transform:translateY(0)!important;pointer-events:all!important}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+@keyframes rollIn{0%{opacity:0;transform:translateY(36px) scale(.8)}55%{opacity:1}100%{transform:translateY(0) scale(1)}}
+@keyframes fadeIn{from{opacity:0}to{opacity:.06}}
+</style>
+</head>
+<body>
+<div id="phone">
+  <div id="morph-bg">
+    <div class="blob" id="b1"></div>
+    <div class="blob" id="b2"></div>
+    <div class="blob" id="b3"></div>
+  </div>
+  <div id="bars"></div>
+  <div id="tap-prev"></div>
+  <div id="tap-next"></div>
+  <div id="stage">
+    <div id="track">
+
+      <!-- 0: Intro -->
+      <div class="slide" id="s0">
+        <canvas class="bg" id="c0"></canvas>
+        <div class="stinger" id="sg0">25</div>
+        <div class="inner pos-center" id="i0">
+          <div class="chip" id="chip0">✦ 2025 ✦</div>
+          <div class="headline" id="hl0">Your<br>Money<br><span class="aw">Wrapped</span></div>
+          <div class="sub" id="sub0">A full year of your financial life.<br>Every dollar. Every habit. Every win.</div>
+        </div>
+      </div>
+
+      <!-- 1: Total Spent -->
+      <div class="slide" id="s1">
+        <canvas class="bg" id="c1"></canvas>
+        <div class="stinger" id="sg1">38K</div>
+        <div class="inner pos-center" id="i1">
+          <div class="sep-line" id="sep1"></div>
+          <div class="eyebrow" id="ey1">Total spent in 2025</div>
+          <div class="bignum aw" id="bn1">$38,420</div>
+          <div class="sub" id="sub1">1,247 transactions · 3.4 / day</div>
+          <div id="bars1">
+            <div class="mbar-row"><span class="mbar-label">Housing</span><div class="mbar-track"><div class="mbar-fill" style="width:38%;background:#FF5050CC"></div></div><span class="mbar-pct">38%</span></div>
+            <div class="mbar-row"><span class="mbar-label">Food</span><div class="mbar-track"><div class="mbar-fill" style="width:22%;background:#FF8C3DCC"></div></div><span class="mbar-pct">22%</span></div>
+            <div class="mbar-row"><span class="mbar-label">Transport</span><div class="mbar-track"><div class="mbar-fill" style="width:14%;background:#FFD166CC"></div></div><span class="mbar-pct">14%</span></div>
+            <div class="mbar-row"><span class="mbar-label">Shopping</span><div class="mbar-track"><div class="mbar-fill" style="width:16%;background:#A259FFCC"></div></div><span class="mbar-pct">16%</span></div>
+            <div class="mbar-row"><span class="mbar-label">Other</span><div class="mbar-track"><div class="mbar-fill" style="width:10%;background:rgba(255,255,255,.22)"></div></div><span class="mbar-pct">10%</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2: Top Category -->
+      <div class="slide" id="s2">
+        <canvas class="bg" id="c2"></canvas>
+        <div class="stinger" id="sg2">🍜</div>
+        <div class="inner pos-center" id="i2">
+          <div class="sep-line" id="sep2"></div>
+          <div class="eyebrow" id="ey2">Your top category</div>
+          <div class="headline" id="hl2">You lived<br>for<br><span class="aw">Food &amp;<br>Dining</span></div>
+          <div class="sub" id="sub2">$8,452 · $703/month<br>47 café visits</div>
+        </div>
+      </div>
+
+      <!-- 3: Savings -->
+      <div class="slide" id="s3">
+        <canvas class="bg" id="c3"></canvas>
+        <div class="stinger" id="sg3">65</div>
+        <div class="inner pos-center" id="i3">
+          <div class="sep-line" id="sep3"></div>
+          <div class="eyebrow" id="ey3">You saved</div>
+          <div class="bignum aw" id="bn3">$24,900</div>
+          <div class="mednum" id="mn3">65% savings rate</div>
+          <div class="sub" id="sub3">Goal was $20K — beat it by $4,900.<br>Better than 82% your age.</div>
+        </div>
+      </div>
+
+      <!-- 4: Budget Streak -->
+      <div class="slide" id="s4">
+        <canvas class="bg" id="c4"></canvas>
+        <div class="inner pos-center" id="i4">
+          <div class="sep-line" id="sep4"></div>
+          <div class="eyebrow" id="ey4">Budget streak</div>
+          <div class="bignum aw" id="bn4">9</div>
+          <div class="sub" id="sub4">months under budget</div>
+          <div class="month-grid" id="mg4">
+            <div class="month-cell hit">JAN</div><div class="month-cell hit">FEB</div><div class="month-cell hit">MAR</div>
+            <div class="month-cell miss">APR</div><div class="month-cell hit">MAY</div><div class="month-cell hit">JUN</div>
+            <div class="month-cell hit">JUL</div><div class="month-cell hit">AUG</div><div class="month-cell hit">SEP</div>
+            <div class="month-cell hit">OCT</div><div class="month-cell miss">NOV</div><div class="month-cell hit">DEC</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 5: Biggest Purchase -->
+      <div class="slide" id="s5">
+        <canvas class="bg" id="c5"></canvas>
+        <div class="stinger" id="sg5">3.2K</div>
+        <div class="inner pos-top" id="i5">
+          <div class="sep-line" id="sep5"></div>
+          <div class="eyebrow" id="ey5">Biggest purchase</div>
+          <div class="headline" id="hl5">Your boldest<br><span class="aw">move.</span></div>
+          <div class="receipt" id="rc5">
+            <div class="receipt-row"><span class="receipt-label">Item</span><span>MacBook Pro M4</span></div>
+            <div class="receipt-row"><span class="receipt-label">Date</span><span>Mar 12, 2025</span></div>
+            <div class="receipt-row"><span class="receipt-label">Merchant</span><span>Apple Store</span></div>
+            <div class="receipt-row"><span class="receipt-label">Amount</span><span class="aw" style="font-weight:700">$3,199.00</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 6: Forecast -->
+      <div class="slide" id="s6">
+        <canvas class="bg" id="c6"></canvas>
+        <div class="stinger" id="sg6">89</div>
+        <div class="inner pos-center" id="i6">
+          <div class="sep-line" id="sep6"></div>
+          <div class="eyebrow" id="ey6">2026 Forecast · AI Powered</div>
+          <div class="headline" id="hl6">Here's what<br><span class="aw">next year</span><br>looks like</div>
+          <div class="bignum aw" id="bn6">$89,400</div>
+          <div class="sub" id="sub6">Projected net worth —<br>financial independence 4 years early.</div>
+        </div>
+      </div>
+
+      <!-- 7: Summary -->
+      <div class="slide" id="s7">
+        <canvas class="bg" id="c7"></canvas>
+        <div class="inner pos-center" id="i7">
+          <div class="sep-line" id="sep7"></div>
+          <div class="eyebrow" id="ey7">You're a Smart Saver 🌱</div>
+          <div class="bignum aw" id="bn7">87</div>
+          <div class="sub" id="sub7">Financial Score / 100 · Top 18%</div>
+          <div class="sum-grid" id="sg7">
+            <div class="sum-cell"><div class="sum-label">Saved</div><div class="sum-val aw">$24.9K</div></div>
+            <div class="sum-cell"><div class="sum-label">Streak</div><div class="sum-val" style="color:#A259FF">9 mo.</div></div>
+            <div class="sum-cell"><div class="sum-label">Top Cat.</div><div class="sum-val" style="color:#3DFFEA">Food 🍜</div></div>
+            <div class="sum-cell"><div class="sum-label">Rank</div><div class="sum-val" style="color:#FFD166">Top 18%</div></div>
+          </div>
+          <button class="share-btn" id="sbtn7">Share My Wrapped ↗</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+<script>
+/* ── COLOR ── */
+function c01(v){return isFinite(v)?Math.max(0,Math.min(1,v)):0}
+function c255(v){return isFinite(v)?Math.max(0,Math.min(255,Math.round(v))):0}
+function h2r(h){const s=(h||'').replace(/[^0-9a-fA-F]/g,'');if(s.length===3)return[parseInt(s[0]+s[0],16),parseInt(s[1]+s[1],16),parseInt(s[2]+s[2],16)];const c=s.padEnd(6,'0');return[parseInt(c.slice(0,2),16)||0,parseInt(c.slice(2,4),16)||0,parseInt(c.slice(4,6),16)||0]}
+function r2h(r,g,b){return'#'+[r,g,b].map(v=>c255(v).toString(16).padStart(2,'0')).join('')}
+function lhex(a,b,t){const A=h2r(a),B=h2r(b),T=c01(t);return r2h(A[0]+(B[0]-A[0])*T,A[1]+(B[1]-A[1])*T,A[2]+(B[2]-A[2])*T)}
+function ahex(col,alpha){return r2h(...h2r(col))+c255(c01(alpha)*255).toString(16).padStart(2,'0')}
+
+/* ── PALETTE ── */
+const PAL=[
+  {ac:'#C8F135',b1:'#1e4a08',b2:'#0b3020',b3:'#4a8020',b1t:'-25%',b1l:'-25%',b2b:'-20%',b2r:'-20%'},
+  {ac:'#FF5050',b1:'#6B0018',b2:'#8B1A1A',b3:'#CC2020',b1t:'-22%',b1l:'-10%',b2b:'-10%',b2r:'-18%'},
+  {ac:'#3DFFEA',b1:'#003D4A',b2:'#001518',b3:'#00BBAA',b1t:'-10%',b1l:'-22%',b2b:'-18%',b2r:'-8%'},
+  {ac:'#FFD166',b1:'#6A3D00',b2:'#3A1A00',b3:'#CC8800',b1t:'-20%',b1l:'-20%',b2b:'-8%', b2r:'-20%'},
+  {ac:'#A259FF',b1:'#2D1060',b2:'#0E0720',b3:'#6020CC',b1t:'-15%',b1l:'-15%',b2b:'-20%',b2r:'-12%'},
+  {ac:'#FF7A3D',b1:'#6A2400',b2:'#3A0E00',b3:'#CC4400',b1t:'-10%',b1l:'-25%',b2b:'-15%',b2r:'-15%'},
+  {ac:'#3DFFEA',b1:'#003040',b2:'#001218',b3:'#008888',b1t:'-25%',b1l:'-15%',b2b:'-10%',b2r:'-25%'},
+  {ac:'#C8F135',b1:'#1e4a08',b2:'#0b3020',b3:'#4a8020',b1t:'-18%',b1l:'-18%',b2b:'-12%',b2r:'-12%'},
+];
+
+/* ── SCALE ── */
+const phone = document.getElementById('phone');
+let PW=0, PH=0;
+
+function applyScale(){
+  const vw=window.innerWidth, vh=window.innerHeight;
+  PW = Math.min(vw, vh*9/19.5);
+  PH = PW*19.5/9;
+  phone.style.width  = PW+'px';
+  phone.style.height = PH+'px';
+  phone.style.borderRadius = Math.min(44, PW*.09)+'px';
+
+  const u = PW/390; // scale factor vs 390px base
+  const pad   = Math.round(28*u);
+  const barH  = Math.round(44*u);
+  const botPad= Math.round(56*u);
+  const topPad= Math.round(62*u);
+  const gapXS = Math.round(6*u);
+  const gapS  = Math.round(10*u);
+  const gapM  = Math.round(16*u);
+  const gapL  = Math.round(24*u);
+
+  const fXXS  = Math.round(8*u)+'px';
+  const fXS   = Math.round(10*u)+'px';
+  const fSM   = Math.round(12.5*u)+'px';
+  const fMD   = Math.round(18*u)+'px';
+  const fLG   = Math.round(30*u)+'px';
+  const fXL   = Math.round(40*u)+'px';
+  const fBIG  = Math.round(74*u)+'px';
+  const fINTRO= Math.round(56*u)+'px';
+
+  // progress bar
+  document.getElementById('bars').style.padding = Math.round(13*u)+'px '+Math.round(14*u)+'px 0';
+
+  // all slides
+  document.querySelectorAll('.slide').forEach(s=>s.style.height=PH+'px');
+
+  // inner padding per position
+  // .inner is position:absolute;inset:0 so it spans full slide height
+  // padding creates the inset zone; justify-content then centers within remaining space
+  document.querySelectorAll('.inner').forEach(el=>{
+    const pos = [...el.classList].find(c=>c.startsWith('pos-'));
+    const hPad = pad+'px';
+    const halfBar = Math.round(barH/2);
+    if(pos==='pos-center'){
+      // Top padding = barH so content never overlaps progress bar
+      // Bottom padding matches so flexbox truly centers the content group
+      el.style.padding = barH+'px '+hPad+' '+barH+'px';
+    } else if(pos==='pos-bottom'){
+      el.style.padding = barH+'px '+hPad+' '+botPad+'px';
+    } else if(pos==='pos-bottom-right'){
+      el.style.padding = barH+'px '+hPad+' '+botPad+'px';
+    } else if(pos==='pos-top'){
+      el.style.padding = topPad+'px '+hPad+' '+Math.round(24*u)+'px';
+    } else if(pos==='pos-split'){
+      el.style.padding = topPad+'px '+hPad+' '+botPad+'px';
+    }
+  });
+
+  // typography
+  document.querySelectorAll('.eyebrow').forEach(el=>el.style.cssText+=`;font-size:${fXS};margin-bottom:${gapS}px`);
+  document.querySelectorAll('.headline').forEach(el=>el.style.fontSize=fXL);
+  document.querySelectorAll('.sub').forEach(el=>el.style.cssText+=`;font-size:${fSM};margin-top:${gapS}px`);
+  // All bignums: constrained, never overflow
+  document.querySelectorAll('.bignum').forEach(el=>{
+    el.style.fontSize=fBIG;
+    el.style.maxWidth='100%';
+    el.style.overflow='hidden';
+    el.style.wordBreak='break-all';
+  });
+  document.querySelectorAll('.mednum').forEach(el=>{el.style.fontSize=fLG;el.style.marginTop=gapS+'px';el.style.marginBottom=gapS+'px'});
+  document.querySelectorAll('.sep-line').forEach(el=>{el.style.width=Math.round(36*u)+'px';el.style.height='2px';el.style.marginBottom=gapS+'px'});
+  document.querySelectorAll('.chip').forEach(el=>{el.style.fontSize=fXS;el.style.padding=Math.round(5*u)+'px '+Math.round(13*u)+'px';el.style.marginBottom=gapS+'px'});
+
+  // slide 0 intro headline bigger
+  const hl0=document.getElementById('hl0');if(hl0)hl0.style.fontSize=fINTRO;
+
+  // Slides with long dollar amounts: use smaller bignum so it fits
+  const longDollarSize = Math.round(52*u)+'px';
+  const bn1=document.getElementById('bn1');if(bn1)bn1.style.fontSize=longDollarSize;
+  const bn3=document.getElementById('bn3');if(bn3)bn3.style.fontSize=longDollarSize;
+  const bn6=document.getElementById('bn6');if(bn6){bn6.style.fontSize=Math.round(52*u)+'px';bn6.style.marginTop=gapM+'px'}
+
+  // bars
+  document.querySelectorAll('.mbar-row').forEach((r,i)=>{
+    r.style.marginTop = (i===0 ? gapM : gapXS)+'px';
+  });
+  document.querySelectorAll('.mbar-label,.mbar-pct').forEach(el=>el.style.fontSize=fXS);
+  document.querySelectorAll('.mbar-label').forEach(el=>el.style.width=Math.round(60*u)+'px');
+  document.querySelectorAll('.mbar-pct').forEach(el=>el.style.width=Math.round(28*u)+'px');
+
+  // month grid
+  document.querySelectorAll('.month-grid').forEach(g=>{g.style.gap=gapXS+'px';g.style.marginTop=gapM+'px'});
+  document.querySelectorAll('.month-cell').forEach(el=>el.style.fontSize=fXXS);
+
+  // receipt
+  document.querySelectorAll('.receipt').forEach(r=>{r.style.borderRadius=Math.round(14*u)+'px';r.style.marginTop=gapM+'px'});
+  document.querySelectorAll('.receipt-row').forEach(r=>{r.style.padding=Math.round(10*u)+'px '+Math.round(14*u)+'px';r.style.fontSize=fSM});
+
+  // summary grid
+  document.querySelectorAll('.sum-grid').forEach(g=>{g.style.gap=gapS+'px';g.style.marginTop=gapM+'px'});
+  document.querySelectorAll('.sum-cell').forEach(c=>{c.style.borderRadius=Math.round(12*u)+'px';c.style.padding=Math.round(12*u)+'px '+Math.round(13*u)+'px'});
+  document.querySelectorAll('.sum-label').forEach(el=>el.style.fontSize=fXXS);
+  document.querySelectorAll('.sum-val').forEach(el=>{el.style.fontSize=fMD;el.style.marginTop=Math.round(3*u)+'px'});
+  document.querySelectorAll('.share-btn').forEach(el=>{el.style.fontSize=fSM;el.style.padding=Math.round(12*u)+'px '+Math.round(36*u)+'px';el.style.marginTop=gapL+'px'});
+
+  // stingers — positioned at corners, sized to ~50% phone width but capped
+  const stingerSize = Math.round(PW*.52);
+  const emojiSize   = Math.round(PW*.32);
+  const configs = {
+    sg0:{size:stingerSize, bottom:-Math.round(PH*.02), right:-Math.round(PW*.05)},
+    sg1:{size:stingerSize, top:-Math.round(PH*.01),   right:-Math.round(PW*.07)},
+    sg2:{size:emojiSize,   bottom:Math.round(PH*.04), left:-Math.round(PW*.02)},
+    sg3:{size:stingerSize, top:-Math.round(PH*.01),   right:-Math.round(PW*.07)},
+    sg5:{size:stingerSize, bottom:-Math.round(PH*.01),right:-Math.round(PW*.05)},
+    sg6:{size:stingerSize, bottom:-Math.round(PH*.02),left:-Math.round(PW*.06)},
+  };
+  Object.entries(configs).forEach(([id,cfg])=>{
+    const el=document.getElementById(id);if(!el)return;
+    el.style.fontSize = cfg.size+'px';
+    el.style.top    = cfg.top    !=null ? cfg.top+'px'    : 'auto';
+    el.style.bottom = cfg.bottom !=null ? cfg.bottom+'px' : 'auto';
+    el.style.left   = cfg.left   !=null ? cfg.left+'px'   : 'auto';
+    el.style.right  = cfg.right  !=null ? cfg.right+'px'  : 'auto';
+  });
+}
+
+/* ── RENDERER ── */
+const e3=t=>1-Math.pow(1-c01(t),3);
+class R{
+  constructor(cv,ac,fn){this.cv=cv;this.ctx=cv.getContext('2d');this.ac=ac;this.fn=fn;this.t=0;this.am=0;this.on=false;this.raf=null}
+  resize(){const d=devicePixelRatio||1;this.cv.width=Math.round(this.cv.offsetWidth*d);this.cv.height=Math.round(this.cv.offsetHeight*d)}
+  start(){this.on=true;this.t=0;this.am=0;this.resize();this._go()}
+  stop(){this.on=false;if(this.raf)cancelAnimationFrame(this.raf)}
+  _go(){if(!this.on)return;this.t+=.007;this.am=Math.min(this.am+.018,1);try{this.fn(this.ctx,this.cv.width,this.cv.height,this.t,this.am,this.ac)}catch(e){}this.raf=requestAnimationFrame(()=>this._go())}
+}
+
+function drawFan(ctx,W,H,t,am,ac){
+  ctx.clearRect(0,0,W,H);const e=e3(am);
+  const dk=lhex('#000000',ac,.12),md=lhex('#111111',ac,.38);
+  function fan(top){
+    const cx=W*.5,ay=top?H*.055:H*.945,L=18,sp=Math.PI*.85*e,mr=Math.min(W,H)*.62;
+    const dr=Math.sin(t*.5+(top?0:Math.PI))*.055,ca=(top?Math.PI*.5:-Math.PI*.5)+dr;
+    const sa=ca-sp/2,st=sp/Math.max(1,L-1);
+    for(let i=L-1;i>=0;i--){
+      const ra=i/(L-1),r=mr*(.22+ra*.78)*e,a0=sa+i*st,a1=a0+st;
+      const ox=Math.cos(a0+Math.PI*.42)*i*2.7,oy=Math.sin(a0+Math.PI*.42)*i*2.7;
+      const col=lhex(dk,md,Math.pow(ra,.65)),rim=lhex(md,ac,ra);
+      ctx.save();ctx.beginPath();ctx.moveTo(cx+ox,ay+oy);
+      for(let s=0;s<=6;s++){const sr=r*(.22+s/6*.78),ag=a0+st*(s%2?0:.13);ctx.lineTo(cx+Math.cos(ag)*sr+ox,ay+Math.sin(ag)*sr+oy)}
+      ctx.arc(cx+ox,ay+oy,r,a0+st*.13,a1,false);
+      for(let s=6;s>=0;s--){const sr=r*(.22+s/6*.78),ag=a1-st*(s%2?0:.13);ctx.lineTo(cx+Math.cos(ag)*sr+ox,ay+Math.sin(ag)*sr+oy)}
+      ctx.closePath();
+      const ma=a0+st*.5,g=ctx.createLinearGradient(cx+ox,ay+oy,cx+Math.cos(ma)*r*.85+ox,ay+Math.sin(ma)*r*.85+oy);
+      g.addColorStop(0,ahex(col,.73));g.addColorStop(.6,ahex(rim,.8));g.addColorStop(1,ahex(ac,.87));
+      ctx.fillStyle=g;ctx.fill();ctx.strokeStyle=ahex(ac,.13);ctx.lineWidth=.8/(devicePixelRatio||1);ctx.stroke();ctx.restore();
+    }
+  }
+  fan(true);fan(false);
+}
+function drawRings(ctx,W,H,t,am,ac){
+  ctx.clearRect(0,0,W,H);const e=e3(am),cx=W*.15,cy=H*.8;
+  [.95,.78,.63,.49,.36,.25,.16].forEach((r,i)=>{
+    const rad=Math.min(W,H)*r*e*(1+Math.sin(t*.4+i*.5)*.025),al=c01((.38-i*.04)*e);if(al<.005)return;
+    ctx.beginPath();ctx.arc(cx,cy,rad,0,Math.PI*2);ctx.strokeStyle=ahex(ac,al);ctx.lineWidth=Math.max(.3,2.8-i*.3)/(devicePixelRatio||1);ctx.stroke();
+  });
+  ctx.beginPath();ctx.arc(cx,cy,6*e,0,Math.PI*2);ctx.fillStyle=ahex(ac,.65);ctx.fill();
+}
+function drawSlashes(ctx,W,H,t,am,ac){
+  ctx.clearRect(0,0,W,H);const e=e3(am),n=13,sp=W*.065;
+  for(let i=0;i<n;i++){
+    const p=c01((e*n-i)/2);if(p<.005)continue;
+    const x=W*.05+i*sp,dr=Math.sin(t*.6+i*.3)*3,al=c01((.55-(i/n)*.32)*p);
+    ctx.save();ctx.strokeStyle=ahex(ac,al);ctx.lineWidth=Math.max(.4,3.5-i*.2)/(devicePixelRatio||1);ctx.lineCap='round';
+    ctx.beginPath();ctx.moveTo(x+dr,-H*.05);ctx.lineTo(x-H*.55+dr,H*1.05);ctx.stroke();ctx.restore();
+  }
+}
+function drawBands(ctx,W,H,t,am,ac){
+  ctx.clearRect(0,0,W,H);const e=e3(am);
+  for(let i=0;i<6;i++){
+    const ra=i/5,wa=Math.sin(t*.5+i*.8)*5,al=c01((.22-ra*.13)*e);if(al<.005)continue;
+    const bw=Math.max(1,W*(ra*.6+.25)*e+wa);
+    const g=ctx.createLinearGradient(0,0,bw,0);g.addColorStop(0,ahex(ac,al));g.addColorStop(1,ahex(ac,0));
+    ctx.fillStyle=g;ctx.beginPath();ctx.roundRect(0,i*(H/6)+wa*.4,bw,(H/6)*.65,3);ctx.fill();
+  }
+}
+function drawDots(ctx,W,H,t,am,ac){
+  ctx.clearRect(0,0,W,H);const e=e3(am),cols=8,rows=13,gw=W*.82,gh=H*.72,ox=(W-gw)/2,oy=(H-gh)/2;
+  const cw=gw/Math.max(1,cols-1),rh=gh/Math.max(1,rows-1);
+  for(let r=0;r<rows;r++)for(let c=0;c<cols;c++){
+    const idx=r*cols+c,p=c01((e*rows*cols*1.1-idx)/7);if(p<.01)continue;
+    const px=ox+c*cw,py=oy+r*rh,wb=Math.sin(t*.7+idx*.3)*1.2;
+    const dx=(c-(cols-1)/2)/(cols/2),dy=(r-(rows-1)/2)/(rows/2),dist=Math.sqrt(dx*dx+dy*dy);
+    ctx.beginPath();ctx.arc(px+wb,py+wb*.5,Math.max(.1,(2.2-dist*.35)*p),0,Math.PI*2);
+    ctx.fillStyle=ahex(ac,c01((.55-dist*.18)*p));ctx.fill();
+  }
+}
+function drawArcs(ctx,W,H,t,am,ac){
+  ctx.clearRect(0,0,W,H);const e=e3(am),cx=W*.88,cy=H*.1;
+  [{r:.82,a:.38},{r:.67,a:.30},{r:.54,a:.23},{r:.42,a:.17},{r:.31,a:.12}].forEach(({r,a},i)=>{
+    const rad=Math.min(W,H)*r*e,dr=Math.sin(t*.4+i*.6)*.04;
+    ctx.save();ctx.beginPath();ctx.arc(cx,cy,rad,Math.PI*(.28+dr),Math.PI*(1.22+dr));
+    ctx.strokeStyle=ahex(ac,c01(a*e));ctx.lineWidth=Math.max(.3,3-i*.45)/(devicePixelRatio||1);ctx.lineCap='round';ctx.stroke();ctx.restore();
+  });
+  const gr=Math.min(W,H)*.16*e;if(gr>0){const g=ctx.createRadialGradient(cx,cy,0,cx,cy,gr);g.addColorStop(0,ahex(ac,.32));g.addColorStop(1,ahex(ac,0));ctx.beginPath();ctx.arc(cx,cy,gr,0,Math.PI*2);ctx.fillStyle=g;ctx.fill()}
+}
+function drawRays(ctx,W,H,t,am,ac){
+  ctx.clearRect(0,0,W,H);const e=e3(am),ox=W*.04,oy=H*.96;
+  for(let i=0;i<22;i++){
+    const ra=i/21,ang=-Math.PI*.04+Math.PI*.68*ra,len=Math.min(W,H)*(1.05+ra*.45)*e;
+    const dr=Math.sin(t*.5+i*.4)*.014,al=c01((.42-ra*.24)*e);if(al<.005)continue;
+    ctx.save();ctx.beginPath();ctx.moveTo(ox,oy);ctx.lineTo(ox+Math.cos(ang+dr)*len,oy+Math.sin(ang+dr)*len);
+    ctx.strokeStyle=ahex(ac,al);ctx.lineWidth=Math.max(.3,2.8-ra*1.4)/(devicePixelRatio||1);ctx.lineCap='round';ctx.stroke();ctx.restore();
+  }
+}
+function drawFanTop(ctx,W,H,t,am,ac){
+  ctx.clearRect(0,0,W,H);const e=e3(am),cx=W*.5,ay=H*.055,L=20,sp=Math.PI*.9*e,mr=Math.min(W,H)*.7;
+  const ca=Math.PI*.5+Math.sin(t*.5)*.06,sa=ca-sp/2,st=sp/Math.max(1,L-1);
+  const dk=lhex('#000000',ac,.12),md=lhex('#111111',ac,.38);
+  for(let i=L-1;i>=0;i--){
+    const ra=i/(L-1),r=mr*(.2+ra*.8)*e,a0=sa+i*st,a1=a0+st;
+    const ox2=Math.cos(a0+Math.PI*.42)*i*2.8,oy2=Math.sin(a0+Math.PI*.42)*i*2.8;
+    const col=lhex(dk,md,Math.pow(ra,.65)),rim=lhex(md,ac,ra);
+    ctx.save();ctx.beginPath();ctx.moveTo(cx+ox2,ay+oy2);
+    for(let s=0;s<=6;s++){const sr=r*(.2+s/6*.8),ag=a0+st*(s%2?0:.13);ctx.lineTo(cx+Math.cos(ag)*sr+ox2,ay+Math.sin(ag)*sr+oy2)}
+    ctx.arc(cx+ox2,ay+oy2,r,a0+st*.13,a1,false);
+    for(let s=6;s>=0;s--){const sr=r*(.2+s/6*.8),ag=a1-st*(s%2?0:.13);ctx.lineTo(cx+Math.cos(ag)*sr+ox2,ay+Math.sin(ag)*sr+oy2)}
+    ctx.closePath();
+    const ma=a0+st*.5,g=ctx.createLinearGradient(cx+ox2,ay+oy2,cx+Math.cos(ma)*r*.85+ox2,ay+Math.sin(ma)*r*.85+oy2);
+    g.addColorStop(0,ahex(col,.73));g.addColorStop(.6,ahex(rim,.8));g.addColorStop(1,ahex(ac,.87));
+    ctx.fillStyle=g;ctx.fill();ctx.strokeStyle=ahex(ac,.13);ctx.lineWidth=.8/(devicePixelRatio||1);ctx.stroke();ctx.restore();
+  }
+}
+
+const FNS=[drawFan,drawRings,drawSlashes,drawBands,drawDots,drawArcs,drawRays,drawFanTop];
+
+/* ── SETUP ── */
+const track=document.getElementById('track');
+const slides=[...document.querySelectorAll('.slide')];
+const N=slides.length;
+
+// Apply scale FIRST before anything else renders
+applyScale();
+
+const rends=slides.map((s,i)=>new R(document.getElementById('c'+i),PAL[i].ac,FNS[i]));
+
+/* bars */
+const barsEl=document.getElementById('bars'),fills=[];
+for(let i=0;i<N;i++){const b=document.createElement('div');b.className='bar';const f=document.createElement('div');f.className='bar-fill';b.appendChild(f);barsEl.appendChild(b);fills.push(f)}
+function setBars(c,p){fills.forEach((f,i)=>f.style.width=i<c?'100%':i===c?(p*100)+'%':'0%')}
+
+/* bg */
+const bl1=document.getElementById('b1'),bl2=document.getElementById('b2'),bl3=document.getElementById('b3');
+function morphBg(i){const p=PAL[i];bl1.style.background=p.b1;bl1.style.top=p.b1t;bl1.style.left=p.b1l;bl2.style.background=p.b2;bl2.style.bottom=p.b2b;bl2.style.right=p.b2r;bl3.style.background=p.b3;bl3.style.top=(25+i*9)+'%';bl3.style.left=(20+Math.sin(i)*15)+'%'}
+
+function applyAccent(i){
+  const ac=PAL[i].ac;
+  slides[i].querySelectorAll('.aw').forEach(el=>el.style.color=ac);
+  const sep=slides[i].querySelector('.sep-line');if(sep)sep.style.background=ac;
+  const chip=slides[i].querySelector('.chip');if(chip){chip.style.borderColor=ahex(ac,.35);chip.style.color=ac}
+}
+
+/* track nav */
+let cur=0,busy=false,timerRAF=null,timerStart=null;
+const DUR=6500;
+
+function posTrack(i,anim){
+  if(anim)track.classList.add('sliding');else track.classList.remove('sliding');
+  track.style.transform=`translateY(${-i*PH}px)`;
+}
+function triggerIn(i){const s=slides[i];s.classList.remove('slide-in');void s.offsetWidth;s.classList.add('slide-in')}
+
+function goTo(i){
+  if(busy||i<0||i>=N)return;
+  busy=true;stopTimer();rends[cur].stop();posTrack(i,true);
+  setTimeout(()=>{
+    cur=i;rends[cur].start();morphBg(cur);applyAccent(cur);triggerIn(cur);
+    setTimeout(()=>{busy=false;startTimer()},80);
+  },720);
+}
+
+function startTimer(){
+  timerStart=performance.now();
+  function tick(now){const p=Math.min((now-timerStart)/DUR,1);setBars(cur,p);if(p>=1){if(cur<N-1)goTo(cur+1);else setBars(cur,1);return}timerRAF=requestAnimationFrame(tick)}
+  timerRAF=requestAnimationFrame(tick);
+}
+function stopTimer(){if(timerRAF){cancelAnimationFrame(timerRAF);timerRAF=null}}
+
+/* input */
+document.getElementById('tap-prev').onclick=()=>goTo(cur-1);
+document.getElementById('tap-next').onclick=()=>goTo(cur+1);
+let ty=null,tx=null;
+phone.addEventListener('touchstart',e=>{ty=e.touches[0].clientY;tx=e.touches[0].clientX},{passive:true});
+phone.addEventListener('touchend',e=>{if(ty==null)return;const dy=e.changedTouches[0].clientY-ty,dx=e.changedTouches[0].clientX-tx;if(Math.abs(dy)>Math.abs(dx)&&Math.abs(dy)>38)goTo(dy<0?cur+1:cur-1);else if(Math.abs(dx)>Math.abs(dy)&&Math.abs(dx)>38)goTo(dx<0?cur+1:cur-1);ty=null},{passive:true});
+let md=false,my=0,mx=0;
+phone.addEventListener('mousedown',e=>{md=true;my=e.clientY;mx=e.clientX});
+phone.addEventListener('mouseup',e=>{if(!md)return;md=false;const dy=e.clientY-my,dx=e.clientX-mx;if(Math.abs(dy)>48&&Math.abs(dy)>Math.abs(dx))goTo(dy<0?cur+1:cur-1);else if(Math.abs(dx)>48&&Math.abs(dx)>Math.abs(dy))goTo(dx<0?cur+1:cur-1)});
+document.addEventListener('keydown',e=>{if(e.key==='ArrowDown'||e.key==='ArrowRight')goTo(cur+1);if(e.key==='ArrowUp'||e.key==='ArrowLeft')goTo(cur-1)});
+
+window.addEventListener('resize',()=>{applyScale();if(rends[cur])rends[cur].resize();posTrack(cur,false)});
+
+/* boot */
+posTrack(0,false);morphBg(0);applyAccent(0);rends[0].start();triggerIn(0);startTimer();
+</script>
+</body>
+</html>

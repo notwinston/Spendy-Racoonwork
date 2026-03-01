@@ -130,7 +130,7 @@ export async function loadDemoTransactions(
     is_recurring: raw.is_recurring,
     recurring_group_id: null,
     reviewed: false,
-    notes: null,
+    notes: raw.notes ?? null,
     created_at: new Date().toISOString(),
   }));
 

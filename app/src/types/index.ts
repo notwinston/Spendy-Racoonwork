@@ -413,6 +413,7 @@ export interface DemoTransaction {
   category: EventCategory;
   date: string;
   is_recurring: boolean;
+  notes?: string | null;
 }
 
 // -- LLM Types (for prediction engine) --

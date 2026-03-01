@@ -87,7 +87,7 @@ function formatCurrency(amount: number): string {
 export default function TransactionReviewScreen() {
   const router = useRouter();
   const user = useAuthStore((s) => s.user);
-  const { transactions, loadDemoData, isLoading } = useTransactionStore();
+  const { transactions, loadDemoData, isLoading, updateTransaction } = useTransactionStore();
   const { events } = useCalendarStore();
 
   // Local state for category picker
@@ -95,6 +95,9 @@ export default function TransactionReviewScreen() {
 
   // Local state for notes per transaction
   const [txnNotes, setTxnNotes] = useState<Record<string, string>>({});
+
+  // Category filter
+  const [selectedCategory, setSelectedCategory] = useState<EventCategory | 'all'>('all');
 
   // Local optimistic state for transactions being modified
   const [localUpdates, setLocalUpdates] = useState<
@@ -107,6 +110,17 @@ export default function TransactionReviewScreen() {
       loadDemoData(user.id);
     }
   }, [user?.id, transactions.length, loadDemoData]);
+
+  // Initialize notes from existing transaction data
+  useEffect(() => {
+    const initialNotes: Record<string, string> = {};
+    transactions.forEach((t) => {
+      if (t.notes && t.notes !== 'excluded') {
+        initialNotes[t.id] = t.notes;
+      }
+    });
+    setTxnNotes(initialNotes);
+  }, [transactions]);
 
   // Unreviewed transactions
   const unreviewedTransactions = useMemo(() => {
@@ -126,6 +140,22 @@ export default function TransactionReviewScreen() {
     }).length;
   }, [transactions, localUpdates]);
 
+  const categoriesInUse = useMemo(() => {
+    const cats = new Set(unreviewedTransactions.map((t) => {
+      const updates = localUpdates.get(t.id);
+      return updates?.category ?? t.category;
+    }));
+    return CATEGORIES.filter((c) => cats.has(c));
+  }, [unreviewedTransactions, localUpdates]);
+
+  const filteredTransactions = useMemo(() => {
+    if (selectedCategory === 'all') return unreviewedTransactions;
+    return unreviewedTransactions.filter((t) => {
+      const updates = localUpdates.get(t.id);
+      return (updates?.category ?? t.category) === selectedCategory;
+    });
+  }, [unreviewedTransactions, selectedCategory, localUpdates]);
+
   const getTransaction = useCallback(
     (txn: Transaction): Transaction => {
       const updates = localUpdates.get(txn.id);
@@ -142,7 +172,8 @@ export default function TransactionReviewScreen() {
       next.set(txnId, { ...existing, reviewed: true });
       return next;
     });
-  }, []);
+    updateTransaction(txnId, { reviewed: true, notes: txnNotes[txnId] || null });
+  }, [updateTransaction, txnNotes]);
 
   const changeCategory = useCallback((txnId: string, category: EventCategory) => {
     setLocalUpdates((prev) => {
@@ -152,7 +183,8 @@ export default function TransactionReviewScreen() {
       return next;
     });
     setCategoryPickerTxnId(null);
-  }, []);
+    updateTransaction(txnId, { category });
+  }, [updateTransaction]);
 
   const toggleRecurring = useCallback((txnId: string, currentRecurring: boolean) => {
     setLocalUpdates((prev) => {
@@ -161,7 +193,8 @@ export default function TransactionReviewScreen() {
       next.set(txnId, { ...existing, is_recurring: !currentRecurring });
       return next;
     });
-  }, []);
+    updateTransaction(txnId, { is_recurring: !currentRecurring });
+  }, [updateTransaction]);
 
   const excludeTransaction = useCallback((txnId: string) => {
     setLocalUpdates((prev) => {
@@ -170,7 +203,8 @@ export default function TransactionReviewScreen() {
       next.set(txnId, { ...existing, reviewed: true, notes: 'excluded' });
       return next;
     });
-  }, []);
+    updateTransaction(txnId, { reviewed: true, notes: 'excluded' });
+  }, [updateTransaction]);
 
   if (isLoading) {
     return (
@@ -225,8 +259,41 @@ export default function TransactionReviewScreen() {
         </View>
       </View>
 
+      {/* Category Filter */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.filterRow}
+        contentContainerStyle={styles.filterRowContent}
+      >
+        <TouchableOpacity
+          style={[styles.filterChip, selectedCategory === 'all' && styles.filterChipActive]}
+          onPress={() => setSelectedCategory('all')}
+        >
+          <Text style={[styles.filterChipText, selectedCategory === 'all' && styles.filterChipTextActive]}>
+            All
+          </Text>
+        </TouchableOpacity>
+        {categoriesInUse.map((cat) => (
+          <TouchableOpacity
+            key={cat}
+            style={[styles.filterChip, selectedCategory === cat && styles.filterChipActive]}
+            onPress={() => setSelectedCategory(cat)}
+          >
+            <Ionicons
+              name={CATEGORY_ICONS[cat] as keyof typeof Ionicons.glyphMap}
+              size={14}
+              color={selectedCategory === cat ? Colors.textPrimary : Colors.textMuted}
+            />
+            <Text style={[styles.filterChipText, selectedCategory === cat && styles.filterChipTextActive]}>
+              {CATEGORY_LABELS[cat]}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        {unreviewedTransactions.length === 0 ? (
+        {filteredTransactions.length === 0 ? (
           <View style={styles.emptyState}>
             <Ionicons name="checkmark-circle" size={64} color={Colors.accent} />
             <Text style={styles.emptyStateTitle}>All caught up!</Text>
@@ -240,7 +307,7 @@ export default function TransactionReviewScreen() {
             />
           </View>
         ) : (
-          unreviewedTransactions.map((rawTxn) => {
+          filteredTransactions.map((rawTxn) => {
             const txn = getTransaction(rawTxn);
             const iconName = CATEGORY_ICONS[txn.category] ?? 'ellipsis-horizontal';
             return (
@@ -634,17 +701,21 @@ const styles = StyleSheet.create({
   // Action Row
   actionRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     marginTop: Spacing.md,
     gap: Spacing.sm,
   },
   actionButton: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: 4,
     paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.sm,
+    paddingHorizontal: Spacing.md,
     borderRadius: 8,
     backgroundColor: Colors.cardBorder,
+    flex: 1,
+    minWidth: 80,
   },
   actionPrimary: {
     backgroundColor: Colors.accent,
@@ -729,6 +800,34 @@ const styles = StyleSheet.create({
   },
   categoryOptionTextSelected: {
     color: Colors.accent,
+    fontWeight: Typography.weights.semibold,
+  },
+  // Category Filter Chips
+  filterRow: {
+    marginBottom: Spacing.sm,
+    paddingHorizontal: Spacing.lg,
+  },
+  filterRowContent: {
+    gap: Spacing.sm,
+  },
+  filterChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 6,
+    borderRadius: 16,
+    backgroundColor: Colors.cardBorder,
+  },
+  filterChipActive: {
+    backgroundColor: Colors.accent,
+  },
+  filterChipText: {
+    fontSize: Typography.sizes.sm,
+    color: Colors.textMuted,
+  },
+  filterChipTextActive: {
+    color: Colors.textPrimary,
     fontWeight: Typography.weights.semibold,
   },
 });

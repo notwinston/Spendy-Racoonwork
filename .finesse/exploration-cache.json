@@ -1,0 +1,51 @@
+{
+  "baseline": {
+    "commit_hash": "2f21a5710a0a361934ee42d9de25523c29597317",
+    "last_confirmed": "2026-03-01",
+    "framework": "React Native 0.81.5 + Expo ~54.0 + Expo Router 6.0.23",
+    "state_management": "Zustand v5.0.11",
+    "styling": "StyleSheet.create with custom design tokens (Colors, Typography, Spacing)",
+    "fonts": ["Syne_700Bold", "Syne_800ExtraBold", "DMMono_400Regular", "DMMono_500Medium", "DMSans_400Regular", "DMSans_500Medium", "DMSans_600SemiBold", "DMSans_700Bold"],
+    "directory_structure": {
+      "app_root": "/workspace/app",
+      "screens": "/workspace/app/app",
+      "tabs": "/workspace/app/app/(tabs)",
+      "components": "/workspace/app/src/components",
+      "stores": "/workspace/app/src/stores",
+      "services": "/workspace/app/src/services",
+      "types": "/workspace/app/src/types",
+      "constants": "/workspace/app/src/constants",
+      "utils": "/workspace/app/src/utils",
+      "hooks": "/workspace/app/src/hooks"
+    },
+    "patterns": {
+      "navigation": "Expo Router file-based, 5-tab layout, modals via presentation:'modal' + slide_from_bottom",
+      "modals": "React Native Modal component with transparent overlay, PanResponder for swipe-dismiss (ChatSheet pattern)",
+      "animations": "React Native Animated API + react-native-reanimated v4.1.1 + react-native-gesture-handler v2.28.0",
+      "charts": "react-native-svg v15.12.1 for all charts (HealthScoreRing, TrendLineChart, DonutChart, SpendingTrajectoryChart)",
+      "cards": "Custom Card component (bgCard background, borderSubtle border, radiusLg border-radius)"
+    }
+  },
+  "entries": [
+    {
+      "keywords": ["wrapped", "dashboard", "widget", "monthly", "flashback", "budget"],
+      "directory_scope": "app/app/(tabs), app/src/components, app/src/stores",
+      "referenced_files": [
+        "app/app/(tabs)/dashboard.tsx",
+        "app/app/_layout.tsx",
+        "app/src/constants/colors.ts",
+        "app/src/constants/typography.ts",
+        "app/src/constants/spacing.ts",
+        "app/src/types/index.ts",
+        "app/src/stores/transactionStore.ts",
+        "app/src/stores/budgetStore.ts",
+        "app/src/stores/authStore.ts",
+        "app/src/stores/gamificationStore.ts",
+        "app/src/utils/financialCalcs.ts",
+        "app/src/components/ui/Card.tsx",
+        "app/src/components/ChatSheet.tsx"
+      ],
+      "summary": "Dashboard has DailyBriefCard then Hero Budget Card. Transaction/budget stores have full monthly data. Existing animation patterns use Animated API and reanimated. SVG used for all charts. Modals use slide_from_bottom presentation."
+    }
+  ]
+}

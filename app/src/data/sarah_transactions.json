@@ -102,21 +102,24 @@
     "merchant_name": "Craft Beer Market",
     "category": "entertainment",
     "date": "2025-12-05",
-    "is_recurring": false
+    "is_recurring": false,
+    "notes": "Birthday dinner with friends"
   },
   {
     "amount": 10.99,
     "merchant_name": "Spotify",
     "category": "entertainment",
     "date": "2025-12-05",
-    "is_recurring": true
+    "is_recurring": true,
+    "notes": "Monthly music subscription"
   },
   {
     "amount": 51.57,
     "merchant_name": "No Frills — Kingsway",
     "category": "groceries",
     "date": "2025-12-06",
-    "is_recurring": false
+    "is_recurring": false,
+    "notes": "Weekly grocery run"
   },
   {
     "amount": 32.14,
@@ -165,7 +168,8 @@
     "merchant_name": "Evo Car Share",
     "category": "transport",
     "date": "2025-12-10",
-    "is_recurring": false
+    "is_recurring": false,
+    "notes": "Ride to dentist appointment"
   },
   {
     "amount": 37.06,
@@ -200,14 +204,16 @@
     "merchant_name": "Rec Room",
     "category": "entertainment",
     "date": "2025-12-12",
-    "is_recurring": false
+    "is_recurring": false,
+    "notes": "Game night with classmates"
   },
   {
     "amount": 5,
     "merchant_name": "Netflix",
     "category": "entertainment",
     "date": "2025-12-12",
-    "is_recurring": true
+    "is_recurring": true,
+    "notes": "Netflix subscription"
   },
   {
     "amount": 6.75,
@@ -221,7 +227,8 @@
     "merchant_name": "Nero Waffle Bar",
     "category": "dining",
     "date": "2025-12-13",
-    "is_recurring": false
+    "is_recurring": false,
+    "notes": "Weekend brunch with roommates"
   },
   {
     "amount": 42.03,
@@ -312,7 +319,8 @@
     "merchant_name": "Adobe",
     "category": "education",
     "date": "2025-12-18",
-    "is_recurring": true
+    "is_recurring": true,
+    "notes": "Creative Cloud for school projects"
   },
   {
     "amount": 9.86,
@@ -333,7 +341,8 @@
     "merchant_name": "Score on Davie",
     "category": "entertainment",
     "date": "2025-12-19",
-    "is_recurring": false
+    "is_recurring": false,
+    "notes": "Watching Canucks game"
   },
   {
     "amount": 10.82,
@@ -403,7 +412,8 @@
     "merchant_name": "Safeway — Groceries",
     "category": "groceries",
     "date": "2025-12-24",
-    "is_recurring": false
+    "is_recurring": false,
+    "notes": "Christmas dinner groceries"
   },
   {
     "amount": 8.48,
@@ -501,7 +511,8 @@
     "merchant_name": "BC Liquor Store",
     "category": "entertainment",
     "date": "2025-12-31",
-    "is_recurring": false
+    "is_recurring": false,
+    "notes": "New Year's Eve party supplies"
   },
   {
     "amount": 6.35,
@@ -529,7 +540,8 @@
     "merchant_name": "Deacon's Corner",
     "category": "dining",
     "date": "2026-01-03",
-    "is_recurring": false
+    "is_recurring": false,
+    "notes": "Brunch with study group"
   },
   {
     "amount": 55.52,
@@ -620,7 +632,8 @@
     "merchant_name": "Daiso",
     "category": "shopping",
     "date": "2026-01-11",
-    "is_recurring": false
+    "is_recurring": false,
+    "notes": "Dorm room supplies"
   },
   {
     "amount": 5,
@@ -676,7 +689,8 @@
     "merchant_name": "Supercuts",
     "category": "personal",
     "date": "2026-01-15",
-    "is_recurring": false
+    "is_recurring": false,
+    "notes": "Haircut before semester starts"
   },
   {
     "amount": 9.11,
@@ -711,7 +725,8 @@
     "merchant_name": "Uniqlo",
     "category": "shopping",
     "date": "2026-01-17",
-    "is_recurring": false
+    "is_recurring": false,
+    "notes": "Winter jacket on sale"
   },
   {
     "amount": 47.4,
@@ -830,7 +845,8 @@
     "merchant_name": "Cineplex Theatres",
     "category": "entertainment",
     "date": "2026-01-23",
-    "is_recurring": false
+    "is_recurring": false,
+    "notes": "Movie night — new Marvel film"
   },
   {
     "amount": 10.98,
@@ -844,7 +860,8 @@
     "merchant_name": "OEB Breakfast Co.",
     "category": "dining",
     "date": "2026-01-24",
-    "is_recurring": false
+    "is_recurring": false,
+    "notes": "Treat myself — end of exams"
   },
   {
     "amount": 5.56,
@@ -893,7 +910,8 @@
     "merchant_name": "Cafe Medina",
     "category": "dining",
     "date": "2026-01-26",
-    "is_recurring": false
+    "is_recurring": false,
+    "notes": "Sunday brunch downtown"
   },
   {
     "amount": 10.48,
@@ -970,7 +988,8 @@
     "merchant_name": "Amazon.ca",
     "category": "shopping",
     "date": "2026-01-28",
-    "is_recurring": false
+    "is_recurring": false,
+    "notes": "Textbook for CMPT 276"
   },
   {
     "amount": 7.01,
@@ -1145,7 +1164,8 @@
     "merchant_name": "SFU Bookstore",
     "category": "education",
     "date": "2026-02-07",
-    "is_recurring": false
+    "is_recurring": false,
+    "notes": "Lab notebook and supplies"
   },
   {
     "amount": 8.91,
@@ -1236,7 +1256,8 @@
     "merchant_name": "Earls Kitchen",
     "category": "dining",
     "date": "2026-02-13",
-    "is_recurring": false
+    "is_recurring": false,
+    "notes": "Valentine's Day dinner"
   },
   {
     "amount": 45.7,
@@ -1390,7 +1411,8 @@
     "merchant_name": "Jam Cafe",
     "category": "dining",
     "date": "2026-02-24",
-    "is_recurring": false
+    "is_recurring": false,
+    "notes": "Brunch catch-up with friends"
   },
   {
     "amount": 6.85,
@@ -1460,7 +1482,8 @@
     "merchant_name": "Fantacity Karaoke",
     "category": "entertainment",
     "date": "2026-02-27",
-    "is_recurring": false
+    "is_recurring": false,
+    "notes": "Karaoke night with classmates"
   },
   {
     "amount": 8.66,
