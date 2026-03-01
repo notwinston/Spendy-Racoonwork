@@ -247,13 +247,13 @@ export function calculateVelocityTrend(transactions: Transaction[]): number {
  * Get month-over-month category comparison.
  * Returns array of { category, thisMonth, lastMonth, changePercent }.
  */
-export function getCategoryMoM(transactions: Transaction[]): {
+export function getCategoryMoM(transactions: Transaction[], referenceDate?: Date): {
   category: string;
   thisMonth: number;
   lastMonth: number;
   changePercent: number;
 }[] {
-  const now = new Date();
+  const now = referenceDate ?? new Date();
   const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
   const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
   const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
@@ -293,8 +293,9 @@ export function getCategoryMoM(transactions: Transaction[]): {
 export function getMonthlyTotals(
   transactions: Transaction[],
   months: number = 6,
+  referenceDate?: Date,
 ): { label: string; value: number }[] {
-  const now = new Date();
+  const now = referenceDate ?? new Date();
   const result: { label: string; value: number }[] = [];
 
   const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];

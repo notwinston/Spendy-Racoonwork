@@ -470,8 +470,9 @@ export function forecastMonthEnd(
  */
 export function detectAnomalies(
   transactions: Transaction[],
+  referenceDate?: Date,
 ): Array<{ category: string; amount: number; average: number; multiplier: number }> {
-  const now = new Date();
+  const now = referenceDate ?? new Date();
   const threeMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 3, 1);
   const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 

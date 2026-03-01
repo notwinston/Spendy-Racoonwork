@@ -332,8 +332,8 @@ export function calculateHealthScoreV2(
  * Lower CV = more stable spending = higher score.
  * Returns 0-100.
  */
-export function calculateSpendingStability(transactions: Transaction[]): number {
-  const now = new Date();
+export function calculateSpendingStability(transactions: Transaction[], referenceDate?: Date): number {
+  const now = referenceDate ?? new Date();
   const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
   // Filter to last 30 days, only spending (negative or absolute amounts)
@@ -550,8 +550,9 @@ export function calculateEventCostVariance(
 export function suggestCategoryBudgets(
   transactions: Transaction[],
   budgets: Array<{ category: EventCategory; monthly_limit: number }>,
+  referenceDate?: Date,
 ): Array<{ category: string; currentBudget: number; suggestedBudget: number; reason: string }> {
-  const now = new Date();
+  const now = referenceDate ?? new Date();
   const threeMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 3, 1);
 
   // Calculate 3-month average per category
